@@ -25,7 +25,7 @@ inline constexpr int TRAY_ANIM_FRAME_COUNT  = 6;
 inline constexpr int TRAY_ICON_SIZE = 16;
 
 /// Размер popup-меню
-inline constexpr int MENU_WIDTH  = 280;
+inline constexpr int MENU_WIDTH  = 240;
 
 /// Максимальное количество точек данных для расчёта дельты RX/TX
 inline constexpr int STATS_HISTORY_SIZE = 500;

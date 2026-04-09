@@ -54,17 +54,17 @@ void TrayMenu::buildLayout() {
         }
         QPushButton {
             color: #ddd;
-            background-color: #3b3b3b;
-            border: 1px solid #555;
-            border-radius: 3px;
-            padding: 4px 8px;
+            background-color: transparent;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 16px;
             text-align: left;
         }
         QPushButton:hover {
-            background-color: #4a4a4a;
+            background-color: #3a3a3a;
         }
         QPushButton:pressed {
-            background-color: #555;
+            background-color: #444;
         }
     )");
 
@@ -80,12 +80,11 @@ void TrayMenu::buildLayout() {
     auto* line = new QFrame(this);
     line->setFrameShape(QFrame::HLine);
     line->setFrameShadow(QFrame::Sunken);
-    line->setStyleSheet("background-color: #555;");
+    line->setStyleSheet("QFrame { background-color: #555; margin: 0 6px; }");
     mainLayout->addWidget(line);
 
     // Кнопка Старт/Стоп
     m_toggleButton = new QPushButton("Старт", this);
-    m_toggleButton->setCursor(Qt::PointingHandCursor);
     connect(m_toggleButton, &QPushButton::clicked, this, [this]() {
         if (m_toggleButton->text() == "Старт") {
             emit startRequested();
@@ -99,28 +98,11 @@ void TrayMenu::buildLayout() {
     auto* line1 = new QFrame(this);
     line1->setFrameShape(QFrame::HLine);
     line1->setFrameShadow(QFrame::Sunken);
-    line1->setStyleSheet("background-color: #555;");
+    line1->setStyleSheet("QFrame { background-color: #555; margin: 0 6px; }");
     mainLayout->addWidget(line1);
 
     // Кнопка Подключить Telegram
     m_telegramButton = new QPushButton("Подключить Telegram", this);
-    m_telegramButton->setCursor(Qt::PointingHandCursor);
-    m_telegramButton->setStyleSheet(R"(
-        QPushButton {
-            color: #ddd;
-            background-color: #3b3b3b;
-            border: 1px solid #555;
-            border-radius: 3px;
-            padding: 4px 8px;
-            text-align: left;
-        }
-        QPushButton:hover {
-            background-color: #4a4a4a;
-        }
-        QPushButton:pressed {
-            background-color: #555;
-        }
-    )");
     connect(m_telegramButton, &QPushButton::clicked, this, [this]() {
         emit configureTelegramRequested();
     });
@@ -130,21 +112,22 @@ void TrayMenu::buildLayout() {
     auto* line2 = new QFrame(this);
     line2->setFrameShape(QFrame::HLine);
     line2->setFrameShadow(QFrame::Sunken);
-    line2->setStyleSheet("background-color: #555;");
+    line2->setStyleSheet("QFrame { background-color: #555; margin: 0 6px; }");
     mainLayout->addWidget(line2);
 
     // Кнопка Выход
     m_exitButton = new QPushButton("Выход", this);
-    m_exitButton->setCursor(Qt::PointingHandCursor);
     connect(m_exitButton, &QPushButton::clicked, this, [this]() {
         emit exitRequested();
     });
     mainLayout->addWidget(m_exitButton);
 }
 
-void TrayMenu::setStats(uint64_t uptimeSecs, uint64_t websocketActive) {
+void TrayMenu::setStats(uint64_t uptimeSecs, uint64_t websocketActive,
+                        double peakRx, double peakTx,
+                        uint64_t totalRx, uint64_t totalTx) {
     if (m_statsPanel)
-        m_statsPanel->updateStats(uptimeSecs, websocketActive);
+        m_statsPanel->updateStats(uptimeSecs, websocketActive, peakRx, peakTx, totalRx, totalTx);
 }
 
 void TrayMenu::addSparklinePoint(double rxBytesPerSec, double txBytesPerSec) {

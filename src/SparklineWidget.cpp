@@ -38,12 +38,17 @@ void SparklineWidget::clear() {
 void SparklineWidget::paintEvent(QPaintEvent*) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
-    painter.fillRect(rect(), Qt::transparent);
+
+    // Затемненная подложка
+    QRect chartRect = rect().adjusted(2, 2, -2, -2);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(QColor(40, 40, 40, 180));
+    painter.drawRoundedRect(chartRect, 4, 4);
 
     if (m_rx.size() < 2 && m_tx.size() < 2) {
         // Нет данных — рисуем заглушку
         painter.setPen(m_textColor);
-        painter.drawText(rect(), Qt::AlignCenter, "нет данных");
+        painter.drawText(chartRect, Qt::AlignCenter, "нет данных");
         return;
     }
 
@@ -63,6 +68,7 @@ void SparklineWidget::paintEvent(QPaintEvent*) {
     else if (norm > 1) maxVal = 2  * magnitude;
 
     drawGrid(painter, maxVal);
+    drawTimeLabels(painter);
     drawYLabels(painter, maxVal);
     drawSeries(painter, m_rx, m_rxColor);
     drawSeries(painter, m_tx, m_txColor);
@@ -73,9 +79,9 @@ void SparklineWidget::drawGrid(QPainter& painter, double /*maxVal*/) {
     int w = width();
     int h = height();
     int padTop = 18;
-    int padBot = 2;
-    int padLeft = 4;
-    int padRight = 4;
+    int padBot = 14;  // Место для временных меток
+    int padLeft = 22; // Место для метки "500 К" и прочего
+    int padRight = 8; // Запас справа
 
     int gridH = h - padTop - padBot;
     int gridW = w - padLeft - padRight;
@@ -87,16 +93,50 @@ void SparklineWidget::drawGrid(QPainter& painter, double /*maxVal*/) {
         painter.drawLine(padLeft, y, padLeft + gridW, y);
     }
 
-    // Вертикальные линии (каждые 15 секунд)
+    // Вертикальные линии — заметнее
     int numPoints = qMax(m_rx.size(), m_tx.size());
     if (numPoints < 2) return;
 
-    painter.setPen(QPen(m_gridColor, 0.3));
+    painter.setPen(QPen(m_gridColor, 0.8));
     for (int i = 0; i <= 4; ++i) {
         double frac = static_cast<double>(i) / 4.0;
-        // Маппинг: i=0 -> левый край (старые), i=4 -> правый край (новые)
         int x = padLeft + static_cast<int>(frac * gridW);
         painter.drawLine(x, padTop, x, padTop + gridH);
+    }
+}
+
+void SparklineWidget::drawTimeLabels(QPainter& painter) {
+    int h = height();
+    int padBot = 14;
+
+    painter.setPen(m_textColor);
+    QFont font = painter.font();
+    font.setPointSize(6);
+    painter.setFont(font);
+    QFontMetrics fm(font);
+
+    // Метки времени: 30м, 15м, сейчас
+    const char* labels[] = { "30м", "15м", "сейчас" };
+    int positions[] = { 0, 2, 4 };  // индексы для 5 делений сетки
+    int w = width();
+    int padLeft = 22;
+    int padRight = 8;
+    int gridW = w - padLeft - padRight;
+
+    for (int i = 0; i < 3; ++i) {
+        double frac = static_cast<double>(positions[i]) / 4.0;
+        int x = padLeft + static_cast<int>(frac * gridW);
+        QString label(labels[i]);
+        int labelW = fm.horizontalAdvance(label);
+
+        // Центрируем метку по позиции деления
+        int drawX = x - labelW / 2;
+
+        // Но не даем вылезти за края
+        if (drawX < 0) drawX = 0;
+        if (drawX + labelW > w) drawX = w - labelW;
+
+        painter.drawText(drawX, h - padBot + fm.ascent(), label);
     }
 }
 
@@ -130,9 +170,9 @@ void SparklineWidget::drawSeries(QPainter& painter, const QVector<double>& serie
     int w = width();
     int h = height();
     int padTop = 18;
-    int padBot = 2;
-    int padLeft = 4;
-    int padRight = 4;
+    int padBot = 14;  // Место для временных меток
+    int padLeft = 22;
+    int padRight = 8;
     int gridH = h - padTop - padBot;
     int gridW = w - padLeft - padRight;
 

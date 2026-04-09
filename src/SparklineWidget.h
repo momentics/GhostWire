@@ -33,6 +33,7 @@ private:
     QColor m_textColor;
 
     void drawGrid(QPainter& painter, double maxVal);
+    void drawTimeLabels(QPainter& painter);
     void drawSeries(QPainter& painter, const QVector<double>& data, const QColor& color);
     void drawYLabels(QPainter& painter, double maxVal);
     void drawLegend(QPainter& painter);

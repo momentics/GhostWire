@@ -18,7 +18,9 @@ public:
     ~TrayMenu();
 
     /// Обновить статистику (вызывается из Application по таймеру)
-    void setStats(uint64_t uptimeSecs, uint64_t websocketActive);
+    void setStats(uint64_t uptimeSecs, uint64_t websocketActive,
+                  double peakRx, double peakTx,
+                  uint64_t totalRx, uint64_t totalTx);
 
     /// Добавить точку данных в спарклайн (дельта RX/TX в байтах)
     void addSparklinePoint(double rxBytesPerSec, double txBytesPerSec);

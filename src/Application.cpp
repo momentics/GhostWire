@@ -44,8 +44,10 @@ Application::Application(QObject* parent)
         m_trayManager->setState(false);
         m_trayMenu->setRunningState(false);
         m_trayMenu->clearSparkline();
-        m_trayMenu->setStats(0, 0);
+        m_trayMenu->setStats(0, 0, 0, 0, 0, 0);
         m_hasPrevStats = false;
+        m_peakRx = 0;
+        m_peakTx = 0;
     });
 
     connect(m_trayMenu.get(), &TrayMenu::exitRequested, this, &Application::onTrayExit);
@@ -137,19 +139,28 @@ void Application::onStatsTick() {
 
     auto stats = m_ghostWire->getStats();
 
-    // Обновить UI
-    m_trayMenu->setStats(stats.uptime_secs, stats.websocket_active);
-    m_trayMenu->setRunningState(true);
-
-    // Рассчитать дельту RX/TX
+    // Рассчитать дельту RX/TX и обновить пики
+    double rxDelta = 0;
+    double txDelta = 0;
     if (m_hasPrevStats) {
-        double rxDelta = static_cast<double>(stats.bytes_received - m_prevBytesReceived);
-        double txDelta = static_cast<double>(stats.bytes_sent - m_prevBytesSent);
+        rxDelta = static_cast<double>(stats.bytes_received - m_prevBytesReceived);
+        txDelta = static_cast<double>(stats.bytes_sent - m_prevBytesSent);
 
-        // Дельта за интервал — нормализуем в байты/сек
+        // Нормализуем в байты/сек для пика
         double intervalSec = Config::STATS_POLL_INTERVAL_MS / 1000.0;
-        m_trayMenu->addSparklinePoint(rxDelta / intervalSec, txDelta / intervalSec);
+        double rxRate = rxDelta / intervalSec;
+        double txRate = txDelta / intervalSec;
+        if (rxRate > m_peakRx) m_peakRx = rxRate;
+        if (txRate > m_peakTx) m_peakTx = txRate;
+
+        m_trayMenu->addSparklinePoint(rxRate, txRate);
     }
+
+    // Обновить UI
+    m_trayMenu->setStats(stats.uptime_secs, stats.websocket_active,
+                         m_peakRx, m_peakTx,
+                         stats.bytes_received, stats.bytes_sent);
+    m_trayMenu->setRunningState(true);
 
     m_prevBytesReceived = stats.bytes_received;
     m_prevBytesSent = stats.bytes_sent;

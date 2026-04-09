@@ -38,6 +38,8 @@ private:
     // Для расчёта дельты RX/TX (храним только нужные поля)
     uint64_t m_prevBytesReceived = 0;
     uint64_t m_prevBytesSent = 0;
+    double   m_peakRx = 0;
+    double   m_peakTx = 0;
     bool     m_hasPrevStats = false;
 
     // Явное состояние прокси: true = запущен, false = остановлен
