@@ -7,7 +7,7 @@
 
 | | |
 |:---:|---|
-| <img src="resources/icons/ghostwire.png" alt="GhostWire Logo" width="128"> | Графическая оболочка над нативной библиотекой **GhostWire** с защитой от DPI для **Telegram Desktop**. Приложение работает в системном трее и не отображает окон на рабочем столе. |
+| <img src="resources/icons/ghostwire.png" alt="GhostWire Logo" width="512"> | Графическая оболочка над нативной библиотекой **GhostWire** с защитой от DPI для **Telegram Desktop**. Приложение работает в системном трее и не отображает окон на рабочем столе. |
 
 ---
 
