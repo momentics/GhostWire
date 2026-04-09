@@ -9,7 +9,6 @@
 #include <QDebug>
 #include <QCursor>
 #include <QApplication>
-#include <QDesktopWidget>
 #include <QScreen>
 #include <QSettings>
 #include <QDesktopServices>
@@ -88,8 +87,8 @@ bool Application::initialize() {
     m_trayMenu->setRunningState(false);
 
     // 5. Создать таймер опроса статистики (запускается при Start)
-    m_statsTimer = new QTimer(this);
-    connect(m_statsTimer, &QTimer::timeout, this, &Application::onStatsTick);
+    m_statsTimer = std::make_unique<QTimer>(this);
+    connect(m_statsTimer.get(), &QTimer::timeout, this, &Application::onStatsTick);
 
     // 6. Восстановить предыдущее состояние
     restoreState();
@@ -174,7 +173,6 @@ void Application::onTrayExit() {
     // Останавливаем и отключаем таймер
     if (m_statsTimer) {
         m_statsTimer->stop();
-        disconnect(m_statsTimer, nullptr, this, nullptr);
     }
     m_proxyRunning = false;
     m_trayManager->cleanup();
@@ -257,9 +255,4 @@ void Application::onConfigureTelegram() {
         );
         qDebug() << "Application: Telegram Desktop не запущен";
     }
-}
-
-void Application::hideTrayMenu() {
-    if (m_trayMenu)
-        m_trayMenu->hide();
 }

@@ -1,10 +1,8 @@
 #pragma once
 
 #include <QWidget>
-#include <QAction>
 #include <QPushButton>
 #include <QEvent>
-#include <QMouseEvent>
 
 class StatsPanel;
 class SparklineWidget;
@@ -39,7 +37,6 @@ signals:
 
 protected:
     bool event(QEvent* event) override;
-    void mousePressEvent(QMouseEvent* event) override;
 
 private:
     StatsPanel*       m_statsPanel     = nullptr;

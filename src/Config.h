@@ -1,7 +1,5 @@
 #pragma once
 
-#include <chrono>
-
 namespace Config {
 
 /// Интервал опроса статистики библиотеки (мс)
@@ -26,9 +24,6 @@ inline constexpr int TRAY_ICON_SIZE = 16;
 
 /// Размер popup-меню
 inline constexpr int MENU_WIDTH  = 240;
-
-/// Максимальное количество точек данных для расчёта дельты RX/TX
-inline constexpr int STATS_HISTORY_SIZE = 500;
 
 /// Порт SOCKS5 прокси
 inline constexpr int SOCKS_PORT = 1080;

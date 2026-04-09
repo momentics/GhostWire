@@ -5,7 +5,8 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFrame>
-#include <QMouseEvent>
+#include <QTimer>
+#include <QPointer>
 
 TrayMenu::TrayMenu(QWidget* parent)
     : QWidget(parent, Qt::FramelessWindowHint | Qt::Tool | Qt::WindowStaysOnTopHint)
@@ -22,16 +23,15 @@ TrayMenu::TrayMenu(QWidget* parent)
 
 bool TrayMenu::event(QEvent* event) {
     // Скрываем при потере фокуса (клик вне меню)
-    if (event->type() == QEvent::WindowDeactivate ||
-        event->type() == QEvent::FocusOut) {
-        hide();
+    if (event->type() == QEvent::WindowDeactivate) {
+        // QPointer гарантирует безопасность: если объект уничтожен, лямбда не выполнится
+        QPointer<TrayMenu> safeThis(this);
+        QTimer::singleShot(50, this, [safeThis]() {
+            if (safeThis && !safeThis->underMouse() && !safeThis->hasFocus())
+                safeThis->hide();
+        });
     }
     return QWidget::event(event);
-}
-
-void TrayMenu::mousePressEvent(QMouseEvent* event) {
-    // Если клик не по кнопке — скрываем
-    QWidget::mousePressEvent(event);
 }
 
 TrayMenu::~TrayMenu() = default;

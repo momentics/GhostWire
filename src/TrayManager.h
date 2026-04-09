@@ -7,8 +7,6 @@
 #include <QVector>
 #include <QRect>
 
-class TrayMenu;
-
 /// Управляет иконкой в системном трее:
 /// - регистрация / удаление иконки
 /// - покадровая анимация при активном режиме
@@ -28,9 +26,6 @@ public:
     /// Установить состояние: остановлен / активен (переключает анимацию)
     void setState(bool running);
 
-    /// Получить глобальный прямоугольник иконки в трее (для позиционирования меню)
-    QRect getGeometry() const;
-
     /// Показать временное всплывающее сообщение (toast) от иконки трея
     void showMessage(const QString& title, const QString& message,
                      QSystemTrayIcon::MessageIcon icon = QSystemTrayIcon::Information,
@@ -39,9 +34,6 @@ public:
 signals:
     /// Пользователь кликнул по иконке — открыть меню
     void iconClicked(const QRect& iconGeometry);
-
-    /// Пользователь запросил выход
-    void exitRequested();
 
 private slots:
     void onTrayActivated(QSystemTrayIcon::ActivationReason reason);

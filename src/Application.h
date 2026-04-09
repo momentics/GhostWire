@@ -3,7 +3,6 @@
 #include <QObject>
 #include <QTimer>
 #include <QRect>
-#include <QFile>
 #include <memory>
 
 class TrayManager;
@@ -33,7 +32,7 @@ private:
     std::unique_ptr<GhostWire>   m_ghostWire;
     std::unique_ptr<TrayManager> m_trayManager;
     std::unique_ptr<TrayMenu>    m_trayMenu;
-    QTimer*                      m_statsTimer = nullptr;
+    std::unique_ptr<QTimer>      m_statsTimer;
 
     // Для расчёта дельты RX/TX (храним только нужные поля)
     uint64_t m_prevBytesReceived = 0;
@@ -54,10 +53,6 @@ private:
     /// Сохранить текущее состояние в QSettings
     void saveState();
 
-    /// Обработать обновление статистики
-    void processStats(const GhostWireProxyStats& stats);
-
-    /// Показать/скрыть контекстное меню
+    /// Показать контекстное меню
     void showTrayMenu(const QRect& iconRect);
-    void hideTrayMenu();
 };

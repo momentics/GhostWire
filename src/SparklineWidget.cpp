@@ -13,6 +13,13 @@ SparklineWidget::SparklineWidget(QWidget* parent)
     m_gridColor = QColor(255, 255, 255, 30);   // очень прозрачная сетка
     m_textColor = QColor(180, 180, 180, 200);  // серый текст
 
+    // Шрифты создаём один раз
+    m_labelFont = font();
+    m_labelFont.setPointSize(6);
+
+    m_legendFont = font();
+    m_legendFont.setPointSize(6);
+
     setMinimumHeight(100);
     setMaximumHeight(140);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -26,12 +33,18 @@ void SparklineWidget::addPoint(double rx, double tx) {
     while (m_rx.size() > m_maxPoints) m_rx.removeFirst();
     while (m_tx.size() > m_maxPoints) m_tx.removeFirst();
 
+    // Сбрасываем кеш точек — пересчитается при следующем paint
+    m_rxPoints.clear();
+    m_txPoints.clear();
+
     update();
 }
 
 void SparklineWidget::clear() {
     m_rx.clear();
     m_tx.clear();
+    m_rxPoints.clear();
+    m_txPoints.clear();
     update();
 }
 
@@ -70,12 +83,13 @@ void SparklineWidget::paintEvent(QPaintEvent*) {
     drawGrid(painter, maxVal);
     drawTimeLabels(painter);
     drawYLabels(painter, maxVal);
-    drawSeries(painter, m_rx, m_rxColor);
-    drawSeries(painter, m_tx, m_txColor);
+    updatePointsCache(maxVal);
+    drawSeries(painter, m_rx, m_rxColor, maxVal);
+    drawSeries(painter, m_tx, m_txColor, maxVal);
     drawLegend(painter);
 }
 
-void SparklineWidget::drawGrid(QPainter& painter, double /*maxVal*/) {
+void SparklineWidget::drawGrid(QPainter& painter, double) {
     int w = width();
     int h = height();
     int padTop = 18;
@@ -110,10 +124,8 @@ void SparklineWidget::drawTimeLabels(QPainter& painter) {
     int padBot = 14;
 
     painter.setPen(m_textColor);
-    QFont font = painter.font();
-    font.setPointSize(6);
-    painter.setFont(font);
-    QFontMetrics fm(font);
+    painter.setFont(m_labelFont);
+    QFontMetrics fm(m_labelFont);
 
     // Метки времени: 30м, 15м, сейчас
     const char* labels[] = { "30м", "15м", "сейчас" };
@@ -144,76 +156,73 @@ void SparklineWidget::drawYLabels(QPainter& painter, double maxVal) {
     int padTop = 18;
 
     painter.setPen(m_textColor);
-    QFont font = painter.font();
-    font.setPointSize(6);
-    painter.setFont(font);
+    painter.setFont(m_labelFont);
 
     // Только верхняя метка (maxVal)
     QString label = formatBytes(maxVal);
     painter.drawText(2, padTop + 4, label);
 }
 
-void SparklineWidget::drawSeries(QPainter& painter, const QVector<double>& series, const QColor& color) {
+void SparklineWidget::drawSeries(QPainter& painter, const QVector<double>& series, const QColor& color, double) {
+    // Используем кешированные точки
+    const QVector<QPointF>& points = (series == m_rx) ? m_rxPoints : m_txPoints;
+    if (points.isEmpty()) return;
 
-    // Определяем autoscale maxVal по обоим рядам
-    double maxVal = 0;
-    for (double v : m_rx) if (v > maxVal) maxVal = v;
-    for (double v : m_tx) if (v > maxVal) maxVal = v;
-    if (maxVal < 1.0) maxVal = 1.0;
+    QPen pen(color, 1.5);
+    painter.setPen(pen);
+    painter.drawPolyline(points.constData(), points.size());
+}
 
-    double magnitude = std::pow(10, std::floor(std::log10(maxVal)));
-    double norm = maxVal / magnitude;
-    if (norm > 5)      maxVal = 10 * magnitude;
-    else if (norm > 2) maxVal = 5  * magnitude;
-    else if (norm > 1) maxVal = 2  * magnitude;
-
+void SparklineWidget::updatePointsCache(double maxVal) {
     int w = width();
     int h = height();
     int padTop = 18;
-    int padBot = 14;  // Место для временных меток
+    int padBot = 14;
     int padLeft = 22;
     int padRight = 8;
     int gridH = h - padTop - padBot;
     int gridW = w - padLeft - padRight;
 
-    QPen pen(color, 1.5);
-    painter.setPen(pen);
+    auto computePoints = [padLeft, padRight, gridW, gridH, padTop, maxVal, this]
+                         (const QVector<double>& series) -> QVector<QPointF> {
+        QVector<QPointF> pts;
+        int n = series.size();
+        if (n < 2) return pts;
 
-    // Точки: слева (самые старые) -> справа (самые новые)
-    // Если точек меньше m_maxPoints — начинаем с левого края
-    int n = series.size();
-    QVector<QPointF> points;
-    for (int i = 0; i < n; ++i) {
-        // frac: 0 = левый край, 1 = правый край
-        // Все точки прижаты к правому краю (новые справа)
-        int totalSlots = m_maxPoints;
-        int offset = totalSlots - n;  // сдвиг слева
-        double frac = static_cast<double>(i + offset) / static_cast<double>(totalSlots - 1);
-        double x = padLeft + frac * gridW;
-        double y = padTop + gridH - (series[i] / maxVal) * gridH;
-        points.append(QPointF(x, y));
-    }
+        int offset = m_maxPoints - n;
+        pts.reserve(n);
+        for (int i = 0; i < n; ++i) {
+            double frac = static_cast<double>(i + offset) / static_cast<double>(m_maxPoints - 1);
+            double x = padLeft + frac * gridW;
+            double y = padTop + gridH - (series[i] / maxVal) * gridH;
+            pts.append(QPointF(x, y));
+        }
+        return pts;
+    };
 
-    painter.drawPolyline(points.constData(), points.size());
+    if (m_rxPoints.isEmpty() && !m_rx.isEmpty())
+        m_rxPoints = computePoints(m_rx);
+    if (m_txPoints.isEmpty() && !m_tx.isEmpty())
+        m_txPoints = computePoints(m_tx);
 }
 
 QString SparklineWidget::formatBytes(double bytesPerSec) const {
-    if (bytesPerSec < 1024)
+    if (bytesPerSec < 1024.0)
         return QString("%1 Б").arg(static_cast<int>(bytesPerSec));
-    if (bytesPerSec < 1024 * 1024)
-        return QString("%1 К").arg(bytesPerSec / 1024, 0, 'f', 0);
-    if (bytesPerSec < 1024 * 1024 * 1024)
-        return QString("%1 М").arg(bytesPerSec / (1024 * 1024), 0, 'f', 1);
-    return QString("%1 Г").arg(bytesPerSec / (1024 * 1024 * 1024), 0, 'f', 1);
+    if (bytesPerSec < 1024.0 * 1024.0)
+        return QString("%1 КБ").arg(bytesPerSec / 1024.0, 0, 'f', 1);
+    if (bytesPerSec < 1024.0 * 1024.0 * 1024.0)
+        return QString("%1 МБ").arg(bytesPerSec / (1024.0 * 1024.0), 0, 'f', 1);
+    if (bytesPerSec < 1024.0 * 1024.0 * 1024.0 * 1024.0)
+        return QString("%1 ГБ").arg(bytesPerSec / (1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
+    return QString("%1 ТБ").arg(bytesPerSec / (1024.0 * 1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
 }
 
 void SparklineWidget::drawLegend(QPainter& painter) {
     int w = width();
 
-    QFont font = painter.font();
-    font.setPointSize(6);
-    painter.setFont(font);
-    QFontMetrics fm(font);
+    painter.setFont(m_legendFont);
+    QFontMetrics fm(m_legendFont);
 
     int lineLen = 12;
     int dotR = 2;

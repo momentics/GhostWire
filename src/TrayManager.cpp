@@ -52,9 +52,8 @@ void TrayManager::init() {
     m_trayIcon->setToolTip("GhostWire Desktop");
     m_trayIcon->setVisible(true);
 
-    // Таймер покадровой анимации
+    // Таймер покадровой анимации (запускается только при активном режиме)
     m_animTimer->setInterval(200); // 5 FPS
-    m_animTimer->start();
 }
 
 void TrayManager::cleanup() {
@@ -71,16 +70,16 @@ void TrayManager::setState(bool running) {
         if (!m_animFrames.isEmpty()) {
             // Начинаем покадровую анимацию
             m_trayIcon->setIcon(m_animFrames[0]);
+            if (!m_animTimer->isActive())
+                m_animTimer->start();
         } else {
             m_trayIcon->setIcon(m_activeIcon);
         }
     } else {
         m_trayIcon->setIcon(m_idleIcon);
+        if (m_animTimer->isActive())
+            m_animTimer->stop();
     }
-}
-
-QRect TrayManager::getGeometry() const {
-    return m_trayIcon->geometry();
 }
 
 void TrayManager::onTrayActivated(QSystemTrayIcon::ActivationReason reason) {
@@ -94,8 +93,11 @@ void TrayManager::onAnimTick() {
     if (!m_running) return;
     if (m_animFrames.isEmpty()) return;
 
-    m_animFrameIndex = (m_animFrameIndex + 1) % m_animFrames.size();
-    m_trayIcon->setIcon(m_animFrames[m_animFrameIndex]);
+    int nextFrame = (m_animFrameIndex + 1) % m_animFrames.size();
+    if (nextFrame != m_animFrameIndex) {
+        m_animFrameIndex = nextFrame;
+        m_trayIcon->setIcon(m_animFrames[m_animFrameIndex]);
+    }
 }
 
 void TrayManager::showMessage(const QString& title, const QString& message,

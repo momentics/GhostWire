@@ -3,6 +3,8 @@
 #include <QDebug>
 #include <QCoreApplication>
 #include <QDir>
+#include <QJsonDocument>
+#include <QJsonParseError>
 
 #ifdef _WIN32
 #  include <windows.h>
@@ -15,6 +17,8 @@ GhostWire::GhostWire() = default;
 
 GhostWire::~GhostWire() {
     destroy();
+    if (m_lib.isLoaded())
+        m_lib.unload();
 }
 
 bool GhostWire::load(const QString& libDir) {
@@ -85,6 +89,14 @@ void GhostWire::resolveSymbols() {
 bool GhostWire::create(const QString& configJson) {
     if (!m_lib.isLoaded()) {
         qWarning() << "GhostWire::create — библиотека не загружена";
+        return false;
+    }
+
+    // Валидация JSON перед передачей в C-библиотеку
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(configJson.toUtf8(), &parseError);
+    if (parseError.error != QJsonParseError::NoError) {
+        qWarning() << "GhostWire::create — невалидный JSON:" << parseError.errorString();
         return false;
     }
 

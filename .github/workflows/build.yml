@@ -34,8 +34,7 @@ jobs:
             exit 1
           }
           $env:CONFIG_JSON | Set-Content -Path "resources/config.json" -Encoding UTF8
-          Write-Host "config.json restored from secret"
-          Write-Host "Content preview (first 100 chars): $($env:CONFIG_JSON.Substring(0, [Math]::Min(100, $env:CONFIG_JSON.Length)))..."
+          Write-Host "config.json restored (${env:CONFIG_JSON.Length} bytes)"
 
       # ─── Windows ─────────────────────────────────────────────────────────────
       - name: Install Qt (Windows)

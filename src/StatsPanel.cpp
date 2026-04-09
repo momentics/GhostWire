@@ -65,9 +65,9 @@ void StatsPanel::updateStats(uint64_t uptimeSecs, uint64_t websocketActive,
             .arg(formatBytes(peakTx))
     );
 
-    // Итого трафика
+    // Всего трафика
     m_labelTotal->setText(
-        QString("Итого:           ↑%1  ↓%2")
+        QString("Всего:           ↑%1  ↓%2")
             .arg(formatBytes(totalRx))
             .arg(formatBytes(totalTx))
     );
