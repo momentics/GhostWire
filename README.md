@@ -3,7 +3,7 @@
 ![Release](https://img.shields.io/github/v/release/momentics/GhostWire?label=version&color=blue)
 ![Build](https://img.shields.io/github/actions/workflow/status/momentics/GhostWire/build.yml?branch=main&label=build)
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
-![License](https://img.shields.io/badge/license-proprietary-red)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 | | |
 |:---:|---|

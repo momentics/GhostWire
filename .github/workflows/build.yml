@@ -1,6 +1,8 @@
 name: Build GhostWire Desktop
 
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
   release:
     types: [published]
