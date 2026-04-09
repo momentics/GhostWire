@@ -26,15 +26,16 @@ jobs:
           submodules: recursive
 
       - name: Restore config.json from secret
+        env:
+          CONFIG_JSON: ${{ secrets.CONFIG_JSON }}
         run: |
-          $configJson = "${{ secrets.CONFIG_JSON }}"
-          if (-not [string]::IsNullOrWhiteSpace($configJson)) {
-            $configJson | Set-Content -Path "resources/config.json" -Encoding UTF8
-            Write-Host "config.json restored from secret"
-          } else {
+          if ([string]::IsNullOrWhiteSpace($env:CONFIG_JSON)) {
             Write-Error "CONFIG_JSON secret is not set!"
             exit 1
           }
+          $env:CONFIG_JSON | Set-Content -Path "resources/config.json" -Encoding UTF8
+          Write-Host "config.json restored from secret"
+          Write-Host "Content preview (first 100 chars): $($env:CONFIG_JSON.Substring(0, [Math]::Min(100, $env:CONFIG_JSON.Length)))..."
 
       # ─── Windows ─────────────────────────────────────────────────────────────
       - name: Install Qt (Windows)
