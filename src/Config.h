@@ -30,4 +30,19 @@ inline constexpr int MENU_WIDTH  = 280;
 /// Максимальное количество точек данных для расчёта дельты RX/TX
 inline constexpr int STATS_HISTORY_SIZE = 500;
 
+/// Порт SOCKS5 прокси
+inline constexpr int SOCKS_PORT = 1080;
+
+/// Адрес SOCKS5 прокси
+inline const char* SOCKS_SERVER = "127.0.0.1";
+
+/// Имя процесса Telegram Desktop
+#ifdef _WIN32
+inline const char* TELEGRAM_PROCESS_NAME = "Telegram.exe";
+#elif defined(__APPLE__)
+inline const char* TELEGRAM_PROCESS_NAME = "Telegram";
+#else
+inline const char* TELEGRAM_PROCESS_NAME = "telegram-desktop";
+#endif
+
 } // namespace Config

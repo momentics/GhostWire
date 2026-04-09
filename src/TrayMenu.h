@@ -33,6 +33,7 @@ signals:
     void startRequested();
     void stopRequested();
     void exitRequested();
+    void configureTelegramRequested();
 
 protected:
     bool event(QEvent* event) override;
@@ -42,6 +43,7 @@ private:
     StatsPanel*       m_statsPanel     = nullptr;
     SparklineWidget*  m_sparkline      = nullptr;
     QPushButton*      m_toggleButton   = nullptr;
+    QPushButton*      m_telegramButton = nullptr;
     QPushButton*      m_exitButton     = nullptr;
 
     void buildLayout();

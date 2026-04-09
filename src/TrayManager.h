@@ -31,6 +31,11 @@ public:
     /// Получить глобальный прямоугольник иконки в трее (для позиционирования меню)
     QRect getGeometry() const;
 
+    /// Показать временное всплывающее сообщение (toast) от иконки трея
+    void showMessage(const QString& title, const QString& message,
+                     QSystemTrayIcon::MessageIcon icon = QSystemTrayIcon::Information,
+                     int millisecondsTimeout = 3000);
+
 signals:
     /// Пользователь кликнул по иконке — открыть меню
     void iconClicked(const QRect& iconGeometry);

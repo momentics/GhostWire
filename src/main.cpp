@@ -3,8 +3,12 @@
 #include <QDebug>
 
 int main(int argc, char* argv[]) {
+    // Включаем сглаживание и поддержку HiDPI для всего приложения
+    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+
     QApplication app(argc, argv);
-    app.setApplicationName("GhostWire");
+    app.setApplicationName("GhostWire Desktop");
     app.setQuitOnLastWindowClosed(false); // Нет окон — не выходим автоматически
 
     Application application;

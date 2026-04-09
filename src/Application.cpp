@@ -12,6 +12,9 @@
 #include <QDesktopWidget>
 #include <QScreen>
 #include <QSettings>
+#include <QDesktopServices>
+#include <QUrl>
+#include <QProcess>
 
 Application::Application(QObject* parent)
     : QObject(parent)
@@ -46,6 +49,9 @@ Application::Application(QObject* parent)
     });
 
     connect(m_trayMenu.get(), &TrayMenu::exitRequested, this, &Application::onTrayExit);
+
+    connect(m_trayMenu.get(), &TrayMenu::configureTelegramRequested,
+            this, &Application::onConfigureTelegram);
 
     // Соединяем сигналы TrayManager → Application (для открытия меню)
     connect(m_trayManager.get(), &TrayManager::iconClicked, this, [this](const QRect& iconRect) {
@@ -193,6 +199,53 @@ void Application::showTrayMenu(const QRect& iconRect) {
     m_trayMenu->show();
     m_trayMenu->raise();
     m_trayMenu->activateWindow();
+}
+
+/// Проверить, запущен ли процесс Telegram Desktop (кроссплатформенно)
+static bool isTelegramRunning() {
+    QProcess proc;
+
+#ifdef _WIN32
+    proc.start("tasklist", QStringList() << "/FI"
+        << QString("IMAGENAME eq %1").arg(Config::TELEGRAM_PROCESS_NAME)
+        << "/NH");
+#elif defined(__APPLE__)
+    proc.start("pgrep", QStringList() << "-xi" << Config::TELEGRAM_PROCESS_NAME);
+#else
+    // Linux: pgrep с case-insensitive по частичному имени «telegram»
+    // ловит telegram-desktop, telegram-desktop-bin и т.д.
+    proc.start("pgrep", QStringList() << "-xi" << "telegram");
+#endif
+
+    proc.waitForFinished(3000);
+    QString output = QString::fromLocal8Bit(proc.readAllStandardOutput());
+
+#ifdef _WIN32
+    return output.contains(Config::TELEGRAM_PROCESS_NAME, Qt::CaseInsensitive);
+#else
+    // pgrep возвращает PID (число) если процесс найден, пусто если нет
+    return !output.trimmed().isEmpty();
+#endif
+}
+
+void Application::onConfigureTelegram() {
+    if (isTelegramRunning()) {
+        // Telegram запущен — открываем моникер
+        QString url = QString("tg://socks?server=%1&port=%2")
+            .arg(Config::SOCKS_SERVER)
+            .arg(Config::SOCKS_PORT);
+        QDesktopServices::openUrl(QUrl(url));
+        qDebug() << "Application: отправлен моникер для подключения Telegram к прокси";
+    } else {
+        // Telegram не запущен — уведомляем пользователя
+        m_trayManager->showMessage(
+            "Подключение к Telegram",
+            "Сначала запустите Telegram Desktop",
+            QSystemTrayIcon::Warning,
+            3000
+        );
+        qDebug() << "Application: Telegram Desktop не запущен";
+    }
 }
 
 void Application::hideTrayMenu() {

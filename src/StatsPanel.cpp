@@ -24,7 +24,7 @@ StatsPanel::StatsPanel(QWidget* parent)
 
 void StatsPanel::updateStats(uint64_t uptimeSecs, uint64_t websocketActive) {
     if (uptimeSecs == 0 && websocketActive == 0) {
-        m_labelUptime->setText("нет данных");
+        m_labelUptime->setText("");
         m_labelWebSocket->clear();
         return;
     }

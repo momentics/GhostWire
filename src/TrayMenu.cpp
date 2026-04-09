@@ -95,6 +95,44 @@ void TrayMenu::buildLayout() {
     });
     mainLayout->addWidget(m_toggleButton);
 
+    // Разделитель 1
+    auto* line1 = new QFrame(this);
+    line1->setFrameShape(QFrame::HLine);
+    line1->setFrameShadow(QFrame::Sunken);
+    line1->setStyleSheet("background-color: #555;");
+    mainLayout->addWidget(line1);
+
+    // Кнопка Подключить Telegram
+    m_telegramButton = new QPushButton("Подключить Telegram", this);
+    m_telegramButton->setCursor(Qt::PointingHandCursor);
+    m_telegramButton->setStyleSheet(R"(
+        QPushButton {
+            color: #ddd;
+            background-color: #3b3b3b;
+            border: 1px solid #555;
+            border-radius: 3px;
+            padding: 4px 8px;
+            text-align: left;
+        }
+        QPushButton:hover {
+            background-color: #4a4a4a;
+        }
+        QPushButton:pressed {
+            background-color: #555;
+        }
+    )");
+    connect(m_telegramButton, &QPushButton::clicked, this, [this]() {
+        emit configureTelegramRequested();
+    });
+    mainLayout->addWidget(m_telegramButton);
+
+    // Разделитель 2
+    auto* line2 = new QFrame(this);
+    line2->setFrameShape(QFrame::HLine);
+    line2->setFrameShadow(QFrame::Sunken);
+    line2->setStyleSheet("background-color: #555;");
+    mainLayout->addWidget(line2);
+
     // Кнопка Выход
     m_exitButton = new QPushButton("Выход", this);
     m_exitButton->setCursor(Qt::PointingHandCursor);

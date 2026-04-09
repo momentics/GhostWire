@@ -27,6 +27,7 @@ public:
 private slots:
     void onStatsTick();
     void onTrayExit();
+    void onConfigureTelegram();
 
 private:
     std::unique_ptr<GhostWire>   m_ghostWire;

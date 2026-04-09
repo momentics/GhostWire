@@ -97,3 +97,9 @@ void TrayManager::onAnimTick() {
     m_animFrameIndex = (m_animFrameIndex + 1) % m_animFrames.size();
     m_trayIcon->setIcon(m_animFrames[m_animFrameIndex]);
 }
+
+void TrayManager::showMessage(const QString& title, const QString& message,
+                              QSystemTrayIcon::MessageIcon icon,
+                              int millisecondsTimeout) {
+    m_trayIcon->showMessage(title, message, icon, millisecondsTimeout);
+}
