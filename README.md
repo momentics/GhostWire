@@ -65,3 +65,6 @@
 2. Сервер: `127.0.0.1`, Порт: `1080`
 3. Сохранить
 
+<p align="center">
+  <img src="resources/icons/TGBar.png" alt="Telergram Proxy SetUP" width="350">
+</p>
