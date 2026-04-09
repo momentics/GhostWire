@@ -1,7 +1,7 @@
 # GhostWire Desktop
 
 <p align="center">
-  <img src="resources/icons/ghostwire.png" alt="GhostWire Logo" width="128">
+  <img src="resources/icons/ghostwire.png" alt="GhostWire Logo" width="256">
 </p>
 
 Графическая оболочка над нативной библиотекой **GhostWire** с защитой от DPI для **Telegram Desktop**. Приложение работает в системном трее и не отображает окон на рабочем столе.
@@ -57,16 +57,6 @@
 
 ---
 
-## Сборка
-
-```bash
-cmake -B build -S .
-cmake --build build --config Debug
-```
-
-Результат в `build/Debug/GhostWireDesktop.exe`.
-
----
 
 ## Лицензия
 
