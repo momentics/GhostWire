@@ -1,8 +1,26 @@
 # GhostWire Desktop
 
-![GhostWire Logo](resources/icons/ghostwire.png)
+<p align="center">
+  <img src="resources/icons/ghostwire.png" alt="GhostWire Logo" width="128">
+</p>
 
 Графическая оболочка над нативной библиотекой **GhostWire** с защитой от DPI для **Telegram Desktop**. Приложение работает в системном трее и не отображает окон на рабочем столе.
+
+---
+
+## Скриншоты
+
+### Иконка в трее
+
+<p align="center">
+  <img src="resources/icons/TaskBar.png" alt="TaskBar icon" width="400">
+</p>
+
+### Контекстное меню
+
+<p align="center">
+  <img src="resources/icons/MenuBar.png" alt="Context menu" width="350">
+</p>
 
 ---
 
