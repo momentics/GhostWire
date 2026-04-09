@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=GhostWire Desktop
+Comment=Telegram with anti-DPI protection
+Exec=GhostWireDesktop
+Icon=ghostwire
+Terminal=false
+Categories=Network;Proxy;

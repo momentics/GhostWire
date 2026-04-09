@@ -1,0 +1,48 @@
+# Build
+build/
+cmake-build-*/
+CMakeUserPresets.json
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.vcxproj*
+*.sln
+*.filters
+*.user
+
+# Output
+deploy/
+dist/
+*.exe
+*.dll
+*.pdb
+*.idb
+*.ilk
+*.obj
+*.o
+*.so
+*.dylib
+*.a
+*.lib
+
+# Qt
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+*.qtw
+
+# IDE
+.vs/
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python helper
+resources/gen_icons.py
+resources/gen_ico.py
+resources/config.json

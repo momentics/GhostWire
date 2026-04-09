@@ -1,0 +1,15 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file>config.json</file>
+        <file alias="icons/tray_idle.png">icons/tray_idle.png</file>
+        <file alias="icons/tray_active.png">icons/tray_active.png</file>
+        <!-- Покадровая анимация: frame_01.png, frame_02.png, ... -->
+        <file alias="icons/tray_active_frames/frame_01.png">icons/tray_active_frames/frame_01.png</file>
+        <file alias="icons/tray_active_frames/frame_02.png">icons/tray_active_frames/frame_02.png</file>
+        <file alias="icons/tray_active_frames/frame_03.png">icons/tray_active_frames/frame_03.png</file>
+        <file alias="icons/tray_active_frames/frame_04.png">icons/tray_active_frames/frame_04.png</file>
+        <file alias="icons/tray_active_frames/frame_05.png">icons/tray_active_frames/frame_05.png</file>
+        <file alias="icons/tray_active_frames/frame_06.png">icons/tray_active_frames/frame_06.png</file>
+    </qresource>
+</RCC>

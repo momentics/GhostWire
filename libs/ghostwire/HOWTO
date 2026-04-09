@@ -1,0 +1,721 @@
+# GhostWire — How to Use the FFI C/C++ API
+
+GhostWire is a config-driven SOCKS5-to-WebSocket proxy library with anti-DPI
+protection. It exposes a plain C API through `include/ghostwire.h` that can be
+called from C, C++, Python (ctypes), or any language with FFI support.
+
+All runtime configuration is loaded from `config.json`.
+
+---
+
+## Table of Contents
+
+1. [API Reference](#api-reference)
+2. [C Examples](#c-examples)
+   - [Create from config file](#c-example-file)
+   - [Monitor stats](#c-example-stats)
+3. [C++ Examples](#cpp-examples)
+   - [RAII wrapper](#cpp-raii)
+4. [Python Examples (ctypes)](#python-examples)
+5. [Using the Shared Library](#using-the-shared-library)
+   - [Windows DLL](#windows-dll)
+   - [Linux .so](#linux-so)
+   - [macOS .dylib](#macos-dylib)
+6. [Mobile Platforms](#mobile-platforms)
+   - [Android](#android)
+   - [iOS](#ios)
+7. [Configure Telegram Desktop](#configure-telegram-desktop)
+
+---
+
+## API Reference
+
+### Header
+
+```c
+#include <ghostwire.h>
+```
+
+### Types
+
+```c
+/* Opaque handle */
+typedef struct GwProxy GwProxy;
+
+/* Statistics snapshot */
+typedef struct GhostWireProxyStats {
+    bool     running;
+    uint64_t active_connections;
+    uint64_t total_connections;
+    uint64_t websocket_active;
+    uint64_t bytes_received;
+    uint64_t bytes_sent;
+    uint64_t errors;
+    uint64_t ip_rotations;
+    uint64_t media_connections;
+    uint64_t uptime_secs;
+    uint64_t peak_active_connections;
+    uint64_t rotation_success;
+} GhostWireProxyStats;
+
+/* Alias */
+typedef GhostWireProxyStats ProxyStats;
+```
+
+### Functions
+
+| Function | Description |
+|---|---|
+| `GwProxy* ghostwire_proxy_create_from_file(const char* config_path)` | Create proxy from config file |
+| `void ghostwire_proxy_free(GwProxy* proxy)` | Free proxy instance |
+| `int ghostwire_proxy_start(GwProxy* proxy)` | Start SOCKS5 server (0 = success, -1 = error) |
+| `void ghostwire_proxy_stop(GwProxy* proxy)` | Stop SOCKS5 server |
+| `bool ghostwire_proxy_is_running(const GwProxy* proxy)` | Check if proxy is running |
+| `void ghostwire_proxy_get_stats(const GwProxy* proxy, GhostWireProxyStats* out_stats)` | Fill stats struct |
+
+All functions are `extern "C"` and safe to call from C++.
+
+---
+
+## C Examples
+
+### C Example — Create from config file {#c-example-file}
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include "ghostwire.h"
+
+int main(void) {
+    GwProxy* proxy = ghostwire_proxy_create_from_file("config.json");
+    if (!proxy) {
+        fprintf(stderr, "Failed to create proxy — check config.json\n");
+        return EXIT_FAILURE;
+    }
+
+    if (ghostwire_proxy_start(proxy) != 0) {
+        fprintf(stderr, "Failed to start proxy\n");
+        ghostwire_proxy_free(proxy);
+        return EXIT_FAILURE;
+    }
+
+    printf("SOCKS5 proxy is running.\n");
+    printf("Press Enter to stop...\n");
+    getchar();
+
+    ghostwire_proxy_stop(proxy);
+    ghostwire_proxy_free(proxy);
+    printf("Proxy stopped.\n");
+    return EXIT_SUCCESS;
+}
+```
+
+Link on Linux:
+
+```bash
+gcc -o proxy_example proxy_example.c -lghostwire -ldl -lpthread
+```
+
+Link on Windows (MSVC):
+
+```bat
+cl /I<include_dir> proxy_example.c ghostwire.lib
+```
+
+Link on macOS:
+
+```bash
+gcc -o proxy_example proxy_example.c -lghostwire
+```
+
+### C Example — Monitor stats {#c-example-stats}
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#ifdef _WIN32
+#  include <windows.h>
+#  define SLEEP_MS(ms) Sleep(ms)
+#else
+#  include <unistd.h>
+#  define SLEEP_MS(ms) usleep((ms) * 1000)
+#endif
+#include "ghostwire.h"
+
+void print_stats(const GwProxy* proxy) {
+    GhostWireProxyStats stats = {0};
+    ghostwire_proxy_get_stats(proxy, &stats);
+
+    printf("\n--- GhostWire Stats ---\n");
+    printf("  Running:             %s\n", stats.running ? "Yes" : "No");
+    printf("  Uptime:              %lu s\n", (unsigned long)stats.uptime_secs);
+    printf("  Active connections:  %lu\n", (unsigned long)stats.active_connections);
+    printf("  Peak connections:    %lu\n", (unsigned long)stats.peak_active_connections);
+    printf("  Total connections:   %lu\n", (unsigned long)stats.total_connections);
+    printf("  WebSocket active:    %lu\n", (unsigned long)stats.websocket_active);
+    printf("  Bytes received:      %lu\n", (unsigned long)stats.bytes_received);
+    printf("  Bytes sent:          %lu\n", (unsigned long)stats.bytes_sent);
+    printf("  Errors:              %lu\n", (unsigned long)stats.errors);
+    printf("  IP rotations:        %lu\n", (unsigned long)stats.ip_rotations);
+    printf("  Rotation success:    %lu\n", (unsigned long)stats.rotation_success);
+    printf("  Media connections:   %lu\n", (unsigned long)stats.media_connections);
+    printf("-------------------------\n");
+}
+
+int main(void) {
+    GwProxy* proxy = ghostwire_proxy_create_from_file("config.json");
+    if (!proxy) {
+        fprintf(stderr, "Failed to create proxy\n");
+        return 1;
+    }
+
+    if (ghostwire_proxy_start(proxy) != 0) {
+        fprintf(stderr, "Failed to start proxy\n");
+        ghostwire_proxy_free(proxy);
+        return 1;
+    }
+
+    printf("Proxy started. Monitoring for 60 seconds...\n");
+
+    for (int i = 0; i < 6; i++) {
+        SLEEP_MS(10000); /* 10 seconds */
+        print_stats(proxy);
+        if (!ghostwire_proxy_is_running(proxy)) {
+            printf("Proxy stopped unexpectedly!\n");
+            break;
+        }
+    }
+
+    ghostwire_proxy_stop(proxy);
+    ghostwire_proxy_free(proxy);
+    return 0;
+}
+```
+
+---
+
+## C++ Examples
+
+### C++ RAII Wrapper {#cpp-raii}
+
+```cpp
+#include <iostream>
+#include <stdexcept>
+#include <string>
+#include <thread>
+#include <chrono>
+#include "ghostwire.h"
+
+namespace ghostwire {
+
+class Proxy {
+public:
+    explicit Proxy(const std::string& config_path) {
+        handle_ = ghostwire_proxy_create_from_file(config_path.c_str());
+        if (!handle_) {
+            throw std::runtime_error("Failed to create proxy — check config");
+        }
+    }
+
+    ~Proxy() {
+        stop();
+        if (handle_) {
+            ghostwire_proxy_free(handle_);
+            handle_ = nullptr;
+        }
+    }
+
+    /* Non-copyable */
+    Proxy(const Proxy&) = delete;
+    Proxy& operator=(const Proxy&) = delete;
+
+    /* Movable */
+    Proxy(Proxy&& other) noexcept : handle_(other.handle_) {
+        other.handle_ = nullptr;
+    }
+    Proxy& operator=(Proxy&& other) noexcept {
+        if (this != &other) {
+            stop();
+            if (handle_) ghostwire_proxy_free(handle_);
+            handle_ = other.handle_;
+            other.handle_ = nullptr;
+        }
+        return *this;
+    }
+
+    void start() {
+        if (ghostwire_proxy_start(handle_) != 0) {
+            throw std::runtime_error("Failed to start proxy");
+        }
+    }
+
+    void stop() {
+        if (handle_) {
+            ghostwire_proxy_stop(handle_);
+        }
+    }
+
+    bool is_running() const {
+        return handle_ && ghostwire_proxy_is_running(handle_);
+    }
+
+    GhostWireProxyStats get_stats() const {
+        GhostWireProxyStats stats{};
+        if (handle_) {
+            ghostwire_proxy_get_stats(handle_, &stats);
+        }
+        return stats;
+    }
+
+private:
+    GwProxy* handle_ = nullptr;
+};
+
+} /* namespace ghostwire */
+
+int main() {
+    try {
+        ghostwire::Proxy proxy("config.json");
+        proxy.start();
+
+        std::cout << "SOCKS5 proxy running.\n";
+
+        for (int i = 0; i < 6; ++i) {
+            std::this_thread::sleep_for(std::chrono::seconds(10));
+            auto stats = proxy.get_stats();
+            std::cout << "Active: " << stats.active_connections
+                      << " | Total: " << stats.total_connections
+                      << " | Errors: " << stats.errors << '\n';
+        }
+
+        /* proxy.stop() and ghostwire_proxy_free called automatically by destructor */
+        return 0;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << '\n';
+        return 1;
+    }
+}
+```
+
+Link on Linux:
+
+```bash
+g++ -std=c++17 -o cpp_example main.cpp -lghostwire -lpthread
+```
+
+Link on Windows (MSVC):
+
+```bat
+cl /EHsc /std:c++17 /I<include_dir> main.cpp ghostwire.lib
+```
+
+Link on macOS:
+
+```bash
+g++ -std=c++17 -o cpp_example main.cpp -lghostwire
+```
+
+---
+
+## Python Examples
+
+### Python ctypes (minimal)
+
+```python
+import ctypes
+import os
+import time
+
+# --- Load library -----------------------------------------------------------
+if os.name == "nt":
+    lib = ctypes.CDLL("ghostwire.dll")
+elif os.uname().sysname == "Darwin":
+    lib = ctypes.CDLL("libghostwire.dylib")
+else:
+    lib = ctypes.CDLL("libghostwire.so")
+
+# --- Structures --------------------------------------------------------------
+class ProxyStats(ctypes.Structure):
+    _fields_ = [
+        ("running", ctypes.c_bool),
+        ("active_connections", ctypes.c_uint64),
+        ("total_connections", ctypes.c_uint64),
+        ("websocket_active", ctypes.c_uint64),
+        ("bytes_received", ctypes.c_uint64),
+        ("bytes_sent", ctypes.c_uint64),
+        ("errors", ctypes.c_uint64),
+        ("ip_rotations", ctypes.c_uint64),
+        ("media_connections", ctypes.c_uint64),
+        ("uptime_secs", ctypes.c_uint64),
+        ("peak_active_connections", ctypes.c_uint64),
+        ("rotation_success", ctypes.c_uint64),
+    ]
+
+# --- Function signatures -----------------------------------------------------
+lib.ghostwire_proxy_create_from_file.restype = ctypes.c_void_p
+lib.ghostwire_proxy_create_from_file.argtypes = [ctypes.c_char_p]
+
+lib.ghostwire_proxy_start.restype = ctypes.c_int
+lib.ghostwire_proxy_start.argtypes = [ctypes.c_void_p]
+
+lib.ghostwire_proxy_stop.restype = None
+lib.ghostwire_proxy_stop.argtypes = [ctypes.c_void_p]
+
+lib.ghostwire_proxy_free.restype = None
+lib.ghostwire_proxy_free.argtypes = [ctypes.c_void_p]
+
+lib.ghostwire_proxy_is_running.restype = ctypes.c_bool
+lib.ghostwire_proxy_is_running.argtypes = [ctypes.c_void_p]
+
+lib.ghostwire_proxy_get_stats.restype = None
+lib.ghostwire_proxy_get_stats.argtypes = [ctypes.c_void_p, ctypes.POINTER(ProxyStats)]
+
+# --- Usage -------------------------------------------------------------------
+proxy = lib.ghostwire_proxy_create_from_file(b"config.json")
+if not proxy:
+    raise RuntimeError("Failed to create proxy")
+
+lib.ghostwire_proxy_start(proxy)
+print("Proxy running!")
+
+for _ in range(6):
+    time.sleep(10)
+    stats = ProxyStats()
+    lib.ghostwire_proxy_get_stats(proxy, ctypes.byref(stats))
+    print(f"Active: {stats.active_connections} | Total: {stats.total_connections}")
+
+lib.ghostwire_proxy_stop(proxy)
+lib.ghostwire_proxy_free(proxy)
+```
+
+A full-featured Python wrapper is provided in `examples/ghostwire.py`.
+
+---
+
+## Using the Shared Library
+
+### Windows DLL
+
+**Linking dynamically:**
+
+```bat
+cl /I..\include myprogram.c ghostwire.lib
+```
+
+Place `ghostwire.dll` in the same directory as your executable or on `%PATH%`.
+
+**Loading dynamically at runtime:**
+
+```c
+#include <windows.h>
+#include <stdio.h>
+#include "ghostwire.h"
+
+typedef GwProxy* (*create_fn)(const char*);
+typedef int (*start_fn)(GwProxy*);
+typedef void (*stop_fn)(GwProxy*);
+typedef void (*free_fn)(GwProxy*);
+
+int main(void) {
+    HMODULE hmod = LoadLibraryA("ghostwire.dll");
+    if (!hmod) {
+        fprintf(stderr, "LoadLibrary failed, error %lu\n", GetLastError());
+        return 1;
+    }
+
+    create_fn create = (create_fn)GetProcAddress(hmod, "ghostwire_proxy_create_from_file");
+    start_fn  start  = (start_fn) GetProcAddress(hmod, "ghostwire_proxy_start");
+    stop_fn   stop   = (stop_fn)  GetProcAddress(hmod, "ghostwire_proxy_stop");
+    free_fn   free_p = (free_fn)  GetProcAddress(hmod, "ghostwire_proxy_free");
+
+    if (!create || !start || !stop || !free_p) {
+        fprintf(stderr, "GetProcAddress failed\n");
+        FreeLibrary(hmod);
+        return 1;
+    }
+
+    GwProxy* proxy = create("config.json");
+    if (proxy) {
+        start(proxy);
+        printf("Proxy running via LoadLibrary!\n");
+        /* ... */
+        stop(proxy);
+        free_p(proxy);
+    }
+
+    FreeLibrary(hmod);
+    return 0;
+}
+```
+
+### Linux .so
+
+```bash
+gcc -o myprogram myprogram.c -lghostwire
+```
+
+Or with explicit `dlopen`:
+
+```c
+#include <dlfcn.h>
+#include <stdio.h>
+#include "ghostwire.h"
+
+int main(void) {
+    void* handle = dlopen("libghostwire.so", RTLD_NOW);
+    if (!handle) {
+        fprintf(stderr, "dlopen: %s\n", dlerror());
+        return 1;
+    }
+
+    typedef GwProxy* (*create_fn)(const char*);
+    create_fn create = (create_fn)dlsym(handle, "ghostwire_proxy_create_from_file");
+    if (create) {
+        GwProxy* proxy = create("config.json");
+        /* ... */
+    }
+
+    dlclose(handle);
+    return 0;
+}
+```
+
+```bash
+gcc -o myprogram myprogram.c -ldl
+```
+
+### macOS .dylib
+
+```bash
+gcc -o myprogram myprogram.c -lghostwire
+```
+
+---
+
+## Mobile Platforms
+
+GhostWire can be used as a local SOCKS5 proxy on mobile devices.
+
+### Android
+
+The distribution includes `libghostwire.so` for each ABI:
+
+| ABI | Library path in distribution |
+|---|---|
+| `arm64-v8a` | `android/arm64-v8a/libghostwire.so` |
+| `armeabi-v7a` | `android/armeabi-v7a/libghostwire.so` |
+| `x86_64` | `android/x86_64/libghostwire.so` |
+| `x86` | `android/x86/libghostwire.so` |
+
+Place the appropriate `.so` file into your project's `jniLibs/<abi>/`
+directory so Gradle packages it into the APK.
+
+**Usage in a Java/Kotlin Android project (JNI):**
+
+```java
+public class GhostWire {
+    static {
+        System.loadLibrary("ghostwire");
+    }
+
+    // Native method declarations matching the C API
+    public static native long proxyCreateFromFile(String configPath);
+    public static native int    proxyStart(long handle);
+    public static native void   proxyStop(long handle);
+    public static native void   proxyFree(long handle);
+    public static native boolean proxyIsRunning(long handle);
+}
+```
+
+**Usage from Kotlin via a native C wrapper:**
+
+```kotlin
+class GhostWireProxy(context: Context, configPath: String) {
+
+    init {
+        val file = File(context.filesDir, configPath)
+        handle = nativeCreateFromFile(file.absolutePath)
+    }
+
+    fun start() {
+        nativeStart(handle)
+    }
+
+    fun stop() {
+        nativeStop(handle)
+    }
+
+    fun isRunning(): Boolean {
+        return nativeIsRunning(handle)
+    }
+
+    companion object {
+        init {
+            System.loadLibrary("ghostwire")
+        }
+    }
+
+    private var handle: Long = 0
+
+    private external fun nativeCreateFromFile(path: String): Long
+    private external fun nativeStart(handle: Long): Int
+    private external fun nativeStop(handle: Long)
+    private external fun nativeIsRunning(handle: Long): Boolean
+}
+```
+
+The Kotlin `external` functions are thin C wrappers that call the C API:
+
+```c
+#include <jni.h>
+#include "ghostwire.h"
+
+JNIEXPORT jlong JNICALL
+Java_com_example_GhostWireProxy_nativeCreateFromFile(JNIEnv* env, jclass clazz, jstring path) {
+    const char* p = (*env)->GetStringUTFChars(env, path, NULL);
+    GwProxy* proxy = ghostwire_proxy_create_from_file(p);
+    (*env)->ReleaseStringUTFChars(env, path, p);
+    return (jlong)(intptr_t)proxy;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_example_GhostWireProxy_nativeStart(JNIEnv* env, jclass clazz, jlong handle) {
+    return ghostwire_proxy_start((GwProxy*)(intptr_t)handle);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_GhostWireProxy_nativeStop(JNIEnv* env, jclass clazz, jlong handle) {
+    ghostwire_proxy_stop((GwProxy*)(intptr_t)handle);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_example_GhostWireProxy_nativeIsRunning(JNIEnv* env, jclass clazz, jlong handle) {
+    return ghostwire_proxy_is_running((GwProxy*)(intptr_t)handle);
+}
+```
+
+**Using from React Native / Flutter:**
+
+The `.so` can be linked through the platform's standard FFI mechanism
+(React Native TurboModules, Flutter `dart:ffi`, or Unity IL2CPP).
+
+### iOS
+
+The distribution includes `libghostwire.a` for each architecture:
+
+| Architecture | Library path in distribution |
+|---|---|
+| `arm64` (device) | `ios/arm64/libghostwire.a` |
+| `arm64` (simulator) | `ios/arm64-sim/libghostwire.a` |
+| `x86_64` (simulator) | `ios/x86_64/libghostwire.a` |
+
+**Usage in Swift:**
+
+Add `libghostwire.a` to **Frameworks, Libraries, and Embedded Content**
+in your Xcode target. Create a bridging header `GhostWire-Bridging-Header.h`:
+
+```c
+#define GHOSTWIRE_STATIC
+#include "ghostwire.h"
+```
+
+Then use directly in Swift:
+
+```swift
+import Foundation
+
+class GhostWireProxy {
+    private var handle: UnsafeMutableRawPointer?
+
+    init(configPath: String) throws {
+        handle = ghostwire_proxy_create_from_file(configPath)
+        guard handle != nil else {
+            throw NSError(domain: "GhostWire", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "Failed to create proxy"])
+        }
+    }
+
+    func start() throws {
+        guard ghostwire_proxy_start(handle) == 0 else {
+            throw NSError(domain: "GhostWire", code: 2,
+                          userInfo: [NSLocalizedDescriptionKey: "Failed to start proxy"])
+        }
+    }
+
+    func stop() {
+        guard let handle = handle else { return }
+        ghostwire_proxy_stop(handle)
+    }
+
+    func isRunning() -> Bool {
+        guard let handle = handle else { return false }
+        return ghostwire_proxy_is_running(handle)
+    }
+
+    deinit {
+        guard let handle = handle else { return }
+        ghostwire_proxy_free(handle)
+    }
+}
+```
+
+**Using with XCFramework:**
+
+For convenience, combine prebuilt `.a` files with `ghostwire.h`
+into an `.xcframework`:
+
+```bash
+xcodebuild -create-xcframework \
+  -library ios/arm64/libghostwire.a -headers include/ \
+  -library ios/arm64-sim/libghostwire.a -headers include/ \
+  -output GhostWire.xcframework
+```
+
+---
+
+## Platform Compatibility
+
+| Platform | Library file | Import macro |
+|---|---|---|
+| Windows (DLL) | `ghostwire.dll` | `GHOSTWIRE_API` = `__declspec(dllimport)` |
+| Windows (static) | `ghostwire.lib` | Define `GHOSTWIRE_STATIC` before including header |
+| Linux | `libghostwire.so` | `GHOSTWIRE_API` = visibility("default") |
+| macOS | `libghostwire.dylib` | `GHOSTWIRE_API` = visibility("default") |
+| Android | `libghostwire.so` | Standard JNI / `System.loadLibrary` |
+| iOS | `libghostwire.a` | Define `GHOSTWIRE_STATIC` before including header |
+
+### Using `GHOSTWIRE_STATIC`
+
+When linking statically on Windows, define `GHOSTWIRE_STATIC` **before**
+including the header to disable DLL import decorations:
+
+```c
+#define GHOSTWIRE_STATIC
+#include <ghostwire.h>
+```
+
+---
+
+## Configure Telegram Desktop
+
+Once the proxy is running:
+
+1. Open **Telegram Desktop**
+2. Go to **Settings → Advanced → Connection Type**
+3. Select **SOCKS5**
+4. Enter:
+   - **Server:** `127.0.0.1`
+   - **Port:** `1080` (or the port from your `config.json`)
+   - **Login:** *(leave empty)*
+   - **Password:** *(leave empty)*
+5. Click **Save**
+
+Telegram traffic will now route through GhostWire with anti-DPI protection.
+
+---
+
+## License
+
+Copyright (c) 2026 @momentics. All rights reserved.
+
+See the `LICENSE` file for terms.

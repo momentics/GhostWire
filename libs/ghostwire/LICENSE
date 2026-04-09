@@ -1,0 +1,35 @@
+# Proprietary License
+
+Copyright (c) 2026 @momentics. All rights reserved.
+
+This library is proprietary and confidential. All rights reserved.
+
+## Usage
+
+- Binary distributions of this library are provided **free of charge** and may be distributed **without restrictions**.
+- The source code is **not open-source** and remains the exclusive property of @momentics.
+
+## Restrictions
+
+You may **not**:
+
+- Reverse engineer, decompile, disassemble, or attempt to derive the source code of this library.
+- Crack, modify, or bypass any security or licensing mechanisms implemented in this library.
+- Create derivative works based on the source code.
+
+## Allowed
+
+You **may**:
+
+- Freely distribute, copy, and use the binary version of this library in your projects.
+- Include this library in both personal and commercial projects without additional fees.
+
+## Disclaimer
+
+This library is provided **"as is"**, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
+
+In no event shall @momentics be liable for any claim, damages, or other liability arising from the use of this library.
+
+---
+
+For licensing inquiries, contact @momentics.

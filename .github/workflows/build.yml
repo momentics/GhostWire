@@ -1,0 +1,159 @@
+name: Build GhostWire Desktop
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest]
+        # os: [windows-latest, ubuntu-latest, macos-latest]
+
+    steps:
+      # ─── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Restore config.json from secret
+        run: |
+          if (-not [string]::IsNullOrWhiteSpace("${{ secrets.CONFIG_JSON }}")) {
+            Set-Content -Path "resources/config.json" -Value '${{ secrets.CONFIG_JSON }}' -Encoding UTF8
+            Write-Host "config.json restored from secret"
+          } else {
+            Write-Error "CONFIG_JSON secret is not set!"
+            exit 1
+          }
+
+      # ─── Windows ─────────────────────────────────────────────────────────────
+      - name: Install Qt (Windows)
+        if: runner.os == 'Windows'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
+
+      - name: Install WiX Toolset (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install wixtoolset --no-progress || $true
+          # Add WiX to PATH (handles version variations like v3.14 or v3.14.1)
+          $wixPath = Get-ChildItem "C:\Program Files (x86)\WiX Toolset v3*" -Directory | Sort-Object Name -Descending | Select-Object -First 1
+          if ($wixPath) {
+            echo "$($wixPath.FullName)\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          }
+
+      - name: Configure CMake (Windows)
+        if: runner.os == 'Windows'
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+
+      - name: Package MSI (Windows)
+        if: runner.os == 'Windows'
+        run: cpack --config build/CPackConfig.cmake -C ${{ env.BUILD_TYPE }}
+
+      - name: Find MSI file
+        if: runner.os == 'Windows'
+        run: |
+          $msi = Get-ChildItem -Path . -Filter "*.msi" -Recurse | Select-Object -First 1
+          if ($msi) {
+            echo "MSI_PATH=$($msi.FullName)" >> $env:GITHUB_ENV
+            echo "MSI_NAME=$($msi.Name)" >> $env:GITHUB_ENV
+          } else {
+            Write-Error "MSI file not found!"
+            exit 1
+          }
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        if: runner.os == 'Windows'
+        with:
+          files: ${{ env.MSI_PATH }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+
+      # ─── Linux ───────────────────────────────────────────────────────────────
+      # - name: Install Qt (Linux)
+      #   if: runner.os == 'Linux'
+      #   uses: jurplel/install-qt-action@v4
+      #   with:
+      #     version: '5.15.2'
+      #     host: 'linux'
+      #     target: 'desktop'
+      #     arch: 'gcc_64'
+      #     modules: 'qtbase'
+
+      # - name: Install linuxdeployqt (Linux)
+      #   if: runner.os == 'Linux'
+      #   run: |
+      #     wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
+      #     chmod a+x linuxdeployqt-continuous-x86_64.AppImage
+      #     sudo mv linuxdeployqt-continuous-x86_64.AppImage /usr/local/bin/linuxdeployqt
+
+      # - name: Configure CMake (Linux)
+      #   if: runner.os == 'Linux'
+      #   run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      # - name: Build (Linux)
+      #   if: runner.os == 'Linux'
+      #   run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+
+      # - name: Package DEB (Linux)
+      #   if: runner.os == 'Linux'
+      #   run: |
+      #     cd build
+      #     cpack -C ${{ env.BUILD_TYPE }}
+
+      # - name: Upload DEB artifact (Linux)
+      #   if: runner.os == 'Linux'
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: GhostWire-Desktop-Linux
+      #     path: build/GhostWire*.deb
+
+      # ─── macOS ───────────────────────────────────────────────────────────────
+      # - name: Install Qt (macOS)
+      #   if: runner.os == 'macOS'
+      #   uses: jurplel/install-qt-action@v4
+      #   with:
+      #     version: '5.15.2'
+      #     host: 'mac'
+      #     target: 'desktop'
+      #     arch: 'clang_64'
+      #     modules: 'qtbase'
+
+      # - name: Configure CMake (macOS)
+      #   if: runner.os == 'macOS'
+      #   run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      # - name: Build (macOS)
+      #   if: runner.os == 'macOS'
+      #   run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+
+      # - name: Package DMG (macOS)
+      #   if: runner.os == 'macOS'
+      #   run: |
+      #     cd build
+      #     cpack -C ${{ env.BUILD_TYPE }}
+
+      # - name: Upload DMG artifact (macOS)
+      #   if: runner.os == 'macOS'
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: GhostWire-Desktop-macOS
+      #     path: build/GhostWire*.dmg
