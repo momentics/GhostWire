@@ -46,3 +46,5 @@ Thumbs.db
 resources/gen_icons.py
 resources/gen_ico.py
 resources/config.json
+resources/wix/generate_assets.py
+resources/wix/update_banner.py

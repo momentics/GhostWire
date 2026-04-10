@@ -281,10 +281,15 @@ if(WIN32)
     set(CPACK_GENERATOR "WIX")
     set(CPACK_WIX_UPGRADE_GUID "7EA11EB2-8EE5-46AD-A4CA-7B32F26DB5AB")
     set(CPACK_WIX_PRODUCT_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/ghostwire.ico")
-    set(CPACK_WIX_LANGUAGES 1049)
+    set(CPACK_WIX_LANGUAGES 1033)
     set(CPACK_WIX_LIGHT_EXTENSIONS "WixUIExtension")
     set(CPACK_WIX_UI_REF "WixUI_InstallDir")
     set(CPACK_WIX_LICENSE_RTF "${CMAKE_CURRENT_SOURCE_DIR}/resources/LICENSE.rtf")
+    
+    # Custom UI Images
+    set(CPACK_WIX_UI_BANNER "${CMAKE_CURRENT_SOURCE_DIR}/resources/wix/banner.bmp")
+    set(CPACK_WIX_UI_DIALOG "${CMAKE_CURRENT_SOURCE_DIR}/resources/wix/dialog.bmp")
+    
     set(CPACK_WIX_PROPERTY_ARPURLINFOABOUT "https://github.com/momentics/GhostWire")
     set(CPACK_CREATE_DESKTOP_LINKS "GhostWireDesktop")
     set(CPACK_PACKAGE_EXECUTABLES "GhostWireDesktop" "GhostWire Desktop")
