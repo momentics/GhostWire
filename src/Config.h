@@ -17,7 +17,7 @@ inline const char* TRAY_ICON_ACTIVE   = ":/icons/tray_active.png";
 
 /// Имена кадров анимации (покадровая)
 inline const char* TRAY_ANIM_FRAME_PATTERN = ":/icons/tray_active_frames/frame_%1.png";
-inline constexpr int TRAY_ANIM_FRAME_COUNT  = 6;
+inline constexpr int TRAY_ANIM_FRAME_COUNT  = 12;
 
 /// Размер иконки для трея (Windows: 16x16, DPI-aware — берётся системный)
 inline constexpr int TRAY_ICON_SIZE = 16;

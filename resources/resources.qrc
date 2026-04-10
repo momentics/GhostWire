@@ -11,6 +11,12 @@
         <file alias="icons/tray_active_frames/frame_04.png">icons/tray_active_frames/frame_04.png</file>
         <file alias="icons/tray_active_frames/frame_05.png">icons/tray_active_frames/frame_05.png</file>
         <file alias="icons/tray_active_frames/frame_06.png">icons/tray_active_frames/frame_06.png</file>
+        <file alias="icons/tray_active_frames/frame_07.png">icons/tray_active_frames/frame_07.png</file>
+        <file alias="icons/tray_active_frames/frame_08.png">icons/tray_active_frames/frame_08.png</file>
+        <file alias="icons/tray_active_frames/frame_09.png">icons/tray_active_frames/frame_09.png</file>
+        <file alias="icons/tray_active_frames/frame_10.png">icons/tray_active_frames/frame_10.png</file>
+        <file alias="icons/tray_active_frames/frame_11.png">icons/tray_active_frames/frame_11.png</file>
+        <file alias="icons/tray_active_frames/frame_12.png">icons/tray_active_frames/frame_12.png</file>
     </qresource>
     <qresource prefix="/translations">
         <!-- Болгарский -->
