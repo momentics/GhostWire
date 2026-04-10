@@ -242,37 +242,49 @@ if(WIN32)
         PATTERN "ghostwire.dll" EXCLUDE  # We already install the main library
     )
 
+    # Library License
+    install(FILES "${GHOSTWIRE_LIB_DIR}/LICENSE" DESTINATION "." RENAME "GHOSTWIRE_LIBRARY_LICENSE.txt")
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/QT_LICENSE.txt" DESTINATION ".")
+
 # --- Linux (DEB) ---
 elseif(UNIX AND NOT APPLE)
     install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION "opt/GhostWireDesktop/bin")
     install(FILES "${GHOSTWIRE_LIB}" DESTINATION "opt/GhostWireDesktop/bin")
+    install(FILES "${GHOSTWIRE_LIB_DIR}/LICENSE" DESTINATION "opt/GhostWireDesktop" RENAME "GHOSTWIRE_LIBRARY_LICENSE.txt")
     install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/" DESTINATION "opt/GhostWireDesktop"
         COMPONENT Runtime OPTIONAL FILES_MATCHING PATTERN "*.so*" PATTERN "CMakeFiles" EXCLUDE)
     install(FILES "resources/ghostwire.desktop" DESTINATION "usr/share/applications")
     install(FILES "resources/icons/ghostwire.png"
         DESTINATION "usr/share/icons/hicolor/256x256/apps" RENAME "ghostwire.png")
+    install(FILES "${GHOSTWIRE_LIB_DIR}/LICENSE" DESTINATION "opt/GhostWireDesktop" RENAME "GHOSTWIRE_LIBRARY_LICENSE.txt")
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/QT_LICENSE.txt" DESTINATION "opt/GhostWireDesktop")
 
 # --- macOS (DragNDrop) ---
 elseif(APPLE)
     install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION ".")
+    install(FILES "${GHOSTWIRE_LIB_DIR}/LICENSE" DESTINATION "." RENAME "GHOSTWIRE_LIBRARY_LICENSE.txt")
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/QT_LICENSE.txt" DESTINATION ".")
 endif()
 
 # ─── CPack Configuration ──────────────────────────────────────────────────────
 set(CPACK_PACKAGE_NAME "GhostWire Desktop")
 set(CPACK_PACKAGE_VENDOR "momentics")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Telegram Gateway with anti-DPI protection")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Telegram Gateway with anti-DPI (OSI L4-L7) protection")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "GhostWireDesktop")
 set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/ghostwire.png")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 
 if(WIN32)
     set(CPACK_PACKAGE_FILE_NAME "GhostWire Desktop-${PROJECT_VERSION}-win64")
     set(CPACK_GENERATOR "WIX")
-    set(CPACK_WIX_UPGRADE_GUID "A1B2C3D4-E5F6-7890-ABCD-EF1234567890")
+    set(CPACK_WIX_UPGRADE_GUID "7EA11EB2-8EE5-46AD-A4CA-7B32F26DB5AB")
     set(CPACK_WIX_PRODUCT_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/ghostwire.ico")
     set(CPACK_WIX_LANGUAGES 1049)
     set(CPACK_WIX_LIGHT_EXTENSIONS "WixUIExtension")
-    set(CPACK_WIX_UI_REF "WixUI_Mondo")
+    set(CPACK_WIX_UI_REF "WixUI_InstallDir")
+    set(CPACK_WIX_PROPERTY_WIXUI_INSTALLDIR "APPLICATIONFOLDER")
+    set(CPACK_WIX_LICENSE_RTF "${CMAKE_CURRENT_SOURCE_DIR}/resources/LICENSE.rtf")
     set(CPACK_WIX_PROPERTY_ARPURLINFOABOUT "https://github.com/momentics/GhostWire")
     set(CPACK_CREATE_DESKTOP_LINKS "GhostWireDesktop")
     set(CPACK_PACKAGE_EXECUTABLES "GhostWireDesktop" "GhostWire Desktop")
