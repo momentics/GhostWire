@@ -54,11 +54,17 @@ jobs:
       - name: Install WiX Toolset (Windows)
         if: runner.os == 'Windows'
         run: |
-          choco install wixtoolset --no-progress || $true
-          # Add WiX to PATH (handles version variations like v3.14 or v3.14.1)
-          $wixPath = Get-ChildItem "C:\Program Files (x86)\WiX Toolset v3*" -Directory | Sort-Object Name -Descending | Select-Object -First 1
-          if ($wixPath) {
-            echo "$($wixPath.FullName)\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          # Check if WiX (candle.exe) is already available
+          if (Get-Command candle -ErrorAction SilentlyContinue) {
+            Write-Host "WiX Toolset is already installed. Skipping installation."
+          } else {
+            Write-Host "WiX Toolset not found. Installing..."
+            choco install wixtoolset --no-progress
+            # Add WiX to PATH
+            $wixPath = Get-ChildItem "C:\Program Files (x86)\WiX Toolset v3*" -Directory | Sort-Object Name -Descending | Select-Object -First 1
+            if ($wixPath) {
+              echo "$($wixPath.FullName)\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            }
           }
 
       - name: Configure CMake (Windows)

@@ -116,6 +116,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         PLATFORM_WINDOWS
+        _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING
     )
     if(MSVC)
         target_compile_options(${PROJECT_NAME} PRIVATE /W4)
