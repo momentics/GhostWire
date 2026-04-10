@@ -35,6 +35,7 @@ Application::Application(QObject* parent)
             m_trayMenu->setRunningState(true);
             m_trayMenu->clearSparkline();
             m_hasPrevStats = false;
+            m_prevWsActive = 0; // Сбросить — первый тик статистики установит корректное состояние
             if (m_statsTimer) m_statsTimer->start(Config::STATS_POLL_INTERVAL_MS);
         }
     });
@@ -46,12 +47,14 @@ Application::Application(QObject* parent)
         m_ghostWire->stop();
         // Мгновенно очищаем UI
         m_trayManager->setState(false);
+        m_trayManager->setConnectionsState(false);
         m_trayMenu->setRunningState(false);
         m_trayMenu->clearSparkline();
         m_trayMenu->setStats(0, 0, 0, 0, 0, 0);
         m_hasPrevStats = false;
         m_peakRx = 0;
         m_peakTx = 0;
+        m_prevWsActive = 0;
     });
 
     connect(m_trayMenu.get(), &TrayMenu::exitRequested, this, &Application::onTrayExit);
@@ -125,6 +128,7 @@ void Application::restoreState() {
             m_trayMenu->setRunningState(true);
             m_trayMenu->clearSparkline();
             m_hasPrevStats = false;
+            m_prevWsActive = 0;
             m_statsTimer->start(Config::STATS_POLL_INTERVAL_MS);
         }
     }
@@ -142,6 +146,12 @@ void Application::onStatsTick() {
     if (!m_ghostWire || !m_proxyRunning) return;
 
     auto stats = m_ghostWire->getStats();
+
+    // Отслеживаем изменение количества WS-соединений для индикации
+    if (stats.websocket_active != m_prevWsActive) {
+        m_prevWsActive = stats.websocket_active;
+        m_trayManager->setConnectionsState(stats.websocket_active > 0);
+    }
 
     // Рассчитать дельту RX/TX и обновить пики
     double rxDelta = 0;

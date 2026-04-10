@@ -41,6 +41,9 @@ private:
     double   m_peakTx = 0;
     bool     m_hasPrevStats = false;
 
+    // Для отслеживания изменений количества WS-соединений
+    uint64_t m_prevWsActive = 0;
+
     // Явное состояние прокси: true = запущен, false = остановлен
     bool     m_proxyRunning = false;
 

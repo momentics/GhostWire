@@ -23,8 +23,11 @@ public:
     /// Очистить иконку из трея
     void cleanup();
 
-    /// Установить состояние: остановлен / активен (переключает анимацию)
+    /// Установить состояние: остановлен / запущен (переключает между IDLE и ACTIVE)
     void setState(bool running);
+
+    /// Установить состояние соединений: есть WS-соединения / нет (переключает между ACTIVE и анимацией)
+    void setConnectionsState(bool hasConnections);
 
     /// Показать временное всплывающее сообщение (toast) от иконки трея
     void showMessage(const QString& title, const QString& message,
@@ -43,6 +46,7 @@ private:
     QSystemTrayIcon* m_trayIcon = nullptr;
     QTimer*          m_animTimer = nullptr;
     bool             m_running = false;
+    bool             m_hasConnections = false;
     int              m_animFrameIndex = 0;
 
     /// Загруженные кадры анимации

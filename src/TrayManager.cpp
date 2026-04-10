@@ -72,16 +72,41 @@ void TrayManager::setState(bool running) {
     m_animFrameIndex = 0;
 
     if (running) {
+        // Прокси запущен — показываем статическую ACTIVE иконку.
+        // Анимация включится отдельно через setConnectionsState(), когда появятся WS-соединения.
+        m_trayIcon->setIcon(m_activeIcon);
+        m_animTimer->stop();
+    } else {
+        // Прокси остановлен — показываем IDLE иконку, сбрасываем состояние соединений
+        m_hasConnections = false;
+        m_trayIcon->setIcon(m_idleIcon);
+        if (m_animTimer->isActive())
+            m_animTimer->stop();
+    }
+}
+
+void TrayManager::setConnectionsState(bool hasConnections) {
+    m_hasConnections = hasConnections;
+
+    if (!m_running) {
+        // Если прокси не запущен — игнорируем, остаёмся на IDLE
+        return;
+    }
+
+    if (hasConnections) {
+        // Есть WS-соединения — запускаем анимацию
         if (!m_animFrames.isEmpty()) {
-            // Начинаем покадровую анимацию
             m_trayIcon->setIcon(m_animFrames[0]);
+            m_animFrameIndex = 0;
             if (!m_animTimer->isActive())
                 m_animTimer->start();
         } else {
+            // Нет кадров — fallback на ACTIVE
             m_trayIcon->setIcon(m_activeIcon);
         }
     } else {
-        m_trayIcon->setIcon(m_idleIcon);
+        // Нет соединений — возвращаемся к статической ACTIVE иконке
+        m_trayIcon->setIcon(m_activeIcon);
         if (m_animTimer->isActive())
             m_animTimer->stop();
     }
@@ -95,7 +120,7 @@ void TrayManager::onTrayActivated(QSystemTrayIcon::ActivationReason reason) {
 }
 
 void TrayManager::onAnimTick() {
-    if (!m_running) return;
+    if (!m_running || !m_hasConnections) return;
     if (m_animFrames.isEmpty()) return;
 
     int nextFrame = (m_animFrameIndex + 1) % m_animFrames.size();
