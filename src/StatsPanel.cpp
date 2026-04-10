@@ -1,5 +1,7 @@
 #include "StatsPanel.h"
 #include <QFont>
+#include <QApplication>
+#include <QHBoxLayout>
 
 StatsPanel::StatsPanel(QWidget* parent)
     : QWidget(parent)
@@ -11,9 +13,27 @@ StatsPanel::StatsPanel(QWidget* parent)
     QFont font = this->font();
     font.setPointSize(8);
 
+    // Верхняя строка: "Работает" слева, версия справа
+    auto* topLayout = new QHBoxLayout();
+    topLayout->setContentsMargins(0, 0, 0, 0);
+    topLayout->setSpacing(0);
+
     m_labelUptime = new QLabel(this);
     m_labelUptime->setFont(font);
-    layout->addWidget(m_labelUptime);
+    topLayout->addWidget(m_labelUptime);
+
+    topLayout->addStretch();
+
+    m_labelVersion = new QLabel(this);
+    m_labelVersion->setFont(font);
+    m_labelVersion->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    m_labelVersion->setStyleSheet("color: #888;");
+    QString version = QCoreApplication::applicationVersion();
+    if (!version.isEmpty()) {
+        m_labelVersion->setText(QString("v%1").arg(version));
+    }
+    topLayout->addWidget(m_labelVersion);
+    layout->addLayout(topLayout);
 
     m_labelWebSocket = new QLabel(this);
     m_labelWebSocket->setFont(font);

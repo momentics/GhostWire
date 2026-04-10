@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
-project(GhostWireDesktop VERSION 1.0.3 LANGUAGES CXX)
+project(GhostWireDesktop VERSION 1.0.4 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
+
+# ─── Version header from project version ─────────────────────────────────────
+configure_file(src/version.h.in "${CMAKE_CURRENT_BINARY_DIR}/version.h" @ONLY)
 
 # ─── Qt ────────────────────────────────────────────────────────────────────────
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui Widgets Network)
@@ -71,6 +74,7 @@ add_executable(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     src
+    ${CMAKE_CURRENT_BINARY_DIR}
     ${GHOSTWIRE_INCLUDE_DIR}
 )
 
@@ -249,6 +253,7 @@ if(WIN32)
     set(CPACK_WIX_PROPERTY_ARPURLINFOABOUT "https://github.com/momentics/GhostWire")
     set(CPACK_CREATE_DESKTOP_LINKS "GhostWireDesktop")
     set(CPACK_PACKAGE_EXECUTABLES "GhostWireDesktop" "GhostWire Desktop")
+    set(CPACK_WIX_PRODUCT_NAME "GhostWire Desktop v${PROJECT_VERSION}")
 elseif(UNIX AND NOT APPLE)
     set(CPACK_GENERATOR "DEB")
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "momentics")

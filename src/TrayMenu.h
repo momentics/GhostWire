@@ -29,6 +29,9 @@ public:
     /// Обновить текст кнопки Старт/Стоп
     void setRunningState(bool running);
 
+    /// Скрыть меню
+    void hideMenu();
+
 signals:
     void startRequested();
     void stopRequested();

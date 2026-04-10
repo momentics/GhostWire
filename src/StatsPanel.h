@@ -17,6 +17,7 @@ public:
 
 private:
     QLabel* m_labelUptime;
+    QLabel* m_labelVersion;
     QLabel* m_labelWebSocket;
     QLabel* m_labelPeak;
     QLabel* m_labelTotal;

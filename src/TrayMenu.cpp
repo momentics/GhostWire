@@ -145,3 +145,7 @@ void TrayMenu::setRunningState(bool running) {
         m_toggleButton->setText(running ? "Стоп" : "Старт");
     }
 }
+
+void TrayMenu::hideMenu() {
+    hide();
+}

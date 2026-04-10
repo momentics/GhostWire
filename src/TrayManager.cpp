@@ -47,9 +47,14 @@ void TrayManager::loadIcons() {
 void TrayManager::init() {
     loadIcons();
 
-    // Иконка покоя
+    // Иконка покоя — tooltip с версией
     m_trayIcon->setIcon(m_idleIcon);
-    m_trayIcon->setToolTip("GhostWire Desktop");
+    QString version = QCoreApplication::applicationVersion();
+    m_trayIcon->setToolTip(
+        version.isEmpty()
+            ? QStringLiteral("GhostWire Desktop")
+            : QStringLiteral("GhostWire Desktop v%1").arg(version)
+    );
     m_trayIcon->setVisible(true);
 
     // Таймер покадровой анимации (запускается только при активном режиме)

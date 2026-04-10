@@ -238,6 +238,9 @@ static bool isTelegramRunning() {
 }
 
 void Application::onConfigureTelegram() {
+    // Скрываем меню в любом случае
+    m_trayMenu->hideMenu();
+
     if (isTelegramRunning()) {
         // Telegram запущен — открываем моникер
         QString url = QString("tg://socks?server=%1&port=%2")
@@ -248,7 +251,7 @@ void Application::onConfigureTelegram() {
     } else {
         // Telegram не запущен — уведомляем пользователя
         m_trayManager->showMessage(
-            "Подключение к Telegram",
+            "Telegram не запущен",
             "Сначала запустите Telegram Desktop",
             QSystemTrayIcon::Warning,
             3000

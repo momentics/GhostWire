@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "version.h"
 #include <QApplication>
 #include <QDebug>
 
@@ -9,6 +10,7 @@ int main(int argc, char* argv[]) {
 
     QApplication app(argc, argv);
     app.setApplicationName("GhostWire Desktop");
+    app.setApplicationVersion(GHOSTWIRE_VERSION);
     app.setQuitOnLastWindowClosed(false); // Нет окон — не выходим автоматически
 
     Application application;

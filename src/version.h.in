@@ -1,0 +1,6 @@
+#pragma once
+
+#define GHOSTWIRE_VERSION_MAJOR @GhostWireDesktop_VERSION_MAJOR@
+#define GHOSTWIRE_VERSION_MINOR @GhostWireDesktop_VERSION_MINOR@
+#define GHOSTWIRE_VERSION_PATCH @GhostWireDesktop_VERSION_PATCH@
+#define GHOSTWIRE_VERSION "@GhostWireDesktop_VERSION@"
