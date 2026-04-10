@@ -68,26 +68,26 @@ void StatsPanel::updateStats(uint64_t uptimeSecs, uint64_t websocketActive,
     uint64_t m = (uptimeSecs % 3600) / 60;
     uint64_t s = uptimeSecs % 60;
     m_labelUptime->setText(
-        QString("Работает:       %1:%2:%3")
+        tr("Работает:       %1:%2:%3")
             .arg(h, 2, 10, QLatin1Char('0'))
             .arg(m, 2, 10, QLatin1Char('0'))
             .arg(s, 2, 10, QLatin1Char('0'))
     );
 
     m_labelWebSocket->setText(
-        QString("Соединений:  %1").arg(websocketActive)
+        tr("Соединений:  %1").arg(websocketActive)
     );
 
     // Пик скорости
     m_labelPeak->setText(
-        QString("Пик:              ↑%1  ↓%2")
+        tr("Пик:              ↑%1  ↓%2")
             .arg(formatBytes(peakRx))
             .arg(formatBytes(peakTx))
     );
 
     // Всего трафика
     m_labelTotal->setText(
-        QString("Всего:           ↑%1  ↓%2")
+        tr("Всего:           ↑%1  ↓%2")
             .arg(formatBytes(totalRx))
             .arg(formatBytes(totalTx))
     );
@@ -95,12 +95,12 @@ void StatsPanel::updateStats(uint64_t uptimeSecs, uint64_t websocketActive,
 
 QString StatsPanel::formatBytes(double bytes) {
     if (bytes < 1024.0)
-        return QString("%1 Б").arg(static_cast<int>(bytes));
+        return tr("%1 Б").arg(static_cast<int>(bytes));
     if (bytes < 1024.0 * 1024.0)
-        return QString("%1 КБ").arg(bytes / 1024.0, 0, 'f', 1);
+        return tr("%1 КБ").arg(bytes / 1024.0, 0, 'f', 1);
     if (bytes < 1024.0 * 1024.0 * 1024.0)
-        return QString("%1 МБ").arg(bytes / (1024.0 * 1024.0), 0, 'f', 1);
+        return tr("%1 МБ").arg(bytes / (1024.0 * 1024.0), 0, 'f', 1);
     if (bytes < 1024.0 * 1024.0 * 1024.0 * 1024.0)
-        return QString("%1 ГБ").arg(bytes / (1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
-    return QString("%1 ТБ").arg(bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
+        return tr("%1 ГБ").arg(bytes / (1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
+    return tr("%1 ТБ").arg(bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
 }

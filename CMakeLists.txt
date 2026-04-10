@@ -10,6 +10,25 @@ set(CMAKE_AUTOUIC ON)
 # ─── Version header from project version ─────────────────────────────────────
 configure_file(src/version.h.in "${CMAKE_CURRENT_BINARY_DIR}/version.h" @ONLY)
 
+# ─── Translations: compile .ts → .qm ─────────────────────────────────────────
+find_program(LRELEASE_EXECUTABLE lrelease)
+if(LRELEASE_EXECUTABLE)
+    set(_LANGS bg ca cs da de en es fi fr gd hu it ja ko lv pl sk tr uk zh_TW)
+    set(_QM_FILES "")
+    foreach(_lang ${_LANGS})
+        set(_ts "${CMAKE_CURRENT_SOURCE_DIR}/translations/ghostwire_${_lang}.ts")
+        set(_qm "${CMAKE_CURRENT_SOURCE_DIR}/translations/ghostwire_${_lang}.qm")
+        list(APPEND _QM_FILES "${_qm}")
+        add_custom_command(
+            OUTPUT "${_qm}"
+            COMMAND "${LRELEASE_EXECUTABLE}" "${_ts}" -qm "${_qm}"
+            COMMENT "Compiling translation ${_lang}..."
+            VERBATIM
+        )
+    endforeach()
+    add_custom_target(translations ALL DEPENDS ${_QM_FILES})
+endif()
+
 # ─── Qt ────────────────────────────────────────────────────────────────────────
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui Widgets Network)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets Network)
@@ -71,6 +90,10 @@ add_executable(${PROJECT_NAME}
     ${HEADERS}
     ${RESOURCES}
 )
+
+if(LRELEASE_EXECUTABLE)
+    add_dependencies(${PROJECT_NAME} translations)
+endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     src

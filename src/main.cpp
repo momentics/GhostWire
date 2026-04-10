@@ -2,6 +2,8 @@
 #include "version.h"
 #include <QApplication>
 #include <QDebug>
+#include <QTranslator>
+#include <QLocale>
 
 int main(int argc, char* argv[]) {
     // Включаем сглаживание и поддержку HiDPI для всего приложения
@@ -12,6 +14,22 @@ int main(int argc, char* argv[]) {
     app.setApplicationName("GhostWire Desktop");
     app.setApplicationVersion(GHOSTWIRE_VERSION);
     app.setQuitOnLastWindowClosed(false); // Нет окон — не выходим автоматически
+
+    // ─── Мультиязычность: определяем язык ОС ───────────────────────────────
+    QLocale locale = QLocale::system();
+    QString lang = locale.name().left(2); // "ru", "en", "de", ...
+
+    // По умолчанию русский (source), если не ru
+    if (lang != "ru") {
+        QTranslator* translator = new QTranslator(&app);
+        if (translator->load(":/translations/ghostwire_" + lang + ".qm")) {
+            app.installTranslator(translator);
+            qDebug() << "main: loaded translation for" << lang;
+        } else {
+            delete translator;
+            qDebug() << "main: no translation for" << lang << ", using default (ru)";
+        }
+    }
 
     Application application;
 

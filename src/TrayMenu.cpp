@@ -84,9 +84,9 @@ void TrayMenu::buildLayout() {
     mainLayout->addWidget(line);
 
     // Кнопка Старт/Стоп
-    m_toggleButton = new QPushButton("Старт", this);
+    m_toggleButton = new QPushButton(tr("Старт"), this);
     connect(m_toggleButton, &QPushButton::clicked, this, [this]() {
-        if (m_toggleButton->text() == "Старт") {
+        if (m_toggleButton->text() == tr("Старт")) {
             emit startRequested();
         } else {
             emit stopRequested();
@@ -102,7 +102,7 @@ void TrayMenu::buildLayout() {
     mainLayout->addWidget(line1);
 
     // Кнопка Подключить Telegram
-    m_telegramButton = new QPushButton("Подключить Telegram", this);
+    m_telegramButton = new QPushButton(tr("Подключить Telegram"), this);
     connect(m_telegramButton, &QPushButton::clicked, this, [this]() {
         emit configureTelegramRequested();
     });
@@ -116,7 +116,7 @@ void TrayMenu::buildLayout() {
     mainLayout->addWidget(line2);
 
     // Кнопка Выход
-    m_exitButton = new QPushButton("Выход", this);
+    m_exitButton = new QPushButton(tr("Выход"), this);
     connect(m_exitButton, &QPushButton::clicked, this, [this]() {
         emit exitRequested();
     });
@@ -142,7 +142,7 @@ void TrayMenu::clearSparkline() {
 
 void TrayMenu::setRunningState(bool running) {
     if (m_toggleButton) {
-        m_toggleButton->setText(running ? "Стоп" : "Старт");
+        m_toggleButton->setText(running ? tr("Стоп") : tr("Старт"));
     }
 }
 

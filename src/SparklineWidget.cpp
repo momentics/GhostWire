@@ -61,7 +61,7 @@ void SparklineWidget::paintEvent(QPaintEvent*) {
     if (m_rx.size() < 2 && m_tx.size() < 2) {
         // Нет данных — рисуем заглушку
         painter.setPen(m_textColor);
-        painter.drawText(chartRect, Qt::AlignCenter, "нет данных");
+        painter.drawText(chartRect, Qt::AlignCenter, tr("нет данных"));
         return;
     }
 
@@ -128,7 +128,7 @@ void SparklineWidget::drawTimeLabels(QPainter& painter) {
     QFontMetrics fm(m_labelFont);
 
     // Метки времени: 30м, 15м, сейчас
-    const char* labels[] = { "30м", "15м", "сейчас" };
+    const char* labels[] = { QT_TR_NOOP("30м"), QT_TR_NOOP("15м"), QT_TR_NOOP("сейчас") };
     int positions[] = { 0, 2, 4 };  // индексы для 5 делений сетки
     int w = width();
     int padLeft = 22;
@@ -138,7 +138,7 @@ void SparklineWidget::drawTimeLabels(QPainter& painter) {
     for (int i = 0; i < 3; ++i) {
         double frac = static_cast<double>(positions[i]) / 4.0;
         int x = padLeft + static_cast<int>(frac * gridW);
-        QString label(labels[i]);
+        QString label = tr(labels[i]);
         int labelW = fm.horizontalAdvance(label);
 
         // Центрируем метку по позиции деления
@@ -208,14 +208,14 @@ void SparklineWidget::updatePointsCache(double maxVal) {
 
 QString SparklineWidget::formatBytes(double bytesPerSec) const {
     if (bytesPerSec < 1024.0)
-        return QString("%1 Б").arg(static_cast<int>(bytesPerSec));
+        return tr("%1 Б").arg(static_cast<int>(bytesPerSec));
     if (bytesPerSec < 1024.0 * 1024.0)
-        return QString("%1 КБ").arg(bytesPerSec / 1024.0, 0, 'f', 1);
+        return tr("%1 КБ").arg(bytesPerSec / 1024.0, 0, 'f', 1);
     if (bytesPerSec < 1024.0 * 1024.0 * 1024.0)
-        return QString("%1 МБ").arg(bytesPerSec / (1024.0 * 1024.0), 0, 'f', 1);
+        return tr("%1 МБ").arg(bytesPerSec / (1024.0 * 1024.0), 0, 'f', 1);
     if (bytesPerSec < 1024.0 * 1024.0 * 1024.0 * 1024.0)
-        return QString("%1 ГБ").arg(bytesPerSec / (1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
-    return QString("%1 ТБ").arg(bytesPerSec / (1024.0 * 1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
+        return tr("%1 ГБ").arg(bytesPerSec / (1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
+    return tr("%1 ТБ").arg(bytesPerSec / (1024.0 * 1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
 }
 
 void SparklineWidget::drawLegend(QPainter& painter) {

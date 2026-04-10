@@ -12,4 +12,46 @@
         <file alias="icons/tray_active_frames/frame_05.png">icons/tray_active_frames/frame_05.png</file>
         <file alias="icons/tray_active_frames/frame_06.png">icons/tray_active_frames/frame_06.png</file>
     </qresource>
+    <qresource prefix="/translations">
+        <!-- Болгарский -->
+        <file alias="ghostwire_bg.qm">../translations/ghostwire_bg.qm</file>
+        <!-- Каталонский -->
+        <file alias="ghostwire_ca.qm">../translations/ghostwire_ca.qm</file>
+        <!-- Чешский -->
+        <file alias="ghostwire_cs.qm">../translations/ghostwire_cs.qm</file>
+        <!-- Датский -->
+        <file alias="ghostwire_da.qm">../translations/ghostwire_da.qm</file>
+        <!-- Немецкий -->
+        <file alias="ghostwire_de.qm">../translations/ghostwire_de.qm</file>
+        <!-- Английский -->
+        <file alias="ghostwire_en.qm">../translations/ghostwire_en.qm</file>
+        <!-- Испанский -->
+        <file alias="ghostwire_es.qm">../translations/ghostwire_es.qm</file>
+        <!-- Финский -->
+        <file alias="ghostwire_fi.qm">../translations/ghostwire_fi.qm</file>
+        <!-- Французский -->
+        <file alias="ghostwire_fr.qm">../translations/ghostwire_fr.qm</file>
+        <!-- Шотландский гэльский -->
+        <file alias="ghostwire_gd.qm">../translations/ghostwire_gd.qm</file>
+        <!-- Венгерский -->
+        <file alias="ghostwire_hu.qm">../translations/ghostwire_hu.qm</file>
+        <!-- Итальянский -->
+        <file alias="ghostwire_it.qm">../translations/ghostwire_it.qm</file>
+        <!-- Японский -->
+        <file alias="ghostwire_ja.qm">../translations/ghostwire_ja.qm</file>
+        <!-- Корейский -->
+        <file alias="ghostwire_ko.qm">../translations/ghostwire_ko.qm</file>
+        <!-- Латышский -->
+        <file alias="ghostwire_lv.qm">../translations/ghostwire_lv.qm</file>
+        <!-- Польский -->
+        <file alias="ghostwire_pl.qm">../translations/ghostwire_pl.qm</file>
+        <!-- Словацкий -->
+        <file alias="ghostwire_sk.qm">../translations/ghostwire_sk.qm</file>
+        <!-- Турецкий -->
+        <file alias="ghostwire_tr.qm">../translations/ghostwire_tr.qm</file>
+        <!-- Украинский -->
+        <file alias="ghostwire_uk.qm">../translations/ghostwire_uk.qm</file>
+        <!-- Китайский традиционный -->
+        <file alias="ghostwire_zh_TW.qm">../translations/ghostwire_zh_TW.qm</file>
+    </qresource>
 </RCC>

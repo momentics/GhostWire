@@ -289,8 +289,8 @@ void Application::onConfigureTelegram() {
     // Проверяем, зарегистрирован ли tg:// handler
     if (!isTelegramSchemeRegistered()) {
         m_trayManager->showMessage(
-            "Telegram не установлен",
-            "Установите Telegram Desktop для автоматической настройки прокси",
+            tr("Telegram не установлен"),
+            tr("Установите Telegram Desktop для автоматической настройки прокси"),
             QSystemTrayIcon::Warning,
             3000
         );
@@ -309,8 +309,8 @@ void Application::onConfigureTelegram() {
     } else {
         // Telegram не запущен — уведомляем пользователя
         m_trayManager->showMessage(
-            "Telegram не запущен",
-            "Сначала запустите Telegram Desktop",
+            tr("Telegram не запущен"),
+            tr("Сначала запустите Telegram Desktop"),
             QSystemTrayIcon::Warning,
             3000
         );
