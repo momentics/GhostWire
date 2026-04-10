@@ -95,11 +95,11 @@ void TrayMenu::buildLayout() {
     mainLayout->addWidget(m_toggleButton);
 
     // Разделитель 1
-    auto* line1 = new QFrame(this);
-    line1->setFrameShape(QFrame::HLine);
-    line1->setFrameShadow(QFrame::Sunken);
-    line1->setStyleSheet("QFrame { background-color: #555; margin: 0 6px; }");
-    mainLayout->addWidget(line1);
+    //auto* line1 = new QFrame(this);
+    //line1->setFrameShape(QFrame::HLine);
+    //line1->setFrameShadow(QFrame::Sunken);
+    //line1->setStyleSheet("QFrame { background-color: #555; margin: 0 6px; }");
+    //mainLayout->addWidget(line1);
 
     // Кнопка Подключить Telegram
     m_telegramButton = new QPushButton(tr("Подключить Telegram"), this);
@@ -109,11 +109,11 @@ void TrayMenu::buildLayout() {
     mainLayout->addWidget(m_telegramButton);
 
     // Разделитель 2
-    auto* line2 = new QFrame(this);
-    line2->setFrameShape(QFrame::HLine);
-    line2->setFrameShadow(QFrame::Sunken);
-    line2->setStyleSheet("QFrame { background-color: #555; margin: 0 6px; }");
-    mainLayout->addWidget(line2);
+    //auto* line2 = new QFrame(this);
+    //line2->setFrameShape(QFrame::HLine);
+    //line2->setFrameShadow(QFrame::Sunken);
+    //line2->setStyleSheet("QFrame { background-color: #555; margin: 0 6px; }");
+    //mainLayout->addWidget(line2);
 
     // Кнопка Выход
     m_exitButton = new QPushButton(tr("Выход"), this);
