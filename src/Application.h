@@ -55,4 +55,7 @@ private:
 
     /// Показать контекстное меню
     void showTrayMenu(const QRect& iconRect);
+
+    /// Проверить, зарегистрирован ли обработчик tg:// протокола
+    bool isTelegramSchemeRegistered() const;
 };

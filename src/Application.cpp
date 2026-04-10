@@ -1,3 +1,8 @@
+#ifdef _WIN32
+#define NOMINMAX
+#include <windows.h>
+#endif
+
 #include "Application.h"
 #include "GhostWire.h"
 #include "TrayManager.h"
@@ -237,10 +242,63 @@ static bool isTelegramRunning() {
 #endif
 }
 
+/// Проверить, зарегистрирован ли обработчик tg:// протокола
+bool Application::isTelegramSchemeRegistered() const {
+#ifdef _WIN32
+    // Проверяем реестр: HKEY_CLASSES_ROOT/tg/
+    HKEY hKey;
+    LONG result = RegOpenKeyExW(HKEY_CLASSES_ROOT, L"tg", 0, KEY_READ, &hKey);
+    if (result == ERROR_SUCCESS) {
+        RegCloseKey(hKey);
+        return true;
+    }
+    return false;
+#elif defined(__APPLE__)
+    // macOS: через LaunchServices проверяем, есть ли приложение для tg://
+    QProcess proc;
+    proc.start("osascript", QStringList()
+        << "-e" << "on run {url}"
+        << "-e" << "tell application \"System Events\" to get (name of processes whose name is \"Telegram\")"
+        << "-e" << "end run"
+        << "tg://");
+    proc.waitForFinished(2000);
+    // Если Telegram запущен — handler точно есть
+    if (proc.exitCode() == 0 && !proc.readAllStandardOutput().trimmed().isEmpty())
+        return true;
+    // Иначе проверяем через launchctl: есть ли приложение, обрабатывающее tg://
+    QProcess lsProc;
+    lsProc.start("sh", QStringList() << "-c"
+        << "lsregister -dump 2>/dev/null | grep -qi 'tg:' && echo yes");
+    lsProc.waitForFinished(2000);
+    return lsProc.readAllStandardOutput().trimmed() == "yes";
+#else
+    // Linux: через xdg-settings проверяем handler для tg://
+    QProcess proc;
+    proc.start("xdg-settings", QStringList()
+        << "get" << "default-url-scheme-handler" << "tg");
+    proc.waitForFinished(2000);
+    QString handler = QString::fromLocal8Bit(proc.readAllStandardOutput()).trimmed();
+    return !handler.isEmpty() && !handler.contains("not found", Qt::CaseInsensitive);
+#endif
+}
+
 void Application::onConfigureTelegram() {
     // Скрываем меню в любом случае
     m_trayMenu->hideMenu();
 
+    // Проверяем, зарегистрирован ли tg:// handler
+    if (!isTelegramSchemeRegistered()) {
+        m_trayManager->showMessage(
+            "Telegram не установлен",
+            "Установите Telegram Desktop для автоматической настройки прокси",
+            QSystemTrayIcon::Warning,
+            3000
+        );
+        qDebug() << "Application: tg:// handler не зарегистрирован";
+        return;
+    }
+
+    // Проверяем, запущен ли процесс Telegram
     if (isTelegramRunning()) {
         // Telegram запущен — открываем моникер
         QString url = QString("tg://socks?server=%1&port=%2")
