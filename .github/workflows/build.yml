@@ -54,18 +54,28 @@ jobs:
       - name: Install WiX Toolset (Windows)
         if: runner.os == 'Windows'
         run: |
-          # Check if WiX (candle.exe) is already available
-          if (Get-Command candle -ErrorAction SilentlyContinue) {
-            Write-Host "WiX Toolset is already installed. Skipping installation."
+          # Check for existing WiX 3 installation
+          $wixPath = Get-ChildItem "C:\Program Files (x86)\WiX Toolset v3*" -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
+          
+          if ($wixPath -and (Test-Path "$($wixPath.FullName)\bin\candle.exe")) {
+            Write-Host "Found WiX 3 at $($wixPath.FullName)"
+            echo "$($wixPath.FullName)\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           } else {
-            Write-Host "WiX Toolset not found. Installing..."
-            choco install wixtoolset --no-progress
-            # Add WiX to PATH
-            $wixPath = Get-ChildItem "C:\Program Files (x86)\WiX Toolset v3*" -Directory | Sort-Object Name -Descending | Select-Object -First 1
+            Write-Host "WiX 3 not found. Installing v3.11.2..."
+            # Force version 3.11.2 to avoid CMake compatibility issues with WiX 4
+            choco install wixtoolset --version 3.11.2 --no-progress
+            $wixPath = Get-ChildItem "C:\Program Files (x86)\WiX Toolset v3*" -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
             if ($wixPath) {
               echo "$($wixPath.FullName)\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            } else {
+              Write-Error "WiX installation failed."
+              exit 1
             }
           }
+          
+          # Verify tools are in PATH
+          Get-Command candle -ErrorAction Stop
+          Get-Command light -ErrorAction Stop
 
       - name: Configure CMake (Windows)
         if: runner.os == 'Windows'
@@ -78,6 +88,15 @@ jobs:
       - name: Package MSI (Windows)
         if: runner.os == 'Windows'
         run: cpack --config build/CPackConfig.cmake -C ${{ env.BUILD_TYPE }}
+
+      - name: Show WiX Log on Failure
+        if: failure()
+        run: |
+          $log = "_CPack_Packages/win64/WIX/wix.log"
+          if (Test-Path $log) {
+            Write-Host "=== WiX Error Log ==="
+            Get-Content $log
+          }
 
       - name: Find MSI file
         if: runner.os == 'Windows'
