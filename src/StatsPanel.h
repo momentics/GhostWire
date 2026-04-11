@@ -2,9 +2,9 @@
 
 #include <QWidget>
 #include <QLabel>
-#include <QVBoxLayout>
+#include <QGridLayout>
 
-/// Панель числовой статистики
+/// Панель числовой статистики с выравниванием через QGridLayout
 class StatsPanel : public QWidget {
     Q_OBJECT
 public:
@@ -15,12 +15,15 @@ public:
                      double peakRx, double peakTx,
                      uint64_t totalRx, uint64_t totalTx);
 
+protected:
+    void resizeEvent(QResizeEvent* event) override;
+
 private:
     QLabel* m_labelUptime;
     QLabel* m_labelVersion;
-    QLabel* m_labelWebSocket;
+    QLabel* m_labelConnections;
     QLabel* m_labelPeak;
     QLabel* m_labelTotal;
 
-    static QString formatBytes(double bytes);
+    QGridLayout* m_gridLayout;
 };

@@ -3,6 +3,7 @@
 #include <QWidget>
 #include <QPushButton>
 #include <QEvent>
+#include <QTimer>
 
 class StatsPanel;
 class SparklineWidget;
@@ -49,4 +50,8 @@ private:
     QPushButton*      m_exitButton     = nullptr;
 
     void buildLayout();
+    void tryHideMenu();
+
+    bool m_isRunning = false;
+    QTimer* m_autoHideTimer = nullptr;
 };

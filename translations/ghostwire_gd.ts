@@ -4,141 +4,120 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="../src/Application.cpp" line="291"/>
+        <location filename="../src/Application.cpp" line="313"/>
         <source>Telegram не установлен</source>
         <translation>Telegram air a stàladh</translation>
     </message>
     <message>
-        <location filename="../src/Application.cpp" line="292"/>
+        <location filename="../src/Application.cpp" line="314"/>
         <source>Установите Telegram Desktop для автоматической настройки прокси</source>
         <translation>Stàlaich Telegram Desktop airson rèiteachadh fèin-obrachail an t-seòrsaiche</translation>
     </message>
     <message>
-        <location filename="../src/Application.cpp" line="312"/>
+        <location filename="../src/Application.cpp" line="333"/>
         <source>Telegram не запущен</source>
-        <translation>Telegram gun a bhith a' ruith</translation>
+        <translation>Telegram gun a bhith a&apos; ruith</translation>
     </message>
     <message>
-        <location filename="../src/Application.cpp" line="313"/>
+        <location filename="../src/Application.cpp" line="334"/>
         <source>Сначала запустите Telegram Desktop</source>
         <translation>Feuch an tòisich sibh Telegram Desktop an toiseach</translation>
     </message>
 </context>
 <context>
-    <name>SparklineWidget</name>
+    <name>QObject</name>
     <message>
-        <location filename="../src/SparklineWidget.cpp" line="64"/>
-        <source>нет данных</source>
-        <translation>gun dàta</translation>
-    </message>
-    <message>
-        <location filename="../src/SparklineWidget.cpp" line="131"/>
-        <source>30м</source>
-        <translation>30m</translation>
-    </message>
-    <message>
-        <location filename="../src/SparklineWidget.cpp" line="131"/>
-        <source>15м</source>
-        <translation>15m</translation>
-    </message>
-    <message>
-        <location filename="../src/SparklineWidget.cpp" line="131"/>
-        <source>сейчас</source>
-        <translation>a-nis</translation>
-    </message>
-    <message>
-        <location filename="../src/SparklineWidget.cpp" line="211"/>
+        <location filename="../src/Utils.h" line="8"/>
         <source>%1 Б</source>
         <translation>%1 B</translation>
     </message>
     <message>
-        <location filename="../src/SparklineWidget.cpp" line="213"/>
+        <location filename="../src/Utils.h" line="10"/>
         <source>%1 КБ</source>
         <translation>%1 KB</translation>
     </message>
     <message>
-        <location filename="../src/SparklineWidget.cpp" line="215"/>
+        <location filename="../src/Utils.h" line="12"/>
         <source>%1 МБ</source>
         <translation>%1 MB</translation>
     </message>
     <message>
-        <location filename="../src/SparklineWidget.cpp" line="217"/>
+        <location filename="../src/Utils.h" line="14"/>
         <source>%1 ГБ</source>
         <translation>%1 GB</translation>
     </message>
     <message>
-        <location filename="../src/SparklineWidget.cpp" line="219"/>
+        <location filename="../src/Utils.h" line="15"/>
         <source>%1 ТБ</source>
         <translation>%1 TB</translation>
+    </message>
+</context>
+<context>
+    <name>SparklineWidget</name>
+    <message>
+        <location filename="../src/SparklineWidget.cpp" line="72"/>
+        <source>нет данных</source>
+        <translation>gun dàta</translation>
+    </message>
+    <message>
+        <location filename="../src/SparklineWidget.cpp" line="139"/>
+        <source>30м</source>
+        <translation>30m</translation>
+    </message>
+    <message>
+        <location filename="../src/SparklineWidget.cpp" line="139"/>
+        <source>15м</source>
+        <translation>15m</translation>
+    </message>
+    <message>
+        <location filename="../src/SparklineWidget.cpp" line="139"/>
+        <source>сейчас</source>
+        <translation>a-nis</translation>
     </message>
 </context>
 <context>
     <name>StatsPanel</name>
     <message>
-        <location filename="../src/StatsPanel.cpp" line="71"/>
-        <source>Работает:       %1:%2:%3</source>
-        <translation>Ùine:           %1:%2:%3</translation>
+        <location filename="../src/StatsPanel.cpp" line="23"/>
+        <source>Работает:</source>
+        <translation>Gnìomhach:</translation>
     </message>
     <message>
-        <location filename="../src/StatsPanel.cpp" line="78"/>
-        <source>Соединений:  %1</source>
-        <translation>Ceanglaichean: %1</translation>
+        <location filename="../src/StatsPanel.cpp" line="51"/>
+        <source>Соединений:</source>
+        <translation>Ceanglaichean:</translation>
     </message>
     <message>
-        <location filename="../src/StatsPanel.cpp" line="83"/>
-        <source>Пик:              ↑%1  ↓%2</source>
-        <translation>Barrr:           ↑%1  ↓%2</translation>
+        <location filename="../src/StatsPanel.cpp" line="60"/>
+        <source>Пик:</source>
+        <translation>Barr:</translation>
     </message>
     <message>
-        <location filename="../src/StatsPanel.cpp" line="90"/>
-        <source>Всего:           ↑%1  ↓%2</source>
-        <translation>Iomlan:          ↑%1  ↓%2</translation>
-    </message>
-    <message>
-        <location filename="../src/StatsPanel.cpp" line="98"/>
-        <source>%1 Б</source>
-        <translation>%1 B</translation>
-    </message>
-    <message>
-        <location filename="../src/StatsPanel.cpp" line="100"/>
-        <source>%1 КБ</source>
-        <translation>%1 KB</translation>
-    </message>
-    <message>
-        <location filename="../src/StatsPanel.cpp" line="102"/>
-        <source>%1 МБ</source>
-        <translation>%1 MB</translation>
-    </message>
-    <message>
-        <location filename="../src/StatsPanel.cpp" line="104"/>
-        <source>%1 ГБ</source>
-        <translation>%1 GB</translation>
-    </message>
-    <message>
-        <location filename="../src/StatsPanel.cpp" line="106"/>
-        <source>%1 ТБ</source>
-        <translation>%1 TB</translation>
+        <location filename="../src/StatsPanel.cpp" line="69"/>
+        <source>Всего:</source>
+        <translation>Iomlan:</translation>
     </message>
 </context>
 <context>
     <name>TrayMenu</name>
     <message>
-        <location filename="../src/TrayMenu.cpp" line="87"/>
+        <location filename="../src/TrayMenu.cpp" line="94"/>
+        <location filename="../src/TrayMenu.cpp" line="153"/>
         <source>Старт</source>
         <translation>Tòisich</translation>
     </message>
     <message>
-        <location filename="../src/TrayMenu.cpp" line="105"/>
+        <location filename="../src/TrayMenu.cpp" line="112"/>
         <source>Подключить Telegram</source>
         <translation>Ceangail Telegram</translation>
     </message>
     <message>
-        <location filename="../src/TrayMenu.cpp" line="119"/>
+        <location filename="../src/TrayMenu.cpp" line="126"/>
         <source>Выход</source>
         <translation>Fàg</translation>
     </message>
     <message>
-        <location filename="../src/TrayMenu.cpp" line="145"/>
+        <location filename="../src/TrayMenu.cpp" line="153"/>
         <source>Стоп</source>
         <translation>Stad</translation>
     </message>

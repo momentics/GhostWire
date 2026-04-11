@@ -21,6 +21,7 @@ public:
 
 protected:
     void paintEvent(QPaintEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
 
 private:
     QVector<double> m_rx;
@@ -42,6 +43,5 @@ private:
     void drawSeries(QPainter& painter, const QVector<double>& data, const QColor& color, double maxVal);
     void drawYLabels(QPainter& painter, double maxVal);
     void drawLegend(QPainter& painter);
-    QString formatBytes(double bytesPerSec) const;
     void updatePointsCache(double maxVal);
 };

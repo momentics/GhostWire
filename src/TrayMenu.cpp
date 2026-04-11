@@ -6,10 +6,10 @@
 #include <QHBoxLayout>
 #include <QFrame>
 #include <QTimer>
-#include <QPointer>
 
 TrayMenu::TrayMenu(QWidget* parent)
     : QWidget(parent, Qt::FramelessWindowHint | Qt::Tool | Qt::WindowStaysOnTopHint)
+    , m_autoHideTimer(new QTimer(this))
 {
     setAttribute(Qt::WA_TranslucentBackground, false);
     setAttribute(Qt::WA_DeleteOnClose, false);
@@ -18,23 +18,30 @@ TrayMenu::TrayMenu(QWidget* parent)
     setFixedWidth(Config::MENU_WIDTH);
     setMaximumWidth(Config::MENU_WIDTH);
 
+    // Таймер автоскрытия: перезапускается при каждом WindowDeactivate,
+    // что предотвращает накопление отложенных скрытий
+    m_autoHideTimer->setSingleShot(true);
+    m_autoHideTimer->setInterval(50);
+    connect(m_autoHideTimer, &QTimer::timeout, this, &TrayMenu::tryHideMenu);
+
     buildLayout();
 }
 
 bool TrayMenu::event(QEvent* event) {
     // Скрываем при потере фокуса (клик вне меню)
     if (event->type() == QEvent::WindowDeactivate) {
-        // QPointer гарантирует безопасность: если объект уничтожен, лямбда не выполнится
-        QPointer<TrayMenu> safeThis(this);
-        QTimer::singleShot(50, this, [safeThis]() {
-            if (safeThis && !safeThis->underMouse() && !safeThis->hasFocus())
-                safeThis->hide();
-        });
+        // Перезапуск таймера — предотвращает накопление отложенных скрытий
+        m_autoHideTimer->start();
     }
     return QWidget::event(event);
 }
 
 TrayMenu::~TrayMenu() = default;
+
+void TrayMenu::tryHideMenu() {
+    if (!underMouse() && !hasFocus())
+        hide();
+}
 
 void TrayMenu::buildLayout() {
     auto* mainLayout = new QVBoxLayout(this);
@@ -86,7 +93,7 @@ void TrayMenu::buildLayout() {
     // Кнопка Старт/Стоп
     m_toggleButton = new QPushButton(tr("Старт"), this);
     connect(m_toggleButton, &QPushButton::clicked, this, [this]() {
-        if (m_toggleButton->text() == tr("Старт")) {
+        if (!m_isRunning) {
             emit startRequested();
         } else {
             emit stopRequested();
@@ -141,6 +148,7 @@ void TrayMenu::clearSparkline() {
 }
 
 void TrayMenu::setRunningState(bool running) {
+    m_isRunning = running;
     if (m_toggleButton) {
         m_toggleButton->setText(running ? tr("Стоп") : tr("Старт"));
     }

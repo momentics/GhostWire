@@ -1,4 +1,5 @@
 #include "SparklineWidget.h"
+#include "Utils.h"
 #include "Config.h"
 #include <QPainter>
 #include <QFontMetrics>
@@ -46,6 +47,13 @@ void SparklineWidget::clear() {
     m_rxPoints.clear();
     m_txPoints.clear();
     update();
+}
+
+void SparklineWidget::resizeEvent(QResizeEvent* event) {
+    QWidget::resizeEvent(event);
+    // Инвалидируем кэш точек — координаты зависят от размеров виджета
+    m_rxPoints.clear();
+    m_txPoints.clear();
 }
 
 void SparklineWidget::paintEvent(QPaintEvent*) {
@@ -206,17 +214,6 @@ void SparklineWidget::updatePointsCache(double maxVal) {
         m_txPoints = computePoints(m_tx);
 }
 
-QString SparklineWidget::formatBytes(double bytesPerSec) const {
-    if (bytesPerSec < 1024.0)
-        return tr("%1 Б").arg(static_cast<int>(bytesPerSec));
-    if (bytesPerSec < 1024.0 * 1024.0)
-        return tr("%1 КБ").arg(bytesPerSec / 1024.0, 0, 'f', 1);
-    if (bytesPerSec < 1024.0 * 1024.0 * 1024.0)
-        return tr("%1 МБ").arg(bytesPerSec / (1024.0 * 1024.0), 0, 'f', 1);
-    if (bytesPerSec < 1024.0 * 1024.0 * 1024.0 * 1024.0)
-        return tr("%1 ГБ").arg(bytesPerSec / (1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
-    return tr("%1 ТБ").arg(bytesPerSec / (1024.0 * 1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
-}
 
 void SparklineWidget::drawLegend(QPainter& painter) {
     int w = width();

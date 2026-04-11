@@ -14,6 +14,7 @@
 #include <QDebug>
 #include <QCursor>
 #include <QApplication>
+#include <QGuiApplication>
 #include <QScreen>
 #include <QSettings>
 #include <QDesktopServices>
@@ -55,6 +56,8 @@ Application::Application(QObject* parent)
         m_peakRx = 0;
         m_peakTx = 0;
         m_prevWsActive = 0;
+        m_prevBytesReceived = 0;
+        m_prevBytesSent = 0;
     });
 
     connect(m_trayMenu.get(), &TrayMenu::exitRequested, this, &Application::onTrayExit);
@@ -157,8 +160,11 @@ void Application::onStatsTick() {
     double rxDelta = 0;
     double txDelta = 0;
     if (m_hasPrevStats) {
-        rxDelta = static_cast<double>(stats.bytes_received - m_prevBytesReceived);
-        txDelta = static_cast<double>(stats.bytes_sent - m_prevBytesSent);
+        // Защита от wrap-around: если счётчик сбросился, дельта = 0
+        if (stats.bytes_received >= m_prevBytesReceived)
+            rxDelta = static_cast<double>(stats.bytes_received - m_prevBytesReceived);
+        if (stats.bytes_sent >= m_prevBytesSent)
+            txDelta = static_cast<double>(stats.bytes_sent - m_prevBytesSent);
 
         // Нормализуем в байты/сек для пика
         double intervalSec = Config::STATS_POLL_INTERVAL_MS / 1000.0;
@@ -208,16 +214,21 @@ void Application::showTrayMenu(const QRect& iconRect) {
     int x = cursorPos.x();
     int y = cursorPos.y() - m_trayMenu->height();
 
+    // Определяем экран по позиции курсора (корректно для мультимониторных конфигураций)
+    QScreen* screen = QGuiApplication::screenAt(cursorPos);
+    if (!screen) screen = QGuiApplication::primaryScreen();
+    QRect screenRect = screen->availableGeometry();
+
     // Если меню не помещается над курсором — показываем под ним
-    QRect screen = QApplication::primaryScreen()->availableGeometry();
-    if (y < 0) {
-        y = cursorPos.y() + 4;
+    const int menuOffsetBelow = 4;
+    if (y < screenRect.top()) {
+        y = cursorPos.y() + menuOffsetBelow;
     }
 
     // Горизонтальная коррекция
-    if (x + m_trayMenu->width() > screen.right())
-        x = screen.right() - m_trayMenu->width();
-    if (x < 0) x = 0;
+    if (x + m_trayMenu->width() > screenRect.right())
+        x = screenRect.right() - m_trayMenu->width();
+    if (x < screenRect.left()) x = screenRect.left();
 
     m_trayMenu->move(x, y);
     m_trayMenu->show();

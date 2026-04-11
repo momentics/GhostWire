@@ -4,141 +4,120 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="../src/Application.cpp" line="291"/>
+        <location filename="../src/Application.cpp" line="313"/>
         <source>Telegram не установлен</source>
         <translation>Telegram non installé</translation>
     </message>
     <message>
-        <location filename="../src/Application.cpp" line="292"/>
+        <location filename="../src/Application.cpp" line="314"/>
         <source>Установите Telegram Desktop для автоматической настройки прокси</source>
         <translation>Installez Telegram Desktop pour la configuration automatique du proxy</translation>
     </message>
     <message>
-        <location filename="../src/Application.cpp" line="312"/>
+        <location filename="../src/Application.cpp" line="333"/>
         <source>Telegram не запущен</source>
-        <translation>Telegram n'est pas en cours d'exécution</translation>
+        <translation>Telegram n&apos;est pas en cours d&apos;exécution</translation>
     </message>
     <message>
-        <location filename="../src/Application.cpp" line="313"/>
+        <location filename="../src/Application.cpp" line="334"/>
         <source>Сначала запустите Telegram Desktop</source>
-        <translation>Veuillez d'abord lancer Telegram Desktop</translation>
+        <translation>Veuillez d&apos;abord lancer Telegram Desktop</translation>
+    </message>
+</context>
+<context>
+    <name>QObject</name>
+    <message>
+        <location filename="../src/Utils.h" line="8"/>
+        <source>%1 Б</source>
+        <translation>%1 o</translation>
+    </message>
+    <message>
+        <location filename="../src/Utils.h" line="10"/>
+        <source>%1 КБ</source>
+        <translation>%1 Ko</translation>
+    </message>
+    <message>
+        <location filename="../src/Utils.h" line="12"/>
+        <source>%1 МБ</source>
+        <translation>%1 Mo</translation>
+    </message>
+    <message>
+        <location filename="../src/Utils.h" line="14"/>
+        <source>%1 ГБ</source>
+        <translation>%1 Go</translation>
+    </message>
+    <message>
+        <location filename="../src/Utils.h" line="15"/>
+        <source>%1 ТБ</source>
+        <translation>%1 To</translation>
     </message>
 </context>
 <context>
     <name>SparklineWidget</name>
     <message>
-        <location filename="../src/SparklineWidget.cpp" line="64"/>
+        <location filename="../src/SparklineWidget.cpp" line="72"/>
         <source>нет данных</source>
         <translation>aucune donnée</translation>
     </message>
     <message>
-        <location filename="../src/SparklineWidget.cpp" line="131"/>
+        <location filename="../src/SparklineWidget.cpp" line="139"/>
         <source>30м</source>
         <translation>30m</translation>
     </message>
     <message>
-        <location filename="../src/SparklineWidget.cpp" line="131"/>
+        <location filename="../src/SparklineWidget.cpp" line="139"/>
         <source>15м</source>
         <translation>15m</translation>
     </message>
     <message>
-        <location filename="../src/SparklineWidget.cpp" line="131"/>
+        <location filename="../src/SparklineWidget.cpp" line="139"/>
         <source>сейчас</source>
         <translation>maintenant</translation>
-    </message>
-    <message>
-        <location filename="../src/SparklineWidget.cpp" line="211"/>
-        <source>%1 Б</source>
-        <translation>%1 o</translation>
-    </message>
-    <message>
-        <location filename="../src/SparklineWidget.cpp" line="213"/>
-        <source>%1 КБ</source>
-        <translation>%1 Ko</translation>
-    </message>
-    <message>
-        <location filename="../src/SparklineWidget.cpp" line="215"/>
-        <source>%1 МБ</source>
-        <translation>%1 Mo</translation>
-    </message>
-    <message>
-        <location filename="../src/SparklineWidget.cpp" line="217"/>
-        <source>%1 ГБ</source>
-        <translation>%1 Go</translation>
-    </message>
-    <message>
-        <location filename="../src/SparklineWidget.cpp" line="219"/>
-        <source>%1 ТБ</source>
-        <translation>%1 To</translation>
     </message>
 </context>
 <context>
     <name>StatsPanel</name>
     <message>
-        <location filename="../src/StatsPanel.cpp" line="71"/>
-        <source>Работает:       %1:%2:%3</source>
-        <translation>Durée:          %1:%2:%3</translation>
+        <location filename="../src/StatsPanel.cpp" line="23"/>
+        <source>Работает:</source>
+        <translation>Actif :</translation>
     </message>
     <message>
-        <location filename="../src/StatsPanel.cpp" line="78"/>
-        <source>Соединений:  %1</source>
-        <translation>Connexions:    %1</translation>
+        <location filename="../src/StatsPanel.cpp" line="51"/>
+        <source>Соединений:</source>
+        <translation>Connexions :</translation>
     </message>
     <message>
-        <location filename="../src/StatsPanel.cpp" line="83"/>
-        <source>Пик:              ↑%1  ↓%2</source>
-        <translation>Pic:             ↑%1  ↓%2</translation>
+        <location filename="../src/StatsPanel.cpp" line="60"/>
+        <source>Пик:</source>
+        <translation>Pic :</translation>
     </message>
     <message>
-        <location filename="../src/StatsPanel.cpp" line="90"/>
-        <source>Всего:           ↑%1  ↓%2</source>
-        <translation>Total:           ↑%1  ↓%2</translation>
-    </message>
-    <message>
-        <location filename="../src/StatsPanel.cpp" line="98"/>
-        <source>%1 Б</source>
-        <translation>%1 o</translation>
-    </message>
-    <message>
-        <location filename="../src/StatsPanel.cpp" line="100"/>
-        <source>%1 КБ</source>
-        <translation>%1 Ko</translation>
-    </message>
-    <message>
-        <location filename="../src/StatsPanel.cpp" line="102"/>
-        <source>%1 МБ</source>
-        <translation>%1 Mo</translation>
-    </message>
-    <message>
-        <location filename="../src/StatsPanel.cpp" line="104"/>
-        <source>%1 ГБ</source>
-        <translation>%1 Go</translation>
-    </message>
-    <message>
-        <location filename="../src/StatsPanel.cpp" line="106"/>
-        <source>%1 ТБ</source>
-        <translation>%1 To</translation>
+        <location filename="../src/StatsPanel.cpp" line="69"/>
+        <source>Всего:</source>
+        <translation>Total :</translation>
     </message>
 </context>
 <context>
     <name>TrayMenu</name>
     <message>
-        <location filename="../src/TrayMenu.cpp" line="87"/>
+        <location filename="../src/TrayMenu.cpp" line="94"/>
+        <location filename="../src/TrayMenu.cpp" line="153"/>
         <source>Старт</source>
         <translation>Démarrer</translation>
     </message>
     <message>
-        <location filename="../src/TrayMenu.cpp" line="105"/>
+        <location filename="../src/TrayMenu.cpp" line="112"/>
         <source>Подключить Telegram</source>
         <translation>Connecter Telegram</translation>
     </message>
     <message>
-        <location filename="../src/TrayMenu.cpp" line="119"/>
+        <location filename="../src/TrayMenu.cpp" line="126"/>
         <source>Выход</source>
         <translation>Quitter</translation>
     </message>
     <message>
-        <location filename="../src/TrayMenu.cpp" line="145"/>
+        <location filename="../src/TrayMenu.cpp" line="153"/>
         <source>Стоп</source>
         <translation>Arrêter</translation>
     </message>

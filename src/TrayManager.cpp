@@ -58,7 +58,7 @@ void TrayManager::init() {
     m_trayIcon->setVisible(true);
 
     // Таймер покадровой анимации (запускается только при активном режиме)
-    m_animTimer->setInterval(200); // 5 FPS
+    m_animTimer->setInterval(Config::TRAY_ANIM_INTERVAL_MS);
 }
 
 void TrayManager::cleanup() {
