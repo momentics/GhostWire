@@ -272,6 +272,7 @@ if(WIN32)
     # Library License
     install(FILES "${GHOSTWIRE_LIB_DIR}/LICENSE" DESTINATION "." RENAME "GHOSTWIRE_LIBRARY_LICENSE.txt")
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/QT_LICENSE.txt" DESTINATION ".")
+    install(FILES "${OPENSSL_DIR}/license.txt" DESTINATION "." RENAME "OPENSSL_LICENSE.txt")
 
 # --- Linux (DEB) ---
 elseif(UNIX AND NOT APPLE)
@@ -285,12 +286,14 @@ elseif(UNIX AND NOT APPLE)
         DESTINATION "usr/share/icons/hicolor/256x256/apps" RENAME "ghostwire.png")
     install(FILES "${GHOSTWIRE_LIB_DIR}/LICENSE" DESTINATION "opt/GhostWireDesktop" RENAME "GHOSTWIRE_LIBRARY_LICENSE.txt")
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/QT_LICENSE.txt" DESTINATION "opt/GhostWireDesktop")
+    install(FILES "${OPENSSL_DIR}/license.txt" DESTINATION "opt/GhostWireDesktop" RENAME "OPENSSL_LICENSE.txt")
 
 # --- macOS (DragNDrop) ---
 elseif(APPLE)
     install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION ".")
     install(FILES "${GHOSTWIRE_LIB_DIR}/LICENSE" DESTINATION "." RENAME "GHOSTWIRE_LIBRARY_LICENSE.txt")
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/QT_LICENSE.txt" DESTINATION ".")
+    install(FILES "${OPENSSL_DIR}/license.txt" DESTINATION "." RENAME "OPENSSL_LICENSE.txt")
 endif()
 
 # ─── CPack Configuration ──────────────────────────────────────────────────────

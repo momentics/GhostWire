@@ -4,24 +4,54 @@
 <context>
     <name>Application</name>
     <message>
-        <location filename="../src/Application.cpp" line="313"/>
+        <location filename="../src/Application.cpp" line="332"/>
         <source>Telegram не установлен</source>
         <translation>Telegramがインストールされていません</translation>
     </message>
     <message>
-        <location filename="../src/Application.cpp" line="314"/>
+        <location filename="../src/Application.cpp" line="333"/>
         <source>Установите Telegram Desktop для автоматической настройки прокси</source>
         <translation>プロキシの自動設定にはTelegram Desktopをインストールしてください</translation>
     </message>
     <message>
-        <location filename="../src/Application.cpp" line="333"/>
+        <location filename="../src/Application.cpp" line="352"/>
         <source>Telegram не запущен</source>
         <translation>Telegramが実行されていません</translation>
     </message>
     <message>
-        <location filename="../src/Application.cpp" line="334"/>
+        <location filename="../src/Application.cpp" line="353"/>
         <source>Сначала запустите Telegram Desktop</source>
         <translation>先にTelegram Desktopを起動してください</translation>
+    </message>
+    <message>
+        <location filename="../src/Application.cpp" line="371"/>
+        <source>Доступна новая версия</source>
+        <translation>新しいバージョンが利用可能です</translation>
+    </message>
+    <message>
+        <location filename="../src/Application.cpp" line="372"/>
+        <source>Текущая: %1, новая: %2. Открыть страницу загрузки?</source>
+        <translation>現在: %1、最新: %2。ダウンロードページを開きますか？</translation>
+    </message>
+    <message>
+        <location filename="../src/Application.cpp" line="382"/>
+        <source>Обновления</source>
+        <translation>アップデート</translation>
+    </message>
+    <message>
+        <location filename="../src/Application.cpp" line="383"/>
+        <source>Вы используете последнюю версию</source>
+        <translation>最新バージョンを使用しています</translation>
+    </message>
+    <message>
+        <location filename="../src/Application.cpp" line="392"/>
+        <source>Проверка обновлений</source>
+        <translation>アップデートの確認</translation>
+    </message>
+    <message>
+        <location filename="../src/Application.cpp" line="393"/>
+        <source>Не удалось проверить обновления: %1</source>
+        <translation>アップデートの確認に失敗しました: %1</translation>
     </message>
 </context>
 <context>
@@ -60,17 +90,17 @@
         <translation>データなし</translation>
     </message>
     <message>
-        <location filename="../src/SparklineWidget.cpp" line="139"/>
+        <location filename="../src/SparklineWidget.cpp" line="136"/>
         <source>30м</source>
         <translation>30分</translation>
     </message>
     <message>
-        <location filename="../src/SparklineWidget.cpp" line="139"/>
+        <location filename="../src/SparklineWidget.cpp" line="136"/>
         <source>15м</source>
         <translation>15分</translation>
     </message>
     <message>
-        <location filename="../src/SparklineWidget.cpp" line="139"/>
+        <location filename="../src/SparklineWidget.cpp" line="136"/>
         <source>сейчас</source>
         <translation>現在</translation>
     </message>
@@ -78,22 +108,22 @@
 <context>
     <name>StatsPanel</name>
     <message>
-        <location filename="../src/StatsPanel.cpp" line="23"/>
+        <location filename="../src/StatsPanel.cpp" line="24"/>
         <source>Работает:</source>
         <translation>動作時間:</translation>
     </message>
     <message>
-        <location filename="../src/StatsPanel.cpp" line="51"/>
+        <location filename="../src/StatsPanel.cpp" line="33"/>
         <source>Соединений:</source>
         <translation>接続数:</translation>
     </message>
     <message>
-        <location filename="../src/StatsPanel.cpp" line="60"/>
+        <location filename="../src/StatsPanel.cpp" line="42"/>
         <source>Пик:</source>
         <translation>ピーク:</translation>
     </message>
     <message>
-        <location filename="../src/StatsPanel.cpp" line="69"/>
+        <location filename="../src/StatsPanel.cpp" line="51"/>
         <source>Всего:</source>
         <translation>合計:</translation>
     </message>
@@ -102,7 +132,7 @@
     <name>TrayMenu</name>
     <message>
         <location filename="../src/TrayMenu.cpp" line="94"/>
-        <location filename="../src/TrayMenu.cpp" line="153"/>
+        <location filename="../src/TrayMenu.cpp" line="160"/>
         <source>Старт</source>
         <translation>開始</translation>
     </message>
@@ -112,12 +142,17 @@
         <translation>Telegram接続</translation>
     </message>
     <message>
-        <location filename="../src/TrayMenu.cpp" line="126"/>
+        <location filename="../src/TrayMenu.cpp" line="119"/>
+        <source>Проверить обновления</source>
+        <translation>アップデートを確認</translation>
+    </message>
+    <message>
+        <location filename="../src/TrayMenu.cpp" line="133"/>
         <source>Выход</source>
         <translation>終了</translation>
     </message>
     <message>
-        <location filename="../src/TrayMenu.cpp" line="153"/>
+        <location filename="../src/TrayMenu.cpp" line="160"/>
         <source>Стоп</source>
         <translation>停止</translation>
     </message>

@@ -62,3 +62,13 @@ Or configure the proxy manually:
 1. Telegram Desktop → Settings → Advanced → Connection type → SOCKS5
 2. Host: `127.0.0.1`, Port: `1080`
 3. Save
+
+---
+
+## Update checking
+
+On startup, the app automatically checks for new versions on GitHub (no more than once every 24 hours). When an update is found, a tray notification appears with a link to the release page.
+
+Manual check: the **Check for updates** button in the context menu.
+
+---
