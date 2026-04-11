@@ -176,7 +176,7 @@ void SparklineWidget::drawSeries(QPainter& painter, const QVector<double>& serie
     const QVector<QPointF>& points = (series == m_rx) ? m_rxPoints : m_txPoints;
     if (points.isEmpty()) return;
 
-    QPen pen(color, 1.5);
+    QPen pen(color, 1.0);
     painter.setPen(pen);
     painter.drawPolyline(points.constData(), points.size());
 }
