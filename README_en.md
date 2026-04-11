@@ -38,6 +38,7 @@ When launched, an animated icon appears in the tray. Right-clicking it opens a c
 | **Start** | Launch the proxy and begin accepting connections |
 | **Stop** | Stop the proxy and clear the interface |
 | **Connect Telegram** | Open the proxy configuration dialog in Telegram Desktop |
+| **Check for updates** | Check GitHub for a new version |
 | **Exit** | Quit the application |
 
 ---
