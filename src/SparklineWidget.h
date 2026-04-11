@@ -24,11 +24,17 @@ protected:
     void resizeEvent(QResizeEvent* event) override;
 
 private:
+    // Отступы области графика
+    static constexpr int PAD_TOP    = 18;
+    static constexpr int PAD_BOT    = 14;
+    static constexpr int PAD_LEFT   = 22;
+    static constexpr int PAD_RIGHT  = 8;
+
     QVector<double> m_rx;
     QVector<double> m_tx;
     QVector<QPointF> m_rxPoints;
     QVector<QPointF> m_txPoints;
-    int m_maxPoints = 60;
+    int m_maxPoints;
 
     QColor m_rxColor;
     QColor m_txColor;
@@ -40,7 +46,7 @@ private:
 
     void drawGrid(QPainter& painter, double maxVal);
     void drawTimeLabels(QPainter& painter);
-    void drawSeries(QPainter& painter, const QVector<double>& data, const QColor& color, double maxVal);
+    void drawSeries(QPainter& painter, const QVector<double>& data, const QColor& color);
     void drawYLabels(QPainter& painter, double maxVal);
     void drawLegend(QPainter& painter);
     void updatePointsCache(double maxVal);

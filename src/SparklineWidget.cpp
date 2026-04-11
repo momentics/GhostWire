@@ -92,87 +92,82 @@ void SparklineWidget::paintEvent(QPaintEvent*) {
     drawTimeLabels(painter);
     drawYLabels(painter, maxVal);
     updatePointsCache(maxVal);
-    drawSeries(painter, m_rx, m_rxColor, maxVal);
-    drawSeries(painter, m_tx, m_txColor, maxVal);
+    drawSeries(painter, m_rx, m_rxColor);
+    drawSeries(painter, m_tx, m_txColor);
     drawLegend(painter);
 }
 
 void SparklineWidget::drawGrid(QPainter& painter, double) {
-    int w = width();
-    int h = height();
-    int padTop = 18;
-    int padBot = 14;  // Место для временных меток
-    int padLeft = 22; // Место для метки "500 К" и прочего
-    int padRight = 8; // Запас справа
+    int gridH = height() - PAD_TOP - PAD_BOT;
+    int gridW = width() - PAD_LEFT - PAD_RIGHT;
 
-    int gridH = h - padTop - padBot;
-    int gridW = w - padLeft - padRight;
-
-    // Горизонтальные линии (4 уровня)
+    // Горизонтальные линии (5 основных)
     painter.setPen(QPen(m_gridColor, 0.5));
     for (int i = 0; i <= 4; ++i) {
-        int y = padTop + (gridH * i) / 4;
-        painter.drawLine(padLeft, y, padLeft + gridW, y);
+        int y = PAD_TOP + (gridH * i) / 4;
+        painter.drawLine(PAD_LEFT, y, PAD_LEFT + gridW, y);
     }
 
-    // Вертикальные линии — заметнее
+    // Промежуточные горизонтальные линии (4 тонкие)
+    painter.setPen(QPen(m_gridColor, 0.3));
+    for (int i = 0; i < 4; ++i) {
+        int y = PAD_TOP + (gridH * (i * 2 + 1)) / 8;
+        painter.drawLine(PAD_LEFT, y, PAD_LEFT + gridW, y);
+    }
+
+    // Вертикальные линии
     int numPoints = qMax(m_rx.size(), m_tx.size());
     if (numPoints < 2) return;
 
     painter.setPen(QPen(m_gridColor, 0.8));
     for (int i = 0; i <= 4; ++i) {
         double frac = static_cast<double>(i) / 4.0;
-        int x = padLeft + static_cast<int>(frac * gridW);
-        painter.drawLine(x, padTop, x, padTop + gridH);
+        int x = PAD_LEFT + static_cast<int>(frac * gridW);
+        painter.drawLine(x, PAD_TOP, x, PAD_TOP + gridH);
     }
 }
 
 void SparklineWidget::drawTimeLabels(QPainter& painter) {
-    int h = height();
-    int padBot = 14;
-
     painter.setPen(m_textColor);
     painter.setFont(m_labelFont);
     QFontMetrics fm(m_labelFont);
 
     // Метки времени: 30м, 15м, сейчас
     const char* labels[] = { QT_TR_NOOP("30м"), QT_TR_NOOP("15м"), QT_TR_NOOP("сейчас") };
-    int positions[] = { 0, 2, 4 };  // индексы для 5 делений сетки
-    int w = width();
-    int padLeft = 22;
-    int padRight = 8;
-    int gridW = w - padLeft - padRight;
+    int positions[] = { 0, 2, 4 };
+    int gridW = width() - PAD_LEFT - PAD_RIGHT;
 
     for (int i = 0; i < 3; ++i) {
         double frac = static_cast<double>(positions[i]) / 4.0;
-        int x = padLeft + static_cast<int>(frac * gridW);
+        int x = PAD_LEFT + static_cast<int>(frac * gridW);
         QString label = tr(labels[i]);
         int labelW = fm.horizontalAdvance(label);
 
         // Центрируем метку по позиции деления
         int drawX = x - labelW / 2;
 
-        // Но не даем вылезти за края
+        // Не даём вылезти за края
         if (drawX < 0) drawX = 0;
-        if (drawX + labelW > w) drawX = w - labelW;
+        if (drawX + labelW > width()) drawX = width() - labelW;
 
-        painter.drawText(drawX, h - padBot + fm.ascent(), label);
+        painter.drawText(drawX, height() - PAD_BOT + fm.ascent(), label);
     }
 }
 
 void SparklineWidget::drawYLabels(QPainter& painter, double maxVal) {
-    int padTop = 18;
-
     painter.setPen(m_textColor);
     painter.setFont(m_labelFont);
+    QFontMetrics fm(m_labelFont);
 
-    // Только верхняя метка (maxVal)
+    // Метка в области отступа слева
     QString label = formatBytes(maxVal);
-    painter.drawText(2, padTop + 4, label);
+    int labelW = fm.horizontalAdvance(label);
+    int x = PAD_LEFT - labelW - 4;
+    if (x < 0) x = 0;
+    painter.drawText(x, PAD_TOP + 4, label);
 }
 
-void SparklineWidget::drawSeries(QPainter& painter, const QVector<double>& series, const QColor& color, double) {
-    // Используем кешированные точки
+void SparklineWidget::drawSeries(QPainter& painter, const QVector<double>& series, const QColor& color) {
     const QVector<QPointF>& points = (series == m_rx) ? m_rxPoints : m_txPoints;
     if (points.isEmpty()) return;
 
@@ -182,17 +177,10 @@ void SparklineWidget::drawSeries(QPainter& painter, const QVector<double>& serie
 }
 
 void SparklineWidget::updatePointsCache(double maxVal) {
-    int w = width();
-    int h = height();
-    int padTop = 18;
-    int padBot = 14;
-    int padLeft = 22;
-    int padRight = 8;
-    int gridH = h - padTop - padBot;
-    int gridW = w - padLeft - padRight;
+    int gridH = height() - PAD_TOP - PAD_BOT;
+    int gridW = width() - PAD_LEFT - PAD_RIGHT;
 
-    auto computePoints = [padLeft, padRight, gridW, gridH, padTop, maxVal, this]
-                         (const QVector<double>& series) -> QVector<QPointF> {
+    auto computePoints = [gridW, gridH, maxVal, this](const QVector<double>& series) -> QVector<QPointF> {
         QVector<QPointF> pts;
         int n = series.size();
         if (n < 2) return pts;
@@ -201,8 +189,8 @@ void SparklineWidget::updatePointsCache(double maxVal) {
         pts.reserve(n);
         for (int i = 0; i < n; ++i) {
             double frac = static_cast<double>(i + offset) / static_cast<double>(m_maxPoints - 1);
-            double x = padLeft + frac * gridW;
-            double y = padTop + gridH - (series[i] / maxVal) * gridH;
+            double x = PAD_LEFT + frac * gridW;
+            double y = PAD_TOP + gridH - (series[i] / maxVal) * gridH;
             pts.append(QPointF(x, y));
         }
         return pts;
