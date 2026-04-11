@@ -115,6 +115,13 @@ void TrayMenu::buildLayout() {
     });
     mainLayout->addWidget(m_telegramButton);
 
+    // Кнопка Проверить обновления
+    m_updateButton = new QPushButton(tr("Проверить обновления"), this);
+    connect(m_updateButton, &QPushButton::clicked, this, [this]() {
+        emit checkUpdatesRequested();
+    });
+    mainLayout->addWidget(m_updateButton);
+
     // Разделитель 2
     //auto* line2 = new QFrame(this);
     //line2->setFrameShape(QFrame::HLine);

@@ -7,6 +7,7 @@
 #include "GhostWire.h"
 #include "TrayManager.h"
 #include "TrayMenu.h"
+#include "UpdateChecker.h"
 #include "Config.h"
 
 #include <QFile>
@@ -20,6 +21,7 @@
 #include <QDesktopServices>
 #include <QUrl>
 #include <QProcess>
+#include <QMessageBox>
 
 Application::Application(QObject* parent)
     : QObject(parent)
@@ -27,6 +29,10 @@ Application::Application(QObject* parent)
     m_ghostWire   = std::make_unique<GhostWire>();
     m_trayManager = std::make_unique<TrayManager>();
     m_trayMenu    = std::make_unique<TrayMenu>();
+    m_updateChecker = std::make_unique<UpdateChecker>(
+        QCoreApplication::applicationVersion(),
+        Config::GITHUB_REPO_OWNER,
+        Config::GITHUB_REPO_NAME);
 
     // Соединяем сигналы TrayMenu → Application
     connect(m_trayMenu.get(), &TrayMenu::startRequested, this, [this]() {
@@ -69,6 +75,16 @@ Application::Application(QObject* parent)
     connect(m_trayManager.get(), &TrayManager::iconClicked, this, [this](const QRect& iconRect) {
         showTrayMenu(iconRect);
     });
+
+    connect(m_trayMenu.get(), &TrayMenu::checkUpdatesRequested,
+            this, &Application::onCheckUpdatesRequested);
+
+    connect(m_updateChecker.get(), &UpdateChecker::updateAvailable,
+            this, &Application::onUpdateAvailable);
+    connect(m_updateChecker.get(), &UpdateChecker::noUpdate,
+            this, &Application::onNoUpdate);
+    connect(m_updateChecker.get(), &UpdateChecker::checkFailed,
+            this, &Application::onUpdateCheckFailed);
 }
 
 Application::~Application() = default;
@@ -103,6 +119,9 @@ bool Application::initialize() {
 
     // 6. Восстановить предыдущее состояние
     restoreState();
+
+    // 7. Запустить проверку обновлений
+    m_updateChecker->checkForUpdates();
 
     qDebug() << "Application: инициализация завершена";
     return true;
@@ -337,4 +356,42 @@ void Application::onConfigureTelegram() {
         );
         qDebug() << "Application: Telegram Desktop не запущен";
     }
+}
+
+void Application::onCheckUpdatesRequested() {
+    qDebug() << "Application: ручная проверка обновлений";
+    m_trayMenu->hideMenu();
+    m_updateChecker->checkForUpdatesNow();
+}
+
+void Application::onUpdateAvailable(const QString& version, const QString& releaseUrl) {
+    qDebug() << "Application: доступна версия" << version;
+    QString current = QCoreApplication::applicationVersion();
+    m_trayManager->showMessage(
+        tr("Доступна новая версия"),
+        QString(tr("Текущая: %1, новая: %2. Открыть страницу загрузки?")).arg(current, version),
+        QSystemTrayIcon::Information,
+        10000
+    );
+    QDesktopServices::openUrl(QUrl(releaseUrl));
+}
+
+void Application::onNoUpdate() {
+    qDebug() << "Application: обновлений нет";
+    m_trayManager->showMessage(
+        tr("Обновления"),
+        tr("Вы используете последнюю версию"),
+        QSystemTrayIcon::Information,
+        3000
+    );
+}
+
+void Application::onUpdateCheckFailed(const QString& error) {
+    qDebug() << "Application: проверка обновлений не удалась —" << error;
+    m_trayManager->showMessage(
+        tr("Проверка обновлений"),
+        tr("Не удалось проверить обновления: %1").arg(error),
+        QSystemTrayIcon::Warning,
+        5000
+    );
 }

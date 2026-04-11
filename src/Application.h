@@ -8,6 +8,7 @@
 class TrayManager;
 class TrayMenu;
 class GhostWire;
+class UpdateChecker;
 
 // Forward — определено в GhostWire.h
 struct GhostWireProxyStats;
@@ -27,12 +28,17 @@ private slots:
     void onStatsTick();
     void onTrayExit();
     void onConfigureTelegram();
+    void onCheckUpdatesRequested();
+    void onUpdateAvailable(const QString& version, const QString& releaseUrl);
+    void onNoUpdate();
+    void onUpdateCheckFailed(const QString& error);
 
 private:
     std::unique_ptr<GhostWire>   m_ghostWire;
     std::unique_ptr<TrayManager> m_trayManager;
     std::unique_ptr<TrayMenu>    m_trayMenu;
     std::unique_ptr<QTimer>      m_statsTimer;
+    std::unique_ptr<UpdateChecker> m_updateChecker;
 
     // Для расчёта дельты RX/TX (храним только нужные поля)
     uint64_t m_prevBytesReceived = 0;

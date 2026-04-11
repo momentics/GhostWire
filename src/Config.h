@@ -43,4 +43,13 @@ inline const char* TELEGRAM_PROCESS_NAME = "Telegram";
 inline const char* TELEGRAM_PROCESS_NAME = "telegram-desktop";
 #endif
 
+/// Владелец репозитория на GitHub
+inline const char* GITHUB_REPO_OWNER = "momentics";
+
+/// Имя репозитория на GitHub
+inline const char* GITHUB_REPO_NAME = "GhostWire";
+
+/// Интервал проверки обновлений (часы)
+inline constexpr int UPDATE_CHECK_INTERVAL_HOURS = 24;
+
 } // namespace Config
