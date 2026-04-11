@@ -54,6 +54,14 @@ elseif(UNIX)
     set(GHOSTWIRE_LINK_LIB "${GHOSTWIRE_LIB}")
 endif()
 
+# ─── OpenSSL (DLL runtime, Qt загружает динамически) ──────────────────────────
+set(OPENSSL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl")
+set(OPENSSL_INCLUDE_DIR "${OPENSSL_DIR}/include")
+set(OPENSSL_DLLS
+    "${OPENSSL_DIR}/libssl-1_1-x64.dll"
+    "${OPENSSL_DIR}/libcrypto-1_1-x64.dll"
+)
+
 # ─── Sources ───────────────────────────────────────────────────────────────────
 set(SOURCES
     src/main.cpp
@@ -63,6 +71,7 @@ set(SOURCES
     src/SparklineWidget.cpp
     src/StatsPanel.cpp
     src/GhostWire.cpp
+    src/UpdateChecker.cpp
 )
 
 set(HEADERS
@@ -74,6 +83,7 @@ set(HEADERS
     src/GhostWire.h
     src/Config.h
     src/Utils.h
+    src/UpdateChecker.h
 )
 
 set(RESOURCES
@@ -144,13 +154,19 @@ elseif(UNIX)
     )
 endif()
 
-# ─── Post-build: copy ghostwire library next to executable ─────────────────────
+# ─── Post-build: copy ghostwire library and OpenSSL DLLs next to executable ────
 if(WIN32)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${GHOSTWIRE_LIB}"
             $<TARGET_FILE_DIR:${PROJECT_NAME}>
-        COMMENT "Copying ghostwire.dll to output"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${OPENSSL_DIR}/libcrypto-1_1-x64.dll"
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${OPENSSL_DIR}/libssl-1_1-x64.dll"
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        COMMENT "Copying ghostwire.dll and OpenSSL DLLs to output"
     )
 elseif(APPLE)
     # Copy into .app bundle Contents/MacOS/
@@ -235,14 +251,23 @@ if(WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_VCR_BIN_DIR}/msvcp140.dll" "${_PKG_DIR}/"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_VCR_BIN_DIR}/vcruntime140.dll" "${_PKG_DIR}/"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_VCR_BIN_DIR}/vcruntime140_1.dll" "${_PKG_DIR}/"
+        # Deploy OpenSSL
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${OPENSSL_DIR}/libcrypto-1_1-x64.dll" "${_PKG_DIR}/"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${OPENSSL_DIR}/libssl-1_1-x64.dll" "${_PKG_DIR}/"
         COMMENT "Deploying dependencies to package directory"
     )
 
     install(DIRECTORY "${_PKG_DIR}/"
         DESTINATION "." COMPONENT Runtime
-        PATTERN "*.exe" EXCLUDE          # We already install the main exe
-        PATTERN "ghostwire.dll" EXCLUDE  # We already install the main library
+        PATTERN "*.exe" EXCLUDE
+        PATTERN "ghostwire.dll" EXCLUDE
+        PATTERN "libcrypto-1_1-x64.dll" EXCLUDE
+        PATTERN "libssl-1_1-x64.dll" EXCLUDE
     )
+
+    # OpenSSL DLLs
+    install(FILES "${OPENSSL_DIR}/libcrypto-1_1-x64.dll" DESTINATION ".")
+    install(FILES "${OPENSSL_DIR}/libssl-1_1-x64.dll" DESTINATION ".")
 
     # Library License
     install(FILES "${GHOSTWIRE_LIB_DIR}/LICENSE" DESTINATION "." RENAME "GHOSTWIRE_LIBRARY_LICENSE.txt")

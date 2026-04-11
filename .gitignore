@@ -15,7 +15,10 @@ Makefile
 deploy/
 dist/
 *.exe
+!libs/openssl/*.exe
 *.dll
+!libs/openssl/*.dll
+!libs/openssl/*.dat
 *.pdb
 *.idb
 *.ilk
@@ -24,7 +27,11 @@ dist/
 *.so
 *.dylib
 *.a
-*.lib
+.lib
+!libs/openssl/*.lib
+!libs/openssl/**
+!libs/openssl/recipies/**
+
 
 # Qt
 moc_*.cpp
@@ -46,3 +53,6 @@ Thumbs.db
 resources/gen_icons.py
 resources/gen_ico.py
 resources/config.json
+
+
+
