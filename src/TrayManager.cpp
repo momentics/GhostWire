@@ -5,11 +5,6 @@
 #include <QDebug>
 #include <QCursor>
 
-#ifdef Q_OS_LINUX
-#  include <QNativeInterface>
-#  include <xcb/xcb.h>
-#endif
-
 TrayManager::TrayManager(QObject* parent)
     : QObject(parent)
     , m_trayIcon(new QSystemTrayIcon(this))

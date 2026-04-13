@@ -4,6 +4,8 @@
 #include <QPushButton>
 #include <QTimer>
 #include <QEvent>
+#include <QShowEvent>
+#include <QHideEvent>
 
 class StatsPanel;
 class SparklineWidget;
@@ -48,6 +50,8 @@ signals:
 protected:
     bool event(QEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;
+    void showEvent(QShowEvent* event) override;
+    void hideEvent(QHideEvent* event) override;
 
 private:
     StatsPanel*       m_statsPanel     = nullptr;
