@@ -316,6 +316,13 @@ elseif(UNIX AND NOT APPLE)
     # Install OpenSSL 1.1 next to executable (for dlopen)
     if(_openssl_libs)
         install(FILES ${_openssl_libs} DESTINATION "/opt/GhostWireDesktop/bin")
+        # Create symlinks without version suffix so Qt's dlopen("libcrypto.so") finds them
+        install(CODE "
+            execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libcrypto.so.1.1 libcrypto.so
+                WORKING_DIRECTORY \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin\")
+            execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink libssl.so.1.1 libssl.so
+                WORKING_DIRECTORY \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin\")
+        ")
     endif()
 
     # Install Qt plugins

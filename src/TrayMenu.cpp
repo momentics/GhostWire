@@ -42,35 +42,32 @@ Qt::WindowFlags TrayMenu::makeWindowFlags() {
 }
 
 bool TrayMenu::event(QEvent* event) {
-    // Скрываем при потере фокуса (клик вне меню)
-    // FocusOut надёжнее WindowDeactivate — работает на всех платформах,
-    // включая Windows 11, где Tool-окна не получают активное состояние.
-    // WindowDeactivate дополняет FocusOut при клике на другие окна.
-    // На Linux с Qt::Tool события FocusOut не приходят — используем polling.
+#ifdef Q_OS_LINUX
+    // Linux: Qt::Tool не закрывается сам. Отслеживаем потерю фокуса, чтобы запустить таймер скрытия.
     if (event->type() == QEvent::FocusOut || event->type() == QEvent::WindowDeactivate) {
-        // Перезапуск таймера — предотвращает накопление отложенных скрытий
         m_autoHideTimer->start();
     }
+#endif
+    // Windows/macOS: Qt::Popup закрывается системой автоматически при клике вне меню.
+    // Не вмешиваемся в этот процесс.
     return QWidget::event(event);
 }
 
 void TrayMenu::showEvent(QShowEvent* event) {
     QWidget::showEvent(event);
 #ifdef Q_OS_LINUX
-    // На Linux Qt::Tool не получает FocusOut — запускаем циклический polling
+    // Linux: Qt::Tool не получает FocusOut — запускаем циклический polling
     m_autoHideTimer->setSingleShot(false);
     m_autoHideTimer->setInterval(100);
     m_autoHideTimer->start();
-#else
-    // На Windows/macOS Qt::Popup закрывается сам, polling добавляет надёжность
-    m_autoHideTimer->setSingleShot(true);
-    m_autoHideTimer->setInterval(50);
-    m_autoHideTimer->start();
 #endif
+    // Windows/macOS: Qt::Popup закрывается сам. Таймер запускать НЕ нужно,
+    // иначе меню схлопнется сразу после появления (пока мышь ещё на трее).
 }
 
 void TrayMenu::hideEvent(QHideEvent* event) {
     m_autoHideTimer->stop();
+    // Сброс настроек таймера к дефолтным (для Windows)
     m_autoHideTimer->setSingleShot(true);
     m_autoHideTimer->setInterval(50);
     QWidget::hideEvent(event);
