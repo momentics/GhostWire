@@ -34,6 +34,11 @@ public:
                      QSystemTrayIcon::MessageIcon icon = QSystemTrayIcon::Information,
                      int millisecondsTimeout = 3000);
 
+    /// Получить геометрию иконки трея в экранных координатах.
+    /// На Windows обычно работает корректно. На Linux/macOS может возвращать
+    /// пустой QRect — в этом случае вызывающая сторона использует курсор.
+    QRect trayIconGeometry() const;
+
 signals:
     /// Пользователь кликнул по иконке — открыть меню
     void iconClicked(const QRect& iconGeometry);

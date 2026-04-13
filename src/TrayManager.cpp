@@ -137,3 +137,7 @@ void TrayManager::showMessage(const QString& title, const QString& message,
                               int millisecondsTimeout) {
     m_trayIcon->showMessage(title, message, icon, millisecondsTimeout);
 }
+
+QRect TrayManager::trayIconGeometry() const {
+    return m_trayIcon ? m_trayIcon->geometry() : QRect();
+}

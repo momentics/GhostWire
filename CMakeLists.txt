@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(GhostWireDesktop VERSION 1.0.6 LANGUAGES CXX)
+project(GhostWireDesktop VERSION 1.0.7 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -7,10 +7,10 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# ─── Version header from project version ─────────────────────────────────────
+# Version header from project version
 configure_file(src/version.h.in "${CMAKE_CURRENT_BINARY_DIR}/version.h" @ONLY)
 
-# ─── Translations: compile .ts → .qm ─────────────────────────────────────────
+# Translations: compile .ts то .qm
 find_program(LRELEASE_EXECUTABLE lrelease)
 if(LRELEASE_EXECUTABLE)
     set(_LANGS bg ca cs da de en es fi fr gd hu it ja ko lv pl sk tr uk zh_TW)
@@ -29,11 +29,11 @@ if(LRELEASE_EXECUTABLE)
     add_custom_target(translations ALL DEPENDS ${_QM_FILES})
 endif()
 
-# ─── Qt ────────────────────────────────────────────────────────────────────────
+# Qt
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui Widgets Network)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets Network)
 
-# ─── GhostWire library ─────────────────────────────────────────────────────────
+# GhostWire library
 set(GHOSTWIRE_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/ghostwire")
 set(GHOSTWIRE_INCLUDE_DIR "${GHOSTWIRE_LIB_DIR}/include")
 
@@ -54,7 +54,7 @@ elseif(UNIX)
     set(GHOSTWIRE_LINK_LIB "${GHOSTWIRE_LIB}")
 endif()
 
-# ─── OpenSSL (DLL runtime, Qt загружает динамически) ──────────────────────────
+# OpenSSL (DLL runtime, Qt загружает динамически)
 set(OPENSSL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl")
 set(OPENSSL_INCLUDE_DIR "${OPENSSL_DIR}/include")
 set(OPENSSL_DLLS
@@ -62,7 +62,7 @@ set(OPENSSL_DLLS
     "${OPENSSL_DIR}/libcrypto-1_1-x64.dll"
 )
 
-# ─── Sources ───────────────────────────────────────────────────────────────────
+# Sources
 set(SOURCES
     src/main.cpp
     src/Application.cpp
@@ -72,6 +72,7 @@ set(SOURCES
     src/StatsPanel.cpp
     src/GhostWire.cpp
     src/UpdateChecker.cpp
+    src/SingleInstanceGuard.cpp
 )
 
 set(HEADERS
@@ -84,6 +85,7 @@ set(HEADERS
     src/Config.h
     src/Utils.h
     src/UpdateChecker.h
+    src/SingleInstanceGuard.h
 )
 
 set(RESOURCES
@@ -94,7 +96,7 @@ if(WIN32)
     list(APPEND SOURCES resources/app.rc)
 endif()
 
-# ─── Executable ────────────────────────────────────────────────────────────────
+# Executable
 add_executable(${PROJECT_NAME}
     WIN32
     ${SOURCES}
@@ -154,7 +156,7 @@ elseif(UNIX)
     )
 endif()
 
-# ─── Post-build: copy ghostwire library and OpenSSL DLLs next to executable ────
+# Post-build: copy ghostwire library and OpenSSL DLLs next to executable
 if(WIN32)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -185,7 +187,7 @@ elseif(UNIX)
     )
 endif()
 
-# ─── Deploy: Qt DLLs / .so / .dylib next to executable ────────────────────────
+# Deploy: Qt DLLs / .so / .dylib next to executable
 if(WIN32)
     # Use windeployqt to collect Qt runtime DLLs
     get_target_property(_qmake_executable Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
@@ -229,7 +231,7 @@ elseif(APPLE)
     endif()
 endif()
 
-# ─── Install Rules ─────────────────────────────────────────────────────────────
+# Install Rules
 set(_PKG_DIR "${CMAKE_CURRENT_BINARY_DIR}/package")
 
 # 1. Main Executable
@@ -276,7 +278,7 @@ if(WIN32)
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/QT_LICENSE.txt" DESTINATION ".")
     install(FILES "${OPENSSL_DIR}/license.txt" DESTINATION "." RENAME "OPENSSL_LICENSE.txt")
 
-# --- Linux (DEB) ---
+# Linux (DEB)
 elseif(UNIX AND NOT APPLE)
     install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION "opt/GhostWireDesktop/bin")
     install(FILES "${GHOSTWIRE_LIB}" DESTINATION "opt/GhostWireDesktop/bin")
@@ -290,7 +292,7 @@ elseif(UNIX AND NOT APPLE)
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/QT_LICENSE.txt" DESTINATION "opt/GhostWireDesktop")
     install(FILES "${OPENSSL_DIR}/license.txt" DESTINATION "opt/GhostWireDesktop" RENAME "OPENSSL_LICENSE.txt")
 
-# --- macOS (DragNDrop) ---
+# macOS (DragNDrop)
 elseif(APPLE)
     install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION ".")
     install(FILES "${GHOSTWIRE_LIB_DIR}/LICENSE" DESTINATION "." RENAME "GHOSTWIRE_LIBRARY_LICENSE.txt")
@@ -298,7 +300,7 @@ elseif(APPLE)
     install(FILES "${OPENSSL_DIR}/license.txt" DESTINATION "." RENAME "OPENSSL_LICENSE.txt")
 endif()
 
-# ─── CPack Configuration ──────────────────────────────────────────────────────
+# CPack Configuration
 set(CPACK_PACKAGE_NAME "GhostWire Desktop")
 set(CPACK_PACKAGE_VENDOR "momentics")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")

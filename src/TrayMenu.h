@@ -33,6 +33,11 @@ public:
     /// Скрыть меню
     void hideMenu();
 
+    /// Начать проверку потери фокуса (для IPC-показа).
+    /// Вызывается один раз после показа меню из второго экземпляра.
+    /// При обычном показе мышью НЕ вызывается — там работают FocusOut/WindowDeactivate.
+    void startIpcFocusMonitor();
+
 signals:
     void startRequested();
     void stopRequested();

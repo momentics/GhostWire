@@ -34,7 +34,7 @@ Application::Application(QObject* parent)
         Config::GITHUB_REPO_OWNER,
         Config::GITHUB_REPO_NAME);
 
-    // Соединяем сигналы TrayMenu → Application
+    // Соединяем сигналы TrayMenu к Application
     connect(m_trayMenu.get(), &TrayMenu::startRequested, this, [this]() {
         if (m_ghostWire->start()) {
             m_proxyRunning = true;
@@ -71,7 +71,7 @@ Application::Application(QObject* parent)
     connect(m_trayMenu.get(), &TrayMenu::configureTelegramRequested,
             this, &Application::onConfigureTelegram);
 
-    // Соединяем сигналы TrayManager → Application (для открытия меню)
+    // Соединяем сигналы TrayManager к Application (для открытия меню)
     connect(m_trayManager.get(), &TrayManager::iconClicked, this, [this](const QRect& iconRect) {
         showTrayMenu(iconRect);
     });
@@ -221,6 +221,53 @@ void Application::onTrayExit() {
         m_ghostWire->destroy();
     }
     qApp->quit();
+}
+
+void Application::showTrayMenuAtCursor() {
+    // Вызывается при повторном запуске: второй экземпляр просит первый показать меню.
+    // Пытаемся получить реальную позицию иконки трея — меню появится рядом с ней.
+    // Если геометрия недоступна (Linux/macOS) — fallback к позиции курсора.
+    if (!m_trayMenu) return;
+
+    QRect iconRect = m_trayManager->trayIconGeometry();
+    if (iconRect.isValid() && !iconRect.isEmpty()) {
+        // Геометрия иконки получена — используем её
+        showTrayMenu(iconRect);
+        // При IPC-показе FocusOut/WindowDeactivate могут не прийти —
+        // запускаем однократную проверку потери фокуса.
+        m_trayMenu->startIpcFocusMonitor();
+        qDebug() << "Application: tray menu shown at tray icon geometry" << iconRect;
+    } else {
+        // Геометрия недоступна (Linux/macOS) — показываем у курсора
+        m_trayMenu->adjustSize();
+
+        QPoint cursorPos = QCursor::pos();
+        int x = cursorPos.x();
+        int y = cursorPos.y() - m_trayMenu->height();
+
+        QScreen* screen = QGuiApplication::screenAt(cursorPos);
+        if (!screen) screen = QGuiApplication::primaryScreen();
+        QRect screenRect = screen->availableGeometry();
+
+        const int menuOffsetBelow = 4;
+        if (y < screenRect.top()) {
+            y = cursorPos.y() + menuOffsetBelow;
+        }
+
+        if (x + m_trayMenu->width() > screenRect.right())
+            x = screenRect.right() - m_trayMenu->width();
+        if (x < screenRect.left()) x = screenRect.left();
+
+        m_trayMenu->move(x, y);
+        m_trayMenu->raise();
+        m_trayMenu->show();
+        m_trayMenu->activateWindow();
+        // При IPC-показе FocusOut/WindowDeactivate могут не прийти —
+        // запускаем однократную проверку потери фокуса.
+        m_trayMenu->startIpcFocusMonitor();
+
+        qDebug() << "Application: tray menu shown at cursor (geometry unavailable) at" << x << y;
+    }
 }
 
 void Application::showTrayMenu(const QRect& iconRect) {

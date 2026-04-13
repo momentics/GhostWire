@@ -51,7 +51,8 @@ bool TrayMenu::event(QEvent* event) {
     // Скрываем при потере фокуса (клик вне меню)
     // FocusOut надёжнее WindowDeactivate — работает на всех платформах,
     // включая Windows 11, где Tool-окна не получают активное состояние.
-    if (event->type() == QEvent::FocusOut) {
+    // WindowDeactivate дополняет FocusOut при клике на другие окна.
+    if (event->type() == QEvent::FocusOut || event->type() == QEvent::WindowDeactivate) {
         // Перезапуск таймера — предотвращает накопление отложенных скрытий
         m_autoHideTimer->start();
     }
@@ -197,4 +198,14 @@ void TrayMenu::setRunningState(bool running) {
 
 void TrayMenu::hideMenu() {
     hide();
+}
+
+void TrayMenu::startIpcFocusMonitor() {
+    // При IPC-показе события FocusOut/WindowDeactivate могут не прийти,
+    // потому что окно не получило фокус через activateWindow().
+    // Один раз запускаем таймер проверки — через 3 секунды.
+    // Это НЕ зацикленный таймер: tryHideMenu() не перезапускает его.
+    // Если пользователь кликает на меню, underMouse() == true — hide() не вызывается.
+    // Если клик вне — underMouse() == false && hasFocus() == false — меню скрывается.
+    QTimer::singleShot(3000, this, &TrayMenu::tryHideMenu);
 }
