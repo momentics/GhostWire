@@ -237,14 +237,14 @@ endif()
 # Install Rules
 set(_PKG_DIR "${CMAKE_CURRENT_BINARY_DIR}/package")
 
-# 1. Main Executable
-install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ".")
-
-# 2. GhostWire Library
-install(FILES "${GHOSTWIRE_LIB}" DESTINATION ".")
-
-# 3. Windows Specifics (Qt + CRT)
+# Windows Specifics (Qt + CRT)
 if(WIN32)
+    # 1. Main Executable
+    install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ".")
+
+    # 2. GhostWire Library
+    install(FILES "${GHOSTWIRE_LIB}" DESTINATION ".")
+
     get_filename_component(_VCR_BIN_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
 
     # Post-build: Prepare the package directory
