@@ -6,19 +6,27 @@
 #include <QHBoxLayout>
 #include <QFrame>
 #include <QTimer>
+#include <QMouseEvent>
+#include <QApplication>
+#include <QDebug>
 
 TrayMenu::TrayMenu(QWidget* parent)
-    : QWidget(parent, Qt::FramelessWindowHint | Qt::Tool | Qt::WindowStaysOnTopHint)
+    : QWidget(parent, makeWindowFlags())
     , m_autoHideTimer(new QTimer(this))
 {
     setAttribute(Qt::WA_TranslucentBackground, false);
     setAttribute(Qt::WA_DeleteOnClose, false);
     setWindowOpacity(0.95);
 
+    // Qt::Popup автоматически закрывается при клике вне области,
+    // но на некоторых WM (Linux) это работает нестабильно.
+    // Дополнительно ловим FocusOut для надёжного автоскрытия.
+    setAttribute(Qt::WA_ShowWithoutActivating, false);
+
     setFixedWidth(Config::MENU_WIDTH);
     setMaximumWidth(Config::MENU_WIDTH);
 
-    // Таймер автоскрытия: перезапускается при каждом WindowDeactivate,
+    // Таймер автоскрытия: перезапускается при каждом FocusOut,
     // что предотвращает накопление отложенных скрытий
     m_autoHideTimer->setSingleShot(true);
     m_autoHideTimer->setInterval(50);
@@ -27,13 +35,39 @@ TrayMenu::TrayMenu(QWidget* parent)
     buildLayout();
 }
 
+Qt::WindowFlags TrayMenu::makeWindowFlags() {
+    // Qt::Popup — стандартный флаг для контекстных меню:
+    //   • Не появляется на панели задач
+    //   • Автоматически закрывается при клике вне области
+    //   • Корректный z-order (поверх родительского окна)
+    //   • Работает одинаково на Windows 10/11, Linux, macOS
+    // Qt::WindowStaysOnTopHint НЕ нужен — Popup уже поверх.
+    // На Windows 11 комбинация Tool + WindowStaysOnTopHint ломает
+    // foreground activation, из-за чего меню не показывается.
+    return Qt::FramelessWindowHint | Qt::Popup;
+}
+
 bool TrayMenu::event(QEvent* event) {
     // Скрываем при потере фокуса (клик вне меню)
-    if (event->type() == QEvent::WindowDeactivate) {
+    // FocusOut надёжнее WindowDeactivate — работает на всех платформах,
+    // включая Windows 11, где Tool-окна не получают активное состояние.
+    if (event->type() == QEvent::FocusOut) {
         // Перезапуск таймера — предотвращает накопление отложенных скрытий
         m_autoHideTimer->start();
     }
     return QWidget::event(event);
+}
+
+void TrayMenu::mousePressEvent(QMouseEvent* event) {
+    // Клик на пустое пространство — закрываем меню.
+    // Qt::Popup делает это автоматически, но на некоторых Linux WM
+    // (например, KDE/KWin) клик без обработчика может не закрыть окно.
+    // Проверяем, что клик НЕ по кнопке (дочернему виджету).
+    if (!childAt(event->pos())) {
+        hide();
+    } else {
+        QWidget::mousePressEvent(event);
+    }
 }
 
 TrayMenu::~TrayMenu() = default;

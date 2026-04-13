@@ -250,9 +250,16 @@ void Application::showTrayMenu(const QRect& iconRect) {
     if (x < screenRect.left()) x = screenRect.left();
 
     m_trayMenu->move(x, y);
-    m_trayMenu->show();
+
+    // Порядок показа критичен для Windows 11:
+    // 1. raise() — поднимаем наверх z-order ДО показа
+    // 2. show()   — показываем окно
+    // 3. activateWindow() — передаём фокус (для Qt::Popup работает на всех платформах)
     m_trayMenu->raise();
+    m_trayMenu->show();
     m_trayMenu->activateWindow();
+
+    qDebug() << "Application: tray menu shown at" << x << y;
 }
 
 /// Проверить, запущен ли процесс Telegram Desktop (кроссплатформенно)

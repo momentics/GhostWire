@@ -115,6 +115,8 @@ void TrayManager::setConnectionsState(bool hasConnections) {
 void TrayManager::onTrayActivated(QSystemTrayIcon::ActivationReason reason) {
     // Левый и правый клик открывают меню
     if (reason == QSystemTrayIcon::Context || reason == QSystemTrayIcon::Trigger) {
+        qDebug() << "TrayManager: tray activated, reason =" 
+                 << (reason == QSystemTrayIcon::Context ? "Context" : "Trigger");
         emit iconClicked(QRect(QCursor::pos(), QSize(1, 1)));
     }
 }

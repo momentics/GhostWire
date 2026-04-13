@@ -2,8 +2,8 @@
 
 #include <QWidget>
 #include <QPushButton>
-#include <QEvent>
 #include <QTimer>
+#include <QEvent>
 
 class StatsPanel;
 class SparklineWidget;
@@ -42,6 +42,7 @@ signals:
 
 protected:
     bool event(QEvent* event) override;
+    void mousePressEvent(QMouseEvent* event) override;
 
 private:
     StatsPanel*       m_statsPanel     = nullptr;
@@ -53,6 +54,7 @@ private:
 
     void buildLayout();
     void tryHideMenu();
+    static Qt::WindowFlags makeWindowFlags();
 
     bool m_isRunning = false;
     QTimer* m_autoHideTimer = nullptr;
