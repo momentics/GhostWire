@@ -61,7 +61,7 @@ jobs:
         if: runner.os == 'Linux'
         uses: jurplel/install-qt-action@v4
         with:
-          version: '5.15.2'
+          version: '5.15.3'
           host: 'linux'
           target: 'desktop'
           arch: 'gcc_64'
