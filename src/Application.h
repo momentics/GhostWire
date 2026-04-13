@@ -69,6 +69,10 @@ private:
     /// Показать контекстное меню
     void showTrayMenu(const QRect& iconRect);
 
+    /// Показать контекстное меню в заданной экранных точке.
+    /// Содержит общую логику: screen correction, move, raise, show, activateWindow.
+    void showTrayMenuAtPoint(const QPoint& pos);
+
     /// Проверить, зарегистрирован ли обработчик tg:// протокола
     bool isTelegramSchemeRegistered() const;
 };

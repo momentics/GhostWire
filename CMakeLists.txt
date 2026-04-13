@@ -76,6 +76,7 @@ set(SOURCES
     src/GhostWire.cpp
     src/UpdateChecker.cpp
     src/SingleInstanceGuard.cpp
+    src/Utils.cpp
 )
 
 set(HEADERS

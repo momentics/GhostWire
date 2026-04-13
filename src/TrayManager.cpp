@@ -119,11 +119,12 @@ void TrayManager::onTrayActivated(QSystemTrayIcon::ActivationReason reason) {
                  << (reason == QSystemTrayIcon::Context ? "Context" : "Trigger");
 
 #ifdef Q_OS_LINUX
-        // На Linux нет надёжного способа получить позицию иконки трея.
-        // Qt::geometry() всегда пустой, X11/Wayland не предоставляют API.
-        // Fallback на курсор — лучшее что можно сделать.
-        emit iconClicked(QRect(QCursor::pos(), QSize(1, 1)));
+        // На Linux QSystemTrayIcon::geometry() всегда пустой.
+        // Application определяет позицию через availableGeometry() (Вариант C).
+        // Передаём пустой QRect как сигнал использовать panel-based позиционирование.
+        emit iconClicked(QRect());
 #else
+        // Windows: передаём позицию курсора как геометрию иконки
         emit iconClicked(QRect(QCursor::pos(), QSize(1, 1)));
 #endif
     }

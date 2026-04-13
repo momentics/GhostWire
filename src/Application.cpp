@@ -9,6 +9,7 @@
 #include "TrayMenu.h"
 #include "UpdateChecker.h"
 #include "Config.h"
+#include "Utils.h"
 
 #include <QFile>
 #include <QTextStream>
@@ -224,71 +225,64 @@ void Application::onTrayExit() {
 }
 
 void Application::showTrayMenuAtCursor() {
-    // Вызывается при повторном запуске: второй экземпляр просит первый показать меню.
-    // Пытаемся получить реальную позицию иконки трея — меню появится рядом с ней.
-    // Если геометрия недоступна (Linux/macOS) — fallback к позиции курсора.
     if (!m_trayMenu) return;
 
+#ifdef Q_OS_LINUX
+    // Linux: геометрия трея недоступна — используем определение положения панели
+    showTrayMenu(QRect());
+    m_trayMenu->startIpcFocusMonitor();
+#else
+    // Windows: пытаемся получить реальную позицию иконки трея
     QRect iconRect = m_trayManager->trayIconGeometry();
     if (iconRect.isValid() && !iconRect.isEmpty()) {
-        // Геометрия иконки получена — используем её
         showTrayMenu(iconRect);
-        // При IPC-показе FocusOut/WindowDeactivate могут не прийти —
-        // запускаем однократную проверку потери фокуса.
         m_trayMenu->startIpcFocusMonitor();
         qDebug() << "Application: tray menu shown at tray icon geometry" << iconRect;
     } else {
-        // Геометрия недоступна (Linux/macOS) — показываем у курсора
+        // Fallback к позиции курсора
         m_trayMenu->adjustSize();
-
         QPoint cursorPos = QCursor::pos();
-        int x = cursorPos.x();
-        int y = cursorPos.y() - m_trayMenu->height();
-
-        QScreen* screen = QGuiApplication::screenAt(cursorPos);
-        if (!screen) screen = QGuiApplication::primaryScreen();
-        QRect screenRect = screen->availableGeometry();
-
-        const int menuOffsetBelow = 4;
-        if (y < screenRect.top()) {
-            y = cursorPos.y() + menuOffsetBelow;
-        }
-
-        if (x + m_trayMenu->width() > screenRect.right())
-            x = screenRect.right() - m_trayMenu->width();
-        if (x < screenRect.left()) x = screenRect.left();
-
-        m_trayMenu->move(x, y);
-        m_trayMenu->raise();
-        m_trayMenu->show();
-        m_trayMenu->activateWindow();
-        // При IPC-показе FocusOut/WindowDeactivate могут не прийти —
-        // запускаем однократную проверку потери фокуса.
+        showTrayMenuAtPoint(cursorPos);
         m_trayMenu->startIpcFocusMonitor();
-
-        qDebug() << "Application: tray menu shown at cursor (geometry unavailable) at" << x << y;
+        qDebug() << "Application: tray menu shown at cursor (geometry unavailable)";
     }
+#endif
 }
 
 void Application::showTrayMenu(const QRect& iconRect) {
     if (!m_trayMenu) return;
 
-    // Убедимся что размер вычислен
     m_trayMenu->adjustSize();
 
-    QPoint cursorPos = iconRect.topLeft();
-    int x = cursorPos.x();
-    int y = cursorPos.y() - m_trayMenu->height();
+#ifdef Q_OS_LINUX
+    // Linux: TrayManager передаёт пустой QRect — используем определение положения панели
+    if (iconRect.isEmpty()) {
+        QPoint pos = calculateLinuxTrayMenuPosition(m_trayMenu->width(), m_trayMenu->height());
+        showTrayMenuAtPoint(pos);
+        qDebug() << "Application: tray menu shown at Linux panel-detected position" << pos;
+        return;
+    }
+#endif
 
-    // Определяем экран по позиции курсора (корректно для мультимониторных конфигураций)
-    QScreen* screen = QGuiApplication::screenAt(cursorPos);
+    // Windows: используем реальную геометрию иконки трея
+    showTrayMenuAtPoint(iconRect.topLeft());
+    qDebug() << "Application: tray menu shown at" << iconRect.topLeft();
+}
+
+void Application::showTrayMenuAtPoint(const QPoint& pos) {
+    if (!m_trayMenu) return;
+
+    int x = pos.x();
+    int y = pos.y() - m_trayMenu->height();
+
+    QScreen* screen = QGuiApplication::screenAt(pos);
     if (!screen) screen = QGuiApplication::primaryScreen();
     QRect screenRect = screen->availableGeometry();
 
-    // Если меню не помещается над курсором — показываем под ним
+    // Если меню не помещается над точкой — показываем под ней
     const int menuOffsetBelow = 4;
     if (y < screenRect.top()) {
-        y = cursorPos.y() + menuOffsetBelow;
+        y = pos.y() + menuOffsetBelow;
     }
 
     // Горизонтальная коррекция
@@ -296,17 +290,14 @@ void Application::showTrayMenu(const QRect& iconRect) {
         x = screenRect.right() - m_trayMenu->width();
     if (x < screenRect.left()) x = screenRect.left();
 
-    m_trayMenu->move(x, y);
-
     // Порядок показа критичен для Windows 11:
     // 1. raise() — поднимаем наверх z-order ДО показа
     // 2. show()   — показываем окно
     // 3. activateWindow() — передаём фокус (для Qt::Popup работает на всех платформах)
+    m_trayMenu->move(x, y);
     m_trayMenu->raise();
     m_trayMenu->show();
     m_trayMenu->activateWindow();
-
-    qDebug() << "Application: tray menu shown at" << x << y;
 }
 
 /// Проверить, запущен ли процесс Telegram Desktop (кроссплатформенно)
