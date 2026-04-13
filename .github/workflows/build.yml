@@ -200,7 +200,6 @@ jobs:
           host: 'mac'
           target: 'desktop'
           arch: 'clang_64'
-          modules: 'qtbase'
 
       - name: Configure CMake (macOS)
         if: runner.os == 'macOS'
