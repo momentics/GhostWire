@@ -19,7 +19,7 @@ jobs:
         os: [windows-latest, ubuntu-22.04]
 
     steps:
-      # ─── Checkout ────────────────────────────────────────────────────────────
+      # Checkout
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -38,25 +38,25 @@ jobs:
           printf '%s' "$CONFIG_JSON" > resources/config.json
           echo "config.json restored ($(wc -c < resources/config.json) bytes)"
 
-      # ─── Linux: Download libghostwire.so ─────────────────────────────────────
+      # Linux: Download libghostwire.so
       - name: Download libghostwire.so (Linux)
         if: runner.os == 'Linux'
         run: |
-          GW_VERSION="1.0.3"
+          GW_VERSION="1.0.4"
           ASSET="ghostwire-${GW_VERSION}-linux-x86_64.tar.gz"
           curl -fL "https://github.com/momentics/GhostWire.dist/releases/download/${GW_VERSION}/${ASSET}" -o "/tmp/${ASSET}"
           tar -xzf "/tmp/${ASSET}" -C libs/ghostwire/
           mv libs/ghostwire/ghostwire-linux-x86_64/libghostwire.so libs/ghostwire/libghostwire.so
           rm -rf libs/ghostwire/ghostwire-linux-x86_64
 
-      # ─── Linux: Install system dependencies ──────────────────────────────────
+      # Linux: Install system dependencies
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libssl-dev
 
-      # ─── Linux ───────────────────────────────────────────────────────────────
+      # Linux
       - name: Install Qt (Linux)
         if: runner.os == 'Linux'
         uses: jurplel/install-qt-action@v4
@@ -65,13 +65,6 @@ jobs:
           host: 'linux'
           target: 'desktop'
           arch: 'gcc_64'
-
-      - name: Install linuxdeployqt (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
-          chmod a+x linuxdeployqt-continuous-x86_64.AppImage
-          sudo mv linuxdeployqt-continuous-x86_64.AppImage /usr/local/bin/linuxdeployqt
 
       - name: Configure CMake (Linux)
         if: runner.os == 'Linux'
@@ -112,7 +105,7 @@ jobs:
           name: GhostWire-Desktop-Linux
           path: ${{ env.DEB_PATH }}
 
-      # ─── Windows ─────────────────────────────────────────────────────────────
+      # Windows
       - name: Install Qt (Windows)
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
@@ -192,7 +185,7 @@ jobs:
           name: GhostWire-Desktop-Windows
           path: ${{ env.MSI_PATH }}
 
-      # ─── macOS ───────────────────────────────────────────────────────────────
+      # macOS
       - name: Install Qt (macOS)
         if: runner.os == 'macOS'
         uses: jurplel/install-qt-action@v4
