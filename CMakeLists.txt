@@ -249,6 +249,8 @@ if(WIN32)
         COMMAND "${WINDEPLOYQT_EXECUTABLE}" --no-compiler-runtime --no-system-d3d-compiler --no-opengl-sw --dir "${_PKG_DIR}" $<TARGET_FILE:${PROJECT_NAME}>
         # Deploy CRT
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_VCR_BIN_DIR}/msvcp140.dll" "${_PKG_DIR}/"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_VCR_BIN_DIR}/msvcp140_1.dll" "${_PKG_DIR}/"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_VCR_BIN_DIR}/msvcp140_2.dll" "${_PKG_DIR}/"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_VCR_BIN_DIR}/vcruntime140.dll" "${_PKG_DIR}/"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${_VCR_BIN_DIR}/vcruntime140_1.dll" "${_PKG_DIR}/"
         # Deploy OpenSSL
