@@ -152,9 +152,9 @@ elseif(UNIX)
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         PLATFORM_LINUX
     )
-    # rpath so the executable finds .so next to itself
+    # rpath: find .so and Qt libs next to executable and in ../lib
     set_target_properties(${PROJECT_NAME} PROPERTIES
-        INSTALL_RPATH "$ORIGIN"
+        INSTALL_RPATH "$ORIGIN:$ORIGIN/../lib"
         BUILD_RPATH "$ORIGIN"
     )
 endif()
@@ -209,16 +209,7 @@ if(WIN32)
         )
     endif()
 elseif(UNIX AND NOT APPLE)
-    # Linux: copy Qt .so files next to executable
-    find_program(DEPLOYQT_EXECUTABLE linuxdeployqt)
-    if(DEPLOYQT_EXECUTABLE)
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND "${DEPLOYQT_EXECUTABLE}"
-                $<TARGET_FILE:${PROJECT_NAME}>
-                -no-copy-copyright-files
-            COMMENT "Running linuxdeployqt..."
-        )
-    endif()
+    # Qt libraries are bundled via install() rules during CPack
 elseif(APPLE)
     # macOS: use macdeployqt inside .app bundle
     get_target_property(_qmake_executable Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
@@ -283,8 +274,45 @@ if(WIN32)
 
 # Linux (DEB)
 elseif(UNIX AND NOT APPLE)
+    # Bundle Qt libraries with the application (like windeployqt on Windows)
+    get_target_property(_qmake_executable Qt${QT_VERSION_MAJOR}::qmake IMPORTED_LOCATION)
+    get_filename_component(_qt_bin_dir "${_qmake_executable}" DIRECTORY)
+    get_filename_component(_qt_root_dir "${_qt_bin_dir}" DIRECTORY)
+    set(_qt_lib_dir "${_qt_root_dir}/lib")
+
+    # Find Qt runtime libraries
+    file(GLOB _qt_libs "${_qt_lib_dir}/libQt5*.so.*" "${_qt_lib_dir}/libQt5*.so")
+    # Filter out non-runtime libs (dev symlinks, cmake files)
+    set(_qt_runtime_libs "")
+    foreach(_lib ${_qt_libs})
+        get_filename_component(_lib_name "${_lib}" NAME)
+        # Skip .so (dev symlinks), .so.prl, .cmake, pkgconfig
+        if(_lib_name MATCHES "\\.so(\\.[0-9]+)+$")
+            list(APPEND _qt_runtime_libs "${_lib}")
+        endif()
+    endforeach()
+
+    # Also include platform plugins, image formats, etc.
+    set(_qt_plugin_dir "${_qt_root_dir}/plugins")
+
     install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION "/opt/GhostWireDesktop/bin")
     install(FILES "${GHOSTWIRE_LIB}" DESTINATION "/opt/GhostWireDesktop/bin")
+    install(FILES ${_qt_runtime_libs} DESTINATION "/opt/GhostWireDesktop/lib")
+
+    # Install Qt plugins
+    if(IS_DIRECTORY "${_qt_plugin_dir}/platforms")
+        install(DIRECTORY "${_qt_plugin_dir}/platforms" DESTINATION "/opt/GhostWireDesktop/plugins")
+    endif()
+    if(IS_DIRECTORY "${_qt_plugin_dir}/iconengines")
+        install(DIRECTORY "${_qt_plugin_dir}/iconengines" DESTINATION "/opt/GhostWireDesktop/plugins")
+    endif()
+    if(IS_DIRECTORY "${_qt_plugin_dir}/imageformats")
+        install(DIRECTORY "${_qt_plugin_dir}/imageformats" DESTINATION "/opt/GhostWireDesktop/plugins")
+    endif()
+    if(IS_DIRECTORY "${_qt_plugin_dir}/xcbglintegrations")
+        install(DIRECTORY "${_qt_plugin_dir}/xcbglintegrations" DESTINATION "/opt/GhostWireDesktop/plugins")
+    endif()
+
     install(FILES "resources/ghostwire.desktop" DESTINATION "/usr/share/applications")
     install(FILES "resources/icons/ghostwire.png"
         DESTINATION "/usr/share/icons/hicolor/256x256/apps" RENAME "ghostwire.png")
@@ -332,7 +360,7 @@ elseif(UNIX AND NOT APPLE)
     set(CPACK_PACKAGE_FILE_NAME "GhostWireDesktop-${PROJECT_VERSION}-linux-amd64")
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "momentics")
     set(CPACK_DEBIAN_PACKAGE_SECTION "net")
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt5core5a, libqt5gui5, libqt5widgets5, libqt5network5, libxcb-xinerama0, libxkbcommon-x11-0, libegl1, libopengl0, libssl3")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libssl3, libxkbcommon-x11-0, libegl1, libopengl0, libglib2.0-0, libfreetype6, libfontconfig1, libdbus-1-3, libx11-xcb1, libxcb1, libxcb-glx0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-randr0, libxcb-render0, libxcb-render-util0, libxcb-shape0, libxcb-shm0, libxcb-sync1, libxcb-util1, libxcb-xfixes0, libxcb-xinerama0")
     set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/momentics/GhostWire")
 elseif(APPLE)
     set(CPACK_GENERATOR "DragNDrop")
