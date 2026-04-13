@@ -15,8 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest]
-        # os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-22.04, macos-latest]
 
     steps:
       # ─── Checkout ────────────────────────────────────────────────────────────
@@ -26,20 +25,91 @@ jobs:
           submodules: recursive
 
       - name: Restore config.json from secret
+        shell: bash
         env:
           CONFIG_JSON: ${{ secrets.CONFIG_JSON }}
         run: |
-          if (-not $env:CONFIG_JSON) {
-            Write-Error "CONFIG_JSON secret is not set!"
+          if [ -z "$CONFIG_JSON" ]; then
+            echo "ERROR: CONFIG_JSON secret is not set!" >&2
             exit 1
-          }
-          $length = $env:CONFIG_JSON.Length
-          if ($length -eq 0) {
-            Write-Error "CONFIG_JSON secret is empty!"
+          fi
+          mkdir -p resources
+          printf '%s' "$CONFIG_JSON" > resources/config.json
+          echo "config.json restored ($(wc -c < resources/config.json) bytes)"
+
+      # ─── Linux: Download libghostwire.so ─────────────────────────────────────
+      - name: Download libghostwire.so (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          GW_VERSION="1.0.3"
+          ASSET="ghostwire-${GW_VERSION}-linux-x86_64.tar.gz"
+          curl -fL "https://github.com/momentics/GhostWire.dist/releases/download/${GW_VERSION}/${ASSET}" -o "/tmp/${ASSET}"
+          tar -xzf "/tmp/${ASSET}" -C libs/ghostwire/
+          mv libs/ghostwire/ghostwire-linux-x86_64/libghostwire.so libs/ghostwire/libghostwire.so
+          rm -rf libs/ghostwire/ghostwire-linux-x86_64
+
+      # ─── Linux: Install system dependencies ──────────────────────────────────
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev
+
+      # ─── Linux ───────────────────────────────────────────────────────────────
+      - name: Install Qt (Linux)
+        if: runner.os == 'Linux'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'gcc_64'
+
+      - name: Install linuxdeployqt (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
+          chmod a+x linuxdeployqt-continuous-x86_64.AppImage
+          sudo mv linuxdeployqt-continuous-x86_64.AppImage /usr/local/bin/linuxdeployqt
+
+      - name: Configure CMake (Linux)
+        if: runner.os == 'Linux'
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+
+      - name: Package DEB (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cd build
+          cpack -C ${{ env.BUILD_TYPE }}
+
+      - name: Find DEB file (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          DEB_FILE=$(find build -name "GhostWire*.deb" -print -quit)
+          if [ -z "$DEB_FILE" ]; then
+            echo "ERROR: DEB file not found!" >&2
             exit 1
-          }
-          [System.IO.File]::WriteAllText("resources/config.json", $env:CONFIG_JSON, [System.Text.Encoding]::UTF8)
-          Write-Host "config.json restored ($length bytes)"
+          fi
+          echo "DEB_PATH=$DEB_FILE" >> $GITHUB_ENV
+          echo "DEB_NAME=$(basename $DEB_FILE)" >> $GITHUB_ENV
+
+      - name: Upload DEB to Release (Linux)
+        if: runner.os == 'Linux' && github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.DEB_PATH }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload DEB artifact (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: GhostWire-Desktop-Linux
+          path: ${{ env.DEB_PATH }}
 
       # ─── Windows ─────────────────────────────────────────────────────────────
       - name: Install Qt (Windows)
@@ -54,15 +124,13 @@ jobs:
       - name: Install WiX Toolset (Windows)
         if: runner.os == 'Windows'
         run: |
-          # Check for existing WiX 3 installation
           $wixPath = Get-ChildItem "C:\Program Files (x86)\WiX Toolset v3*" -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
-          
+
           if ($wixPath -and (Test-Path "$($wixPath.FullName)\bin\candle.exe")) {
             Write-Host "Found WiX 3 at $($wixPath.FullName)"
             echo "$($wixPath.FullName)\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           } else {
             Write-Host "WiX 3 not found. Installing v3.11.2..."
-            # Force version 3.11.2 to avoid CMake compatibility issues with WiX 4
             choco install wixtoolset --version 3.11.2 --no-progress
             $wixPath = Get-ChildItem "C:\Program Files (x86)\WiX Toolset v3*" -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
             if ($wixPath) {
@@ -72,8 +140,7 @@ jobs:
               exit 1
             }
           }
-          
-          # Verify tools are in PATH
+
           Get-Command candle -ErrorAction Stop
           Get-Command light -ErrorAction Stop
 
@@ -90,7 +157,7 @@ jobs:
         run: cpack --config build/CPackConfig.cmake -C ${{ env.BUILD_TYPE }}
 
       - name: Show WiX Log on Failure
-        if: failure()
+        if: failure() && runner.os == 'Windows'
         run: |
           $log = "_CPack_Packages/win64/WIX/wix.log"
           if (Test-Path $log) {
@@ -98,7 +165,7 @@ jobs:
             Get-Content $log
           }
 
-      - name: Find MSI file
+      - name: Find MSI file (Windows)
         if: runner.os == 'Windows'
         run: |
           $msi = Get-ChildItem -Path . -Filter "*.msi" -Recurse | Select-Object -First 1
@@ -110,81 +177,66 @@ jobs:
             exit 1
           }
 
-      - name: Upload Release Asset
+      - name: Upload MSI to Release (Windows)
+        if: runner.os == 'Windows' && github.event_name == 'release'
         uses: softprops/action-gh-release@v2
-        if: runner.os == 'Windows'
         with:
           files: ${{ env.MSI_PATH }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-
-      # ─── Linux ───────────────────────────────────────────────────────────────
-      # - name: Install Qt (Linux)
-      #   if: runner.os == 'Linux'
-      #   uses: jurplel/install-qt-action@v4
-      #   with:
-      #     version: '5.15.2'
-      #     host: 'linux'
-      #     target: 'desktop'
-      #     arch: 'gcc_64'
-      #     modules: 'qtbase'
-
-      # - name: Install linuxdeployqt (Linux)
-      #   if: runner.os == 'Linux'
-      #   run: |
-      #     wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
-      #     chmod a+x linuxdeployqt-continuous-x86_64.AppImage
-      #     sudo mv linuxdeployqt-continuous-x86_64.AppImage /usr/local/bin/linuxdeployqt
-
-      # - name: Configure CMake (Linux)
-      #   if: runner.os == 'Linux'
-      #   run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
-
-      # - name: Build (Linux)
-      #   if: runner.os == 'Linux'
-      #   run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
-
-      # - name: Package DEB (Linux)
-      #   if: runner.os == 'Linux'
-      #   run: |
-      #     cd build
-      #     cpack -C ${{ env.BUILD_TYPE }}
-
-      # - name: Upload DEB artifact (Linux)
-      #   if: runner.os == 'Linux'
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: GhostWire-Desktop-Linux
-      #     path: build/GhostWire*.deb
+      - name: Upload MSI artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: GhostWire-Desktop-Windows
+          path: ${{ env.MSI_PATH }}
 
       # ─── macOS ───────────────────────────────────────────────────────────────
-      # - name: Install Qt (macOS)
-      #   if: runner.os == 'macOS'
-      #   uses: jurplel/install-qt-action@v4
-      #   with:
-      #     version: '5.15.2'
-      #     host: 'mac'
-      #     target: 'desktop'
-      #     arch: 'clang_64'
-      #     modules: 'qtbase'
+      - name: Install Qt (macOS)
+        if: runner.os == 'macOS'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          host: 'mac'
+          target: 'desktop'
+          arch: 'clang_64'
+          modules: 'qtbase'
 
-      # - name: Configure CMake (macOS)
-      #   if: runner.os == 'macOS'
-      #   run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+      - name: Configure CMake (macOS)
+        if: runner.os == 'macOS'
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
 
-      # - name: Build (macOS)
-      #   if: runner.os == 'macOS'
-      #   run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
 
-      # - name: Package DMG (macOS)
-      #   if: runner.os == 'macOS'
-      #   run: |
-      #     cd build
-      #     cpack -C ${{ env.BUILD_TYPE }}
+      - name: Package DMG (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cd build
+          cpack -C ${{ env.BUILD_TYPE }}
 
-      # - name: Upload DMG artifact (macOS)
-      #   if: runner.os == 'macOS'
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: GhostWire-Desktop-macOS
-      #     path: build/GhostWire*.dmg
+      - name: Find DMG file (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          DMG_FILE=$(find build -name "GhostWire*.dmg" -print -quit)
+          if [ -z "$DMG_FILE" ]; then
+            echo "ERROR: DMG file not found!" >&2
+            exit 1
+          fi
+          echo "DMG_PATH=$DMG_FILE" >> $GITHUB_ENV
+          echo "DMG_NAME=$(basename $DMG_FILE)" >> $GITHUB_ENV
+
+      - name: Upload DMG to Release (macOS)
+        if: runner.os == 'macOS' && github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.DMG_PATH }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload DMG artifact (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: GhostWire-Desktop-macOS
+          path: ${{ env.DMG_PATH }}

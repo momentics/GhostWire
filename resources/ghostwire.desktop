@@ -2,7 +2,7 @@
 Type=Application
 Name=GhostWire Desktop
 Comment=Telegram with anti-DPI protection
-Exec=GhostWireDesktop
+Exec=/opt/GhostWireDesktop/bin/GhostWireDesktop
 Icon=ghostwire
 Terminal=false
 Categories=Network;Proxy;

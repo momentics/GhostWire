@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(GhostWireDesktop VERSION 1.0.7 LANGUAGES CXX)
+project(GhostWireDesktop VERSION 1.0.8 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -54,13 +54,16 @@ elseif(UNIX)
     set(GHOSTWIRE_LINK_LIB "${GHOSTWIRE_LIB}")
 endif()
 
-# OpenSSL (DLL runtime, Qt загружает динамически)
-set(OPENSSL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl")
-set(OPENSSL_INCLUDE_DIR "${OPENSSL_DIR}/include")
-set(OPENSSL_DLLS
-    "${OPENSSL_DIR}/libssl-1_1-x64.dll"
-    "${OPENSSL_DIR}/libcrypto-1_1-x64.dll"
-)
+# OpenSSL (Windows: DLL runtime, Qt загружает динамически)
+# Linux: системная библиотека (libssl-dev), macOS: своя
+if(WIN32)
+    set(OPENSSL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl")
+    set(OPENSSL_INCLUDE_DIR "${OPENSSL_DIR}/include")
+    set(OPENSSL_DLLS
+        "${OPENSSL_DIR}/libssl-1_1-x64.dll"
+        "${OPENSSL_DIR}/libcrypto-1_1-x64.dll"
+    )
+endif()
 
 # Sources
 set(SOURCES
@@ -282,7 +285,6 @@ if(WIN32)
 elseif(UNIX AND NOT APPLE)
     install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION "opt/GhostWireDesktop/bin")
     install(FILES "${GHOSTWIRE_LIB}" DESTINATION "opt/GhostWireDesktop/bin")
-    install(FILES "${GHOSTWIRE_LIB_DIR}/LICENSE" DESTINATION "opt/GhostWireDesktop" RENAME "GHOSTWIRE_LIBRARY_LICENSE.txt")
     install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/" DESTINATION "opt/GhostWireDesktop"
         COMPONENT Runtime OPTIONAL FILES_MATCHING PATTERN "*.so*" PATTERN "CMakeFiles" EXCLUDE)
     install(FILES "resources/ghostwire.desktop" DESTINATION "usr/share/applications")
@@ -290,7 +292,6 @@ elseif(UNIX AND NOT APPLE)
         DESTINATION "usr/share/icons/hicolor/256x256/apps" RENAME "ghostwire.png")
     install(FILES "${GHOSTWIRE_LIB_DIR}/LICENSE" DESTINATION "opt/GhostWireDesktop" RENAME "GHOSTWIRE_LIBRARY_LICENSE.txt")
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/QT_LICENSE.txt" DESTINATION "opt/GhostWireDesktop")
-    install(FILES "${OPENSSL_DIR}/license.txt" DESTINATION "opt/GhostWireDesktop" RENAME "OPENSSL_LICENSE.txt")
 
 # macOS (DragNDrop)
 elseif(APPLE)
@@ -331,7 +332,7 @@ elseif(UNIX AND NOT APPLE)
     set(CPACK_GENERATOR "DEB")
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "momentics")
     set(CPACK_DEBIAN_PACKAGE_SECTION "net")
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libxcb-xinerama0, libxkbcommon-x11-0, libegl1, libopengl0")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt5core5a, libqt5gui5, libqt5widgets5, libqt5network5, libxcb-xinerama0, libxkbcommon-x11-0, libegl1, libopengl0, libssl1.1 | libssl3")
     set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/momentics/GhostWire")
 elseif(APPLE)
     set(CPACK_GENERATOR "DragNDrop")
