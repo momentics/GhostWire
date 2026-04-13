@@ -295,6 +295,23 @@ elseif(UNIX AND NOT APPLE)
         endif()
     endforeach()
 
+    # Bundle OpenSSL 1.1 for Qt 5.15.2 compatibility (system has OpenSSL 3 on Ubuntu 22.04+)
+    # Qt loads these at runtime via dlopen("libssl.so.1.1") / dlopen("libcrypto.so.1.1")
+    set(_openssl_libs "")
+    file(GLOB _ssl_candidates "${_qt_lib_dir}/libssl.so.1.1" "${_qt_lib_dir}/libssl.so" "${_qt_lib_dir}/libcrypto.so.1.1" "${_qt_lib_dir}/libcrypto.so")
+    foreach(_ssl_lib ${_ssl_candidates})
+        get_filename_component(_ssl_name "${_ssl_lib}" NAME)
+        if(_ssl_name MATCHES "\\.so\\.1\\.1$" OR _ssl_name STREQUAL "libssl.so" OR _ssl_name STREQUAL "libcrypto.so")
+            # Only include .so.1.1 (actual runtime), not .so (dev symlink)
+            if(_ssl_name MATCHES "\\.so\\.1\\.1$")
+                list(APPEND _openssl_libs "${_ssl_lib}")
+            endif()
+        endif()
+    endforeach()
+    if(_openssl_libs)
+        list(APPEND _qt_runtime_libs ${_openssl_libs})
+    endif()
+
     # Also include platform plugins, image formats, etc.
     set(_qt_plugin_dir "${_qt_root_dir}/plugins")
 
