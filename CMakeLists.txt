@@ -282,6 +282,9 @@ elseif(UNIX AND NOT APPLE)
 
     # Find Qt runtime libraries
     file(GLOB _qt_libs "${_qt_lib_dir}/libQt5*.so.*" "${_qt_lib_dir}/libQt5*.so")
+    # Also find bundled ICU and other non-Qt libs (needed by Qt 5.15.2)
+    file(GLOB _qt_extra_libs "${_qt_lib_dir}/libicu*.so.*" "${_qt_lib_dir}/libicudata*.so" "${_qt_lib_dir}/libicui18n*.so" "${_qt_lib_dir}/libicuuc*.so" "${_qt_lib_dir}/libssl.so.*" "${_qt_lib_dir}/libcrypto.so.*")
+    list(APPEND _qt_libs ${_qt_extra_libs})
     # Filter out non-runtime libs (dev symlinks, cmake files)
     set(_qt_runtime_libs "")
     foreach(_lib ${_qt_libs})
