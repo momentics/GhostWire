@@ -295,16 +295,21 @@ elseif(UNIX AND NOT APPLE)
         endif()
     endforeach()
 
-    # Bundle OpenSSL 1.1 for Qt 5.15.2 compatibility (system has OpenSSL 3 on Ubuntu 22.04+)
-    # Copy to bin/ (same dir as executable) so dlopen("libcrypto.so.1.1") finds it
+    # Find OpenSSL 1.1: first from bundled libs, then from Qt
+    set(_openssl_lib_dir "${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/linux")
     set(_openssl_libs "")
-    file(GLOB _ssl_candidates "${_qt_lib_dir}/libssl.so.1.1" "${_qt_lib_dir}/libcrypto.so.1.1")
-    foreach(_ssl_lib ${_ssl_candidates})
-        get_filename_component(_ssl_name "${_ssl_lib}" NAME)
-        if(_ssl_name MATCHES "\\.so\\.1\\.1$")
-            list(APPEND _openssl_libs "${_ssl_lib}")
-        endif()
-    endforeach()
+    if(EXISTS "${_openssl_lib_dir}/libcrypto.so.1.1")
+        set(_openssl_libs "${_openssl_lib_dir}/libcrypto.so.1.1" "${_openssl_lib_dir}/libssl.so.1.1")
+    else()
+        # Fallback: search in Qt lib directory
+        file(GLOB _ssl_candidates "${_qt_lib_dir}/libssl.so.1.1" "${_qt_lib_dir}/libcrypto.so.1.1")
+        foreach(_ssl_lib ${_ssl_candidates})
+            get_filename_component(_ssl_name "${_ssl_lib}" NAME)
+            if(_ssl_name MATCHES "\\.so\\.1\\.1$")
+                list(APPEND _openssl_libs "${_ssl_lib}")
+            endif()
+        endforeach()
+    endif()
 
     # Also include platform plugins, image formats, etc.
     set(_qt_plugin_dir "${_qt_root_dir}/plugins")

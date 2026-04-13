@@ -49,6 +49,17 @@ jobs:
           mv libs/ghostwire/ghostwire-linux-x86_64/libghostwire.so libs/ghostwire/libghostwire.so
           rm -rf libs/ghostwire/ghostwire-linux-x86_64
 
+      - name: Download OpenSSL 1.1 for Linux (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p libs/openssl/linux
+          # OpenSSL 1.1.1w for Ubuntu 20.04 (GLIBC 2.31 compatible)
+          curl -fL "https://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb" -o /tmp/libssl.deb
+          dpkg-deb -x /tmp/libssl.deb /tmp/openssl-extract
+          cp /tmp/openssl-extract/usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 libs/openssl/linux/
+          cp /tmp/openssl-extract/usr/lib/x86_64-linux-gnu/libssl.so.1.1 libs/openssl/linux/
+          rm -rf /tmp/openssl-extract /tmp/libssl.deb
+
       # Linux: Install system dependencies
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
