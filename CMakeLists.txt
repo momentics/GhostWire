@@ -285,8 +285,6 @@ if(WIN32)
 elseif(UNIX AND NOT APPLE)
     install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION "opt/GhostWireDesktop/bin")
     install(FILES "${GHOSTWIRE_LIB}" DESTINATION "opt/GhostWireDesktop/bin")
-    install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/" DESTINATION "opt/GhostWireDesktop"
-        COMPONENT Runtime OPTIONAL FILES_MATCHING PATTERN "*.so*" PATTERN "CMakeFiles" EXCLUDE)
     install(FILES "resources/ghostwire.desktop" DESTINATION "usr/share/applications")
     install(FILES "resources/icons/ghostwire.png"
         DESTINATION "usr/share/icons/hicolor/256x256/apps" RENAME "ghostwire.png")
