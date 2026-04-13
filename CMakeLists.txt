@@ -296,21 +296,15 @@ elseif(UNIX AND NOT APPLE)
     endforeach()
 
     # Bundle OpenSSL 1.1 for Qt 5.15.2 compatibility (system has OpenSSL 3 on Ubuntu 22.04+)
-    # Qt loads these at runtime via dlopen("libssl.so.1.1") / dlopen("libcrypto.so.1.1")
+    # Copy to bin/ (same dir as executable) so dlopen("libcrypto.so.1.1") finds it
     set(_openssl_libs "")
-    file(GLOB _ssl_candidates "${_qt_lib_dir}/libssl.so.1.1" "${_qt_lib_dir}/libssl.so" "${_qt_lib_dir}/libcrypto.so.1.1" "${_qt_lib_dir}/libcrypto.so")
+    file(GLOB _ssl_candidates "${_qt_lib_dir}/libssl.so.1.1" "${_qt_lib_dir}/libcrypto.so.1.1")
     foreach(_ssl_lib ${_ssl_candidates})
         get_filename_component(_ssl_name "${_ssl_lib}" NAME)
-        if(_ssl_name MATCHES "\\.so\\.1\\.1$" OR _ssl_name STREQUAL "libssl.so" OR _ssl_name STREQUAL "libcrypto.so")
-            # Only include .so.1.1 (actual runtime), not .so (dev symlink)
-            if(_ssl_name MATCHES "\\.so\\.1\\.1$")
-                list(APPEND _openssl_libs "${_ssl_lib}")
-            endif()
+        if(_ssl_name MATCHES "\\.so\\.1\\.1$")
+            list(APPEND _openssl_libs "${_ssl_lib}")
         endif()
     endforeach()
-    if(_openssl_libs)
-        list(APPEND _qt_runtime_libs ${_openssl_libs})
-    endif()
 
     # Also include platform plugins, image formats, etc.
     set(_qt_plugin_dir "${_qt_root_dir}/plugins")
@@ -318,6 +312,11 @@ elseif(UNIX AND NOT APPLE)
     install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION "/opt/GhostWireDesktop/bin")
     install(FILES "${GHOSTWIRE_LIB}" DESTINATION "/opt/GhostWireDesktop/bin")
     install(FILES ${_qt_runtime_libs} DESTINATION "/opt/GhostWireDesktop/lib")
+
+    # Install OpenSSL 1.1 next to executable (for dlopen)
+    if(_openssl_libs)
+        install(FILES ${_openssl_libs} DESTINATION "/opt/GhostWireDesktop/bin")
+    endif()
 
     # Install Qt plugins
     if(IS_DIRECTORY "${_qt_plugin_dir}/platforms")

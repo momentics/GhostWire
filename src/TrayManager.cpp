@@ -5,6 +5,11 @@
 #include <QDebug>
 #include <QCursor>
 
+#ifdef Q_OS_LINUX
+#  include <QNativeInterface>
+#  include <xcb/xcb.h>
+#endif
+
 TrayManager::TrayManager(QObject* parent)
     : QObject(parent)
     , m_trayIcon(new QSystemTrayIcon(this))
@@ -115,9 +120,17 @@ void TrayManager::setConnectionsState(bool hasConnections) {
 void TrayManager::onTrayActivated(QSystemTrayIcon::ActivationReason reason) {
     // Левый и правый клик открывают меню
     if (reason == QSystemTrayIcon::Context || reason == QSystemTrayIcon::Trigger) {
-        qDebug() << "TrayManager: tray activated, reason =" 
+        qDebug() << "TrayManager: tray activated, reason ="
                  << (reason == QSystemTrayIcon::Context ? "Context" : "Trigger");
+
+#ifdef Q_OS_LINUX
+        // На Linux нет надёжного способа получить позицию иконки трея.
+        // Qt::geometry() всегда пустой, X11/Wayland не предоставляют API.
+        // Fallback на курсор — лучшее что можно сделать.
         emit iconClicked(QRect(QCursor::pos(), QSize(1, 1)));
+#else
+        emit iconClicked(QRect(QCursor::pos(), QSize(1, 1)));
+#endif
     }
 }
 

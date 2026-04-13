@@ -18,11 +18,6 @@ TrayMenu::TrayMenu(QWidget* parent)
     setAttribute(Qt::WA_DeleteOnClose, false);
     setWindowOpacity(0.95);
 
-    // Qt::Popup автоматически закрывается при клике вне области,
-    // но на некоторых WM (Linux) это работает нестабильно.
-    // Дополнительно ловим FocusOut для надёжного автоскрытия.
-    setAttribute(Qt::WA_ShowWithoutActivating, false);
-
     setFixedWidth(Config::MENU_WIDTH);
     setMaximumWidth(Config::MENU_WIDTH);
 
@@ -36,15 +31,14 @@ TrayMenu::TrayMenu(QWidget* parent)
 }
 
 Qt::WindowFlags TrayMenu::makeWindowFlags() {
-    // Qt::Popup — стандартный флаг для контекстных меню:
-    //   • Не появляется на панели задач
-    //   • Автоматически закрывается при клике вне области
-    //   • Корректный z-order (поверх родительского окна)
-    //   • Работает одинаково на Windows 10/11, Linux, macOS
-    // Qt::WindowStaysOnTopHint НЕ нужен — Popup уже поверх.
-    // На Windows 11 комбинация Tool + WindowStaysOnTopHint ломает
-    // foreground activation, из-за чего меню не показывается.
+    // На Linux Qt::Popup игнорирует move() и авто-позиционируется WM.
+    // Qt::Tool + WindowStaysOnTopHint позволяет ручное позиционирование.
+    // Автоскрытие через FocusOut polling.
+#ifdef Q_OS_LINUX
+    return Qt::FramelessWindowHint | Qt::Tool | Qt::WindowStaysOnTopHint;
+#else
     return Qt::FramelessWindowHint | Qt::Popup;
+#endif
 }
 
 bool TrayMenu::event(QEvent* event) {
@@ -52,11 +46,34 @@ bool TrayMenu::event(QEvent* event) {
     // FocusOut надёжнее WindowDeactivate — работает на всех платформах,
     // включая Windows 11, где Tool-окна не получают активное состояние.
     // WindowDeactivate дополняет FocusOut при клике на другие окна.
+    // На Linux с Qt::Tool события FocusOut не приходят — используем polling.
     if (event->type() == QEvent::FocusOut || event->type() == QEvent::WindowDeactivate) {
         // Перезапуск таймера — предотвращает накопление отложенных скрытий
         m_autoHideTimer->start();
     }
     return QWidget::event(event);
+}
+
+void TrayMenu::showEvent(QShowEvent* event) {
+    QWidget::showEvent(event);
+#ifdef Q_OS_LINUX
+    // На Linux Qt::Tool не получает FocusOut — запускаем циклический polling
+    m_autoHideTimer->setSingleShot(false);
+    m_autoHideTimer->setInterval(100);
+    m_autoHideTimer->start();
+#else
+    // На Windows/macOS Qt::Popup закрывается сам, polling добавляет надёжность
+    m_autoHideTimer->setSingleShot(true);
+    m_autoHideTimer->setInterval(50);
+    m_autoHideTimer->start();
+#endif
+}
+
+void TrayMenu::hideEvent(QHideEvent* event) {
+    m_autoHideTimer->stop();
+    m_autoHideTimer->setSingleShot(true);
+    m_autoHideTimer->setInterval(50);
+    QWidget::hideEvent(event);
 }
 
 void TrayMenu::mousePressEvent(QMouseEvent* event) {
