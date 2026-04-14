@@ -38,7 +38,7 @@ public:
     /// Начать проверку потери фокуса (для IPC-показа).
     /// Вызывается один раз после показа меню из второго экземпляра.
     /// При обычном показе мышью НЕ вызывается — там работают FocusOut/WindowDeactivate.
-    void startIpcFocusMonitor();
+    void startIpcFocusMonitor(bool requireHover = true);
 
 signals:
     void startRequested();
@@ -69,4 +69,5 @@ private:
     QTimer* m_autoHideTimer = nullptr;
     bool    m_ipcMode = false; ///< true — показ через IPC, false — показ кликом по иконке
     bool    m_wasUnderMouse = false; ///< при IPC-показе: была ли мышь над меню хотя бы раз
+    bool    m_ipcRequireHover = true; ///< при поллинге: скрывать только после первого наведения мыши
 };

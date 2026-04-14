@@ -67,6 +67,7 @@ void TrayMenu::showEvent(QShowEvent* event) {
     m_autoHideTimer->start();
     m_ipcMode = false;
     m_wasUnderMouse = false;
+    m_ipcRequireHover = true;
 #endif
     // Windows/macOS: Qt::Popup закрывается сам. Таймер запускать НЕ нужно,
     // иначе меню схлопнется сразу после появления (пока мышь ещё на трее).
@@ -96,19 +97,25 @@ void TrayMenu::mousePressEvent(QMouseEvent* event) {
 TrayMenu::~TrayMenu() = default;
 
 void TrayMenu::tryHideMenu() {
+    bool isFocused = hasFocus() || isActiveWindow();
+
     if (m_ipcMode) {
-        // IPC-показ: запоминаем, была ли мышь над меню.
-        // Не скрываем пока пользователь хотя бы раз не навёл мышь,
-        // а потом убрал — иначе меню исчезнет до того как пользователь успеет.
+        // IPC-показ или Linux QMenu: запоминаем, была ли мышь над меню.
         if (underMouse()) {
             m_wasUnderMouse = true;
         }
-        if (m_wasUnderMouse && !underMouse() && !hasFocus()) {
+        
+        bool canHide = true;
+        if (m_ipcRequireHover && !m_wasUnderMouse) {
+            canHide = false; // Не скрываем пока пользователь хотя бы раз не навёл мышь
+        }
+        
+        if (canHide && !underMouse() && !isFocused) {
             hide();
         }
     } else {
         // Обычный показ (клик по иконке): скрываем если мышь не над меню и нет фокуса
-        if (!underMouse() && !hasFocus()) {
+        if (!underMouse() && !isFocused) {
             hide();
         }
     }
@@ -236,11 +243,12 @@ void TrayMenu::hideMenu() {
     hide();
 }
 
-void TrayMenu::startIpcFocusMonitor() {
+void TrayMenu::startIpcFocusMonitor(bool requireHover) {
     // IPC-показ: после grace period (500 ms) переключаемся на polling.
     // Grace period уже запущен в showEvent(). Дожидаемся его завершения
     // и включаем циклический polling (100 ms).
     m_ipcMode = true;
+    m_ipcRequireHover = requireHover;
 
     // Ждём завершения grace period (showEvent уже запустил singleShot на 500 ms).
     // После этого переключаемся на polling.

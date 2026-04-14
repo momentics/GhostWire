@@ -75,6 +75,9 @@ Application::Application(QObject* parent)
     // Соединяем сигналы TrayManager к Application (для открытия меню)
     connect(m_trayManager.get(), &TrayManager::iconClicked, this, [this](const QRect& iconRect) {
         showTrayMenu(iconRect);
+#ifdef Q_OS_LINUX
+        if (m_trayMenu) m_trayMenu->startIpcFocusMonitor(false);
+#endif
     });
 
 #ifdef Q_OS_LINUX
