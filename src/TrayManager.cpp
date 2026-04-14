@@ -9,6 +9,8 @@
 
 #ifdef Q_OS_LINUX
 #include <QWidget>
+#include <QMouseEvent>
+#include <QEvent>
 #endif
 
 TrayManager::TrayManager(QObject* parent)
@@ -73,12 +75,7 @@ void TrayManager::init() {
         }
 
         // При клике — показать меню
-        connect(m_fallbackDock, &QWidget::mousePressEvent,
-                this, [this](QMouseEvent* ev) {
-            if (ev->button() == Qt::LeftButton || ev->button() == Qt::RightButton) {
-                emit iconClicked(QRect());
-            }
-        });
+        m_fallbackDock->installEventFilter(this);
 
         m_fallbackDock->show();
         qDebug() << "TrayManager: системный трей недоступен, fallback dock создан";
@@ -238,4 +235,16 @@ void TrayManager::showMessage(const QString& title, const QString& message,
 
 QRect TrayManager::trayIconGeometry() const {
     return m_trayIcon ? m_trayIcon->geometry() : QRect();
+}
+
+bool TrayManager::eventFilter(QObject* watched, QEvent* event) {
+#ifdef Q_OS_LINUX
+    if (watched == m_fallbackDock && event->type() == QEvent::MouseButtonPress) {
+        auto* ev = static_cast<QMouseEvent*>(event);
+        if (ev->button() == Qt::LeftButton || ev->button() == Qt::RightButton) {
+            emit iconClicked(QRect());
+        }
+    }
+#endif
+    return QObject::eventFilter(watched, event);
 }

@@ -6,6 +6,7 @@
 #include <QIcon>
 #include <QVector>
 #include <QRect>
+#include <QEvent>
 
 /// Управляет иконкой в системном трее:
 /// - регистрация / удаление иконки
@@ -38,6 +39,9 @@ public:
     /// На Windows обычно работает корректно. На Linux/macOS может возвращать
     /// пустой QRect — в этом случае вызывающая сторона использует курсор.
     QRect trayIconGeometry() const;
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 signals:
     /// Пользователь кликнул по иконке — открыть меню
