@@ -75,9 +75,6 @@ Application::Application(QObject* parent)
     // Соединяем сигналы TrayManager к Application (для открытия меню)
     connect(m_trayManager.get(), &TrayManager::iconClicked, this, [this](const QRect& iconRect) {
         showTrayMenu(iconRect);
-#ifdef Q_OS_LINUX
-        if (m_trayMenu) m_trayMenu->startIpcFocusMonitor(false);
-#endif
     });
 
 #ifdef Q_OS_LINUX
@@ -237,20 +234,17 @@ void Application::showTrayMenuAtCursor() {
 #ifdef Q_OS_LINUX
     // Linux: геометрия трея недоступна — используем определение положения панели
     showTrayMenu(QRect());
-    m_trayMenu->startIpcFocusMonitor();
 #else
     // Windows: пытаемся получить реальную позицию иконки трея
     QRect iconRect = m_trayManager->trayIconGeometry();
     if (iconRect.isValid() && !iconRect.isEmpty()) {
         showTrayMenu(iconRect);
-        m_trayMenu->startIpcFocusMonitor();
         qDebug() << "Application: tray menu shown at tray icon geometry" << iconRect;
     } else {
         // Fallback к позиции курсора
         m_trayMenu->adjustSize();
         QPoint cursorPos = QCursor::pos();
         showTrayMenuAtPoint(cursorPos);
-        m_trayMenu->startIpcFocusMonitor();
         qDebug() << "Application: tray menu shown at cursor (geometry unavailable)";
     }
 #endif
@@ -413,37 +407,42 @@ void Application::onConfigureTelegram() {
 void Application::onCheckUpdatesRequested() {
     qDebug() << "Application: ручная проверка обновлений";
     m_trayMenu->hideMenu();
+    m_isManualUpdateCheck = true;
     m_updateChecker->checkForUpdatesNow();
 }
 
 void Application::onUpdateAvailable(const QString& version, const QString& releaseUrl) {
     qDebug() << "Application: доступна версия" << version;
     QString current = QCoreApplication::applicationVersion();
-    m_trayManager->showMessage(
-        tr("Доступна новая версия"),
-        QString(tr("Текущая: %1, новая: %2. Открыть страницу загрузки?")).arg(current, version),
-        QSystemTrayIcon::Information,
-        10000
-    );
-    QDesktopServices::openUrl(QUrl(releaseUrl));
+    if (m_isManualUpdateCheck) {
+        m_isManualUpdateCheck = false;
+        if (QMessageBox::question(nullptr, tr("Доступна новая версия"),
+                                  QString(tr("Текущая: %1, новая: %2. Открыть страницу загрузки?")).arg(current, version),
+                                  QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
+            QDesktopServices::openUrl(QUrl(releaseUrl));
+        }
+    } else {
+        m_trayManager->showMessage(
+            tr("Доступна новая версия"),
+            QString(tr("Текущая: %1, новая: %2.")).arg(current, version),
+            QSystemTrayIcon::Information,
+            10000
+        );
+    }
 }
 
 void Application::onNoUpdate() {
     qDebug() << "Application: обновлений нет";
-    m_trayManager->showMessage(
-        tr("Обновления"),
-        tr("Вы используете последнюю версию"),
-        QSystemTrayIcon::Information,
-        3000
-    );
+    if (m_isManualUpdateCheck) {
+        m_isManualUpdateCheck = false;
+        QMessageBox::information(nullptr, tr("Обновления"), tr("Вы используете последнюю версию."));
+    }
 }
 
 void Application::onUpdateCheckFailed(const QString& error) {
     qDebug() << "Application: проверка обновлений не удалась —" << error;
-    m_trayManager->showMessage(
-        tr("Проверка обновлений"),
-        tr("Не удалось проверить обновления: %1").arg(error),
-        QSystemTrayIcon::Warning,
-        5000
-    );
+    if (m_isManualUpdateCheck) {
+        m_isManualUpdateCheck = false;
+        QMessageBox::warning(nullptr, tr("Проверка обновлений"), tr("Не удалось проверить обновления: %1").arg(error));
+    }
 }

@@ -35,11 +35,6 @@ public:
     /// Скрыть меню
     void hideMenu();
 
-    /// Начать проверку потери фокуса (для IPC-показа).
-    /// Вызывается один раз после показа меню из второго экземпляра.
-    /// При обычном показе мышью НЕ вызывается — там работают FocusOut/WindowDeactivate.
-    void startIpcFocusMonitor(bool requireHover = true);
-
 signals:
     void startRequested();
     void stopRequested();
@@ -62,12 +57,6 @@ private:
     QPushButton*      m_exitButton     = nullptr;
 
     void buildLayout();
-    void tryHideMenu();
     static Qt::WindowFlags makeWindowFlags();
 
     bool m_isRunning = false;
-    QTimer* m_autoHideTimer = nullptr;
-    bool    m_ipcMode = false; ///< true — показ через IPC, false — показ кликом по иконке
-    bool    m_wasUnderMouse = false; ///< при IPC-показе: была ли мышь над меню хотя бы раз
-    bool    m_ipcRequireHover = true; ///< при поллинге: скрывать только после первого наведения мыши
-};

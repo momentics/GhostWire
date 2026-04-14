@@ -57,6 +57,9 @@ private:
     // Явное состояние прокси: true = запущен, false = остановлен
     bool     m_proxyRunning = false;
 
+    // Флаг ручной проверки обновлений
+    bool     m_isManualUpdateCheck = false;
+
     /// Загрузить конфиг из ресурсов
     QString loadConfig() const;
 
