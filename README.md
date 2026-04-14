@@ -1,6 +1,6 @@
 # GhostWire Desktop
 
-![Release](https://img.shields.io/github/v/release/momentics/GhostWire?label=version&color=blue) ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey) ![License](https://img.shields.io/badge/license-MIT-green)
+![Release](https://img.shields.io/github/v/release/momentics/GhostWire?label=version&color=blue) ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Ubuntu%20_04%20%7C%20macOS-lightgrey) ![License](https://img.shields.io/badge/license-MIT-green)
 
 | | |
 |:---:|---|
