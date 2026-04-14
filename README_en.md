@@ -27,6 +27,9 @@ When launched, an animated icon appears in the tray. Right-clicking it opens a c
 <p align="center">
   <img src="resources/icons/MenuBar.png" alt="Context menu" width="350">
 </p>
+<p align="center">
+  <img src="resources/icons/MenuBarUbuntu.png" alt="Context menu" width="350">
+</p>
 
 ---
 
