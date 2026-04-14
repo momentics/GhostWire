@@ -4,6 +4,12 @@
 #include <QPixmap>
 #include <QDebug>
 #include <QCursor>
+#include <QGuiApplication>
+#include <QScreen>
+
+#ifdef Q_OS_LINUX
+#include <QWidget>
+#endif
 
 TrayManager::TrayManager(QObject* parent)
     : QObject(parent)
@@ -47,7 +53,43 @@ void TrayManager::loadIcons() {
 void TrayManager::init() {
     loadIcons();
 
-    // Иконка покоя — tooltip с версией
+#ifdef Q_OS_LINUX
+    // Gnome Shell (Ubuntu 22.04+) не имеет системного трея.
+    // Если AppIndicator не установлен — создаём fallback dock.
+    if (!QSystemTrayIcon::isSystemTrayAvailable()) {
+        m_fallbackDock = new QWidget(nullptr,
+            Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::X11BypassWindowManagerHint);
+        m_fallbackDock->setFixedSize(24, 24);
+        m_fallbackDock->setAttribute(Qt::WA_ShowWithoutActivating);
+        m_fallbackDock->setStyleSheet(
+            "QWidget { background: transparent; border-radius: 4px; }"
+            "QWidget:hover { background: rgba(255,255,255,30); }");
+
+        // Позиционировать в нижний правый угол
+        auto* screen = QGuiApplication::primaryScreen();
+        if (screen) {
+            auto geom = screen->availableGeometry();
+            m_fallbackDock->move(geom.right() - 28, geom.bottom() - 28);
+        }
+
+        // При клике — показать меню
+        connect(m_fallbackDock, &QWidget::mousePressEvent,
+                this, [this](QMouseEvent* ev) {
+            if (ev->button() == Qt::LeftButton || ev->button() == Qt::RightButton) {
+                emit iconClicked(QRect());
+            }
+        });
+
+        m_fallbackDock->show();
+        qDebug() << "TrayManager: системный трей недоступен, fallback dock создан";
+
+        // Иконку трея НЕ создаём — анимация не применяется
+        m_animTimer->setInterval(Config::TRAY_ANIM_INTERVAL_MS);
+        return;
+    }
+#endif
+
+    // Обычный системный трей (Windows, или Linux с AppIndicator)
     m_trayIcon->setIcon(m_idleIcon);
     QString version = QCoreApplication::applicationVersion();
     m_trayIcon->setToolTip(
@@ -62,7 +104,16 @@ void TrayManager::init() {
 }
 
 void TrayManager::cleanup() {
-    m_trayIcon->setVisible(false);
+#ifdef Q_OS_LINUX
+    if (m_fallbackDock) {
+        m_fallbackDock->close();
+        delete m_fallbackDock;
+        m_fallbackDock = nullptr;
+    }
+#endif
+    if (m_trayIcon) {
+        m_trayIcon->setVisible(false);
+    }
     m_animTimer->stop();
     m_animFrames.clear();
 }
@@ -70,6 +121,23 @@ void TrayManager::cleanup() {
 void TrayManager::setState(bool running) {
     m_running = running;
     m_animFrameIndex = 0;
+
+#ifdef Q_OS_LINUX
+    if (m_fallbackDock) {
+        // Fallback dock: меняем иконку через stylesheet
+        if (running) {
+            m_fallbackDock->setStyleSheet(
+                "QWidget { background: transparent; border: 2px solid #4CAF50; border-radius: 4px; }"
+                "QWidget:hover { background: rgba(76,175,80,40); }");
+        } else {
+            m_fallbackDock->setStyleSheet(
+                "QWidget { background: transparent; border: 2px solid #888; border-radius: 4px; }"
+                "QWidget:hover { background: rgba(255,255,255,30); }");
+        }
+        m_fallbackDock->update();
+        return;
+    }
+#endif
 
     if (running) {
         // Прокси запущен — показываем статическую ACTIVE иконку.
@@ -87,6 +155,27 @@ void TrayManager::setState(bool running) {
 
 void TrayManager::setConnectionsState(bool hasConnections) {
     m_hasConnections = hasConnections;
+
+#ifdef Q_OS_LINUX
+    if (m_fallbackDock) {
+        // Fallback dock: мигающая граница при наличии соединений
+        if (m_running && hasConnections) {
+            m_fallbackDock->setStyleSheet(
+                "QWidget { background: rgba(76,175,80,60); border: 2px solid #4CAF50; border-radius: 4px; }"
+                "QWidget:hover { background: rgba(76,175,80,80); }");
+        } else if (m_running) {
+            m_fallbackDock->setStyleSheet(
+                "QWidget { background: transparent; border: 2px solid #4CAF50; border-radius: 4px; }"
+                "QWidget:hover { background: rgba(76,175,80,40); }");
+        } else {
+            m_fallbackDock->setStyleSheet(
+                "QWidget { background: transparent; border: 2px solid #888; border-radius: 4px; }"
+                "QWidget:hover { background: rgba(255,255,255,30); }");
+        }
+        m_fallbackDock->update();
+        return;
+    }
+#endif
 
     if (!m_running) {
         // Если прокси не запущен — игнорируем, остаёмся на IDLE

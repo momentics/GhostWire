@@ -61,5 +61,9 @@ private:
     QIcon m_idleIcon;
     QIcon m_activeIcon;
 
+#ifdef Q_OS_LINUX
+    QWidget* m_fallbackDock = nullptr; ///< Fallback dock при отсутствии системного трея
+#endif
+
     void loadIcons();
 };

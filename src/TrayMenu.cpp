@@ -44,7 +44,8 @@ Qt::WindowFlags TrayMenu::makeWindowFlags() {
 bool TrayMenu::event(QEvent* event) {
 #ifdef Q_OS_LINUX
     // Linux: Qt::Tool не закрывается сам. Отслеживаем потерю фокуса, чтобы запустить таймер скрытия.
-    if (event->type() == QEvent::FocusOut || event->type() == QEvent::WindowDeactivate) {
+    // Но только если не IPC-режим (там polling управляет скрытием).
+    if (!m_ipcMode && (event->type() == QEvent::FocusOut || event->type() == QEvent::WindowDeactivate)) {
         m_autoHideTimer->start();
     }
 #endif
@@ -56,10 +57,16 @@ bool TrayMenu::event(QEvent* event) {
 void TrayMenu::showEvent(QShowEvent* event) {
     QWidget::showEvent(event);
 #ifdef Q_OS_LINUX
-    // Linux: Qt::Tool не получает FocusOut — запускаем циклический polling
-    m_autoHideTimer->setSingleShot(false);
-    m_autoHideTimer->setInterval(100);
+    // Linux: Qt::Tool не получает FocusOut — запускаем polling с grace period.
+    // Grace period 500 ms — даём пользователю время довести мышь до меню.
+    // Без этого меню мгновенно скрывалось: showEvent → polling 100 ms →
+    // tryHideMenu() → underMouse() == false → hide().
+    m_autoHideTimer->stop();
+    m_autoHideTimer->setSingleShot(true);
+    m_autoHideTimer->setInterval(500);
     m_autoHideTimer->start();
+    m_ipcMode = false;
+    m_wasUnderMouse = false;
 #endif
     // Windows/macOS: Qt::Popup закрывается сам. Таймер запускать НЕ нужно,
     // иначе меню схлопнется сразу после появления (пока мышь ещё на трее).
@@ -67,6 +74,7 @@ void TrayMenu::showEvent(QShowEvent* event) {
 
 void TrayMenu::hideEvent(QHideEvent* event) {
     m_autoHideTimer->stop();
+    m_ipcMode = false;
     // Сброс настроек таймера к дефолтным (для Windows)
     m_autoHideTimer->setSingleShot(true);
     m_autoHideTimer->setInterval(50);
@@ -88,8 +96,22 @@ void TrayMenu::mousePressEvent(QMouseEvent* event) {
 TrayMenu::~TrayMenu() = default;
 
 void TrayMenu::tryHideMenu() {
-    if (!underMouse() && !hasFocus())
-        hide();
+    if (m_ipcMode) {
+        // IPC-показ: запоминаем, была ли мышь над меню.
+        // Не скрываем пока пользователь хотя бы раз не навёл мышь,
+        // а потом убрал — иначе меню исчезнет до того как пользователь успеет.
+        if (underMouse()) {
+            m_wasUnderMouse = true;
+        }
+        if (m_wasUnderMouse && !underMouse() && !hasFocus()) {
+            hide();
+        }
+    } else {
+        // Обычный показ (клик по иконке): скрываем если мышь не над меню и нет фокуса
+        if (!underMouse() && !hasFocus()) {
+            hide();
+        }
+    }
 }
 
 void TrayMenu::buildLayout() {
@@ -215,11 +237,18 @@ void TrayMenu::hideMenu() {
 }
 
 void TrayMenu::startIpcFocusMonitor() {
-    // При IPC-показе события FocusOut/WindowDeactivate могут не прийти,
-    // потому что окно не получило фокус через activateWindow().
-    // Один раз запускаем таймер проверки — через 3 секунды.
-    // Это НЕ зацикленный таймер: tryHideMenu() не перезапускает его.
-    // Если пользователь кликает на меню, underMouse() == true — hide() не вызывается.
-    // Если клик вне — underMouse() == false && hasFocus() == false — меню скрывается.
-    QTimer::singleShot(3000, this, &TrayMenu::tryHideMenu);
+    // IPC-показ: после grace period (500 ms) переключаемся на polling.
+    // Grace period уже запущен в showEvent(). Дожидаемся его завершения
+    // и включаем циклический polling (100 ms).
+    m_ipcMode = true;
+
+    // Ждём завершения grace period (showEvent уже запустил singleShot на 500 ms).
+    // После этого переключаемся на polling.
+    QTimer::singleShot(500, this, [this]() {
+        if (isVisible() && m_ipcMode) {
+            m_autoHideTimer->setSingleShot(false);
+            m_autoHideTimer->setInterval(100);
+            m_autoHideTimer->start();
+        }
+    });
 }
