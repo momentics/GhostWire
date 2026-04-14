@@ -237,20 +237,20 @@ void Application::showTrayMenuAtCursor() {
 #ifdef Q_OS_LINUX
     // Linux: геометрия трея недоступна — используем определение положения панели
     showTrayMenu(QRect());
-    m_trayMenu->startIpcFocusMonitor();
+    m_trayMenu->startIpcFocusMonitor(true, true);
 #else
     // Windows: пытаемся получить реальную позицию иконки трея
     QRect iconRect = m_trayManager->trayIconGeometry();
     if (iconRect.isValid() && !iconRect.isEmpty()) {
         showTrayMenu(iconRect);
-        m_trayMenu->startIpcFocusMonitor();
+        m_trayMenu->startIpcFocusMonitor(true, true);
         qDebug() << "Application: tray menu shown at tray icon geometry" << iconRect;
     } else {
         // Fallback к позиции курсора
         m_trayMenu->adjustSize();
         QPoint cursorPos = QCursor::pos();
         showTrayMenuAtPoint(cursorPos);
-        m_trayMenu->startIpcFocusMonitor();
+        m_trayMenu->startIpcFocusMonitor(true, true);
         qDebug() << "Application: tray menu shown at cursor (geometry unavailable)";
     }
 #endif

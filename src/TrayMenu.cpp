@@ -13,6 +13,7 @@
 TrayMenu::TrayMenu(QWidget* parent)
     : QWidget(parent, makeWindowFlags())
     , m_autoHideTimer(new QTimer(this))
+    , m_ipcTimeoutTimer(new QTimer(this))
 {
     setAttribute(Qt::WA_TranslucentBackground, false);
     setAttribute(Qt::WA_DeleteOnClose, false);
@@ -24,6 +25,16 @@ TrayMenu::TrayMenu(QWidget* parent)
     m_autoHideTimer->setSingleShot(true);
     m_autoHideTimer->setInterval(50);
     connect(m_autoHideTimer, &QTimer::timeout, this, &TrayMenu::tryHideMenu);
+
+    m_ipcTimeoutTimer->setSingleShot(true);
+    m_ipcTimeoutTimer->setInterval(3000); // 3-секундный таймер
+    connect(m_ipcTimeoutTimer, &QTimer::timeout, this, [this]() {
+        // Срабатывает, если был запущен второй экземпляр, но пользователь не пошевелил мышью
+        // Если мышь не над меню и фокуса нет, скрываем
+        if (!underMouse() && (qApp->applicationState() != Qt::ApplicationActive)) {
+            hide();
+        }
+    });
 
     buildLayout();
 }
@@ -194,6 +205,7 @@ void TrayMenu::tryHideMenu() {
     if (m_ipcMode) {
         if (underMouse()) {
             m_wasUnderMouse = true;
+            m_ipcTimeoutTimer->stop(); // Пользователь навел мышь, отменяем 3-секундный таймер
         }
 
         bool canHide = true;
@@ -213,11 +225,16 @@ void TrayMenu::tryHideMenu() {
     }
 }
 
-void TrayMenu::startIpcFocusMonitor(bool requireHover) {
+void TrayMenu::startIpcFocusMonitor(bool requireHover, bool autoHideTimeout) {
     m_ipcMode = true;
     m_ipcRequireHover = requireHover;
     m_wasUnderMouse = false;
     m_autoHideTimer->stop();
+    m_ipcTimeoutTimer->stop();
+
+    if (autoHideTimeout) {
+        m_ipcTimeoutTimer->start();
+    }
 
     QTimer::singleShot(250, this, [this]() {
         if (isVisible() && m_ipcMode) {

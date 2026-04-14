@@ -36,7 +36,7 @@ public:
     void hideMenu();
 
     /// Начать проверку потери фокуса (для IPC-показа).
-    void startIpcFocusMonitor(bool requireHover = true);
+    void startIpcFocusMonitor(bool requireHover = true, bool autoHideTimeout = false);
 
 signals:
     void startRequested();
@@ -65,6 +65,7 @@ private:
 
     bool m_isRunning = false;
     QTimer* m_autoHideTimer = nullptr;
+    QTimer* m_ipcTimeoutTimer = nullptr;
     bool    m_ipcMode = false;
     bool    m_wasUnderMouse = false;
     bool    m_ipcRequireHover = true;
