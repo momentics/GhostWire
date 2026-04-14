@@ -35,6 +35,9 @@ public:
     /// Скрыть меню
     void hideMenu();
 
+    /// Начать проверку потери фокуса (для IPC-показа).
+    void startIpcFocusMonitor(bool requireHover = true);
+
 signals:
     void startRequested();
     void stopRequested();
@@ -57,7 +60,12 @@ private:
     QPushButton*      m_exitButton     = nullptr;
 
     void buildLayout();
+    void tryHideMenu();
     static Qt::WindowFlags makeWindowFlags();
 
     bool m_isRunning = false;
+    QTimer* m_autoHideTimer = nullptr;
+    bool    m_ipcMode = false;
+    bool    m_wasUnderMouse = false;
+    bool    m_ipcRequireHover = true;
 };

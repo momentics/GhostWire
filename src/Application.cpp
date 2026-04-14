@@ -75,6 +75,9 @@ Application::Application(QObject* parent)
     // Соединяем сигналы TrayManager к Application (для открытия меню)
     connect(m_trayManager.get(), &TrayManager::iconClicked, this, [this](const QRect& iconRect) {
         showTrayMenu(iconRect);
+#ifdef Q_OS_LINUX
+        if (m_trayMenu) m_trayMenu->startIpcFocusMonitor(true);
+#endif
     });
 
 #ifdef Q_OS_LINUX
@@ -234,17 +237,20 @@ void Application::showTrayMenuAtCursor() {
 #ifdef Q_OS_LINUX
     // Linux: геометрия трея недоступна — используем определение положения панели
     showTrayMenu(QRect());
+    m_trayMenu->startIpcFocusMonitor();
 #else
     // Windows: пытаемся получить реальную позицию иконки трея
     QRect iconRect = m_trayManager->trayIconGeometry();
     if (iconRect.isValid() && !iconRect.isEmpty()) {
         showTrayMenu(iconRect);
+        m_trayMenu->startIpcFocusMonitor();
         qDebug() << "Application: tray menu shown at tray icon geometry" << iconRect;
     } else {
         // Fallback к позиции курсора
         m_trayMenu->adjustSize();
         QPoint cursorPos = QCursor::pos();
         showTrayMenuAtPoint(cursorPos);
+        m_trayMenu->startIpcFocusMonitor();
         qDebug() << "Application: tray menu shown at cursor (geometry unavailable)";
     }
 #endif

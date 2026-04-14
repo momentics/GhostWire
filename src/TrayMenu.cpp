@@ -12,6 +12,7 @@
 
 TrayMenu::TrayMenu(QWidget* parent)
     : QWidget(parent, makeWindowFlags())
+    , m_autoHideTimer(new QTimer(this))
 {
     setAttribute(Qt::WA_TranslucentBackground, false);
     setAttribute(Qt::WA_DeleteOnClose, false);
@@ -20,14 +21,25 @@ TrayMenu::TrayMenu(QWidget* parent)
     setFixedWidth(Config::MENU_WIDTH);
     setMaximumWidth(Config::MENU_WIDTH);
 
+    m_autoHideTimer->setSingleShot(true);
+    m_autoHideTimer->setInterval(50);
+    connect(m_autoHideTimer, &QTimer::timeout, this, &TrayMenu::tryHideMenu);
+
     buildLayout();
 }
 
 Qt::WindowFlags TrayMenu::makeWindowFlags() {
+#ifdef Q_OS_LINUX
+    return Qt::FramelessWindowHint | Qt::Tool | Qt::WindowStaysOnTopHint;
+#else
     return Qt::FramelessWindowHint | Qt::Popup;
+#endif
 }
 
 bool TrayMenu::event(QEvent* event) {
+    if (event->type() == QEvent::WindowDeactivate) {
+        if (!m_ipcMode) m_autoHideTimer->start();
+    }
     return QWidget::event(event);
 }
 
@@ -36,6 +48,10 @@ void TrayMenu::showEvent(QShowEvent* event) {
 }
 
 void TrayMenu::hideEvent(QHideEvent* event) {
+    m_autoHideTimer->stop();
+    m_ipcMode = false;
+    m_autoHideTimer->setSingleShot(true);
+    m_autoHideTimer->setInterval(50);
     QWidget::hideEvent(event);
 }
 
@@ -169,4 +185,45 @@ void TrayMenu::setRunningState(bool running) {
 
 void TrayMenu::hideMenu() {
     hide();
+}
+
+void TrayMenu::tryHideMenu() {
+    bool isAppActive = (qApp->applicationState() == Qt::ApplicationActive);
+    bool isFocused = hasFocus() || isActiveWindow() || isAppActive;
+
+    if (m_ipcMode) {
+        if (underMouse()) {
+            m_wasUnderMouse = true;
+        }
+
+        bool canHide = true;
+        if (m_ipcRequireHover && !m_wasUnderMouse) {
+            canHide = false;
+        }
+
+        // Если приложение потеряло фокус оконного менеджера (клик вне приложения),
+        // qApp->applicationState() станет Inactive. Тогда isFocused = false.
+        if (!isFocused || (canHide && !underMouse() && !isAppActive)) {
+            hide();
+        }
+    } else {
+        if (!underMouse() && !isFocused) {
+            hide();
+        }
+    }
+}
+
+void TrayMenu::startIpcFocusMonitor(bool requireHover) {
+    m_ipcMode = true;
+    m_ipcRequireHover = requireHover;
+    m_wasUnderMouse = false;
+    m_autoHideTimer->stop();
+
+    QTimer::singleShot(250, this, [this]() {
+        if (isVisible() && m_ipcMode) {
+            m_autoHideTimer->setSingleShot(false);
+            m_autoHideTimer->setInterval(100);
+            m_autoHideTimer->start();
+        }
+    });
 }
