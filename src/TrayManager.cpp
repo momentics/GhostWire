@@ -11,6 +11,8 @@
 #include <QWidget>
 #include <QMouseEvent>
 #include <QEvent>
+#include <QMenu>
+#include <QAction>
 #endif
 
 TrayManager::TrayManager(QObject* parent)
@@ -94,6 +96,30 @@ void TrayManager::init() {
             ? QStringLiteral("GhostWire Desktop")
             : QStringLiteral("GhostWire Desktop v%1").arg(version)
     );
+
+#ifdef Q_OS_LINUX
+    // На Linux (особенно в GNOME с AppIndicator) иконка не отображается в верхней панели,
+    // если к ней не привязано нативное QMenu. Создаем минимальное меню-заглушку.
+    // Левый клик по иконке по-прежнему будет генерировать Trigger (в зависимости от DE),
+    // или пользователь сможет открыть дашборд через это меню.
+    QMenu* linuxMenu = new QMenu();
+    
+    QAction* openAction = linuxMenu->addAction(QStringLiteral("GhostWire Dashboard"));
+    connect(openAction, &QAction::triggered, this, [this]() {
+        // Передаем пустой QRect для Linux-позиционирования дашборда
+        emit iconClicked(QRect());
+    });
+    
+    linuxMenu->addSeparator();
+    
+    QAction* quitAction = linuxMenu->addAction(QStringLiteral("Quit GhostWire"));
+    connect(quitAction, &QAction::triggered, this, [this]() {
+        emit linuxQuitRequested();
+    });
+    
+    m_trayIcon->setContextMenu(linuxMenu);
+#endif
+
     m_trayIcon->setVisible(true);
 
     // Таймер покадровой анимации (запускается только при активном режиме)

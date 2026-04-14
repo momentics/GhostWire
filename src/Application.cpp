@@ -77,6 +77,10 @@ Application::Application(QObject* parent)
         showTrayMenu(iconRect);
     });
 
+#ifdef Q_OS_LINUX
+    connect(m_trayManager.get(), &TrayManager::linuxQuitRequested, this, &Application::onTrayExit);
+#endif
+
     connect(m_trayMenu.get(), &TrayMenu::checkUpdatesRequested,
             this, &Application::onCheckUpdatesRequested);
 

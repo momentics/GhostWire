@@ -47,6 +47,11 @@ signals:
     /// Пользователь кликнул по иконке — открыть меню
     void iconClicked(const QRect& iconGeometry);
 
+#ifdef Q_OS_LINUX
+    /// Сигнал выхода из нативного контекстного меню (только для Linux)
+    void linuxQuitRequested();
+#endif
+
 private slots:
     void onTrayActivated(QSystemTrayIcon::ActivationReason reason);
     void onAnimTick();
