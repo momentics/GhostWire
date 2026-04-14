@@ -60,3 +60,4 @@ private:
     static Qt::WindowFlags makeWindowFlags();
 
     bool m_isRunning = false;
+};
