@@ -166,6 +166,14 @@ elseif(APPLE)
         MACOSX_BUNDLE_BUNDLE_NAME "GhostWire"
         MACOSX_BUNDLE_EXECUTABLE_NAME "GhostWireDesktop"
     )
+    # Strip в Release-сборке для уменьшения размера
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND strip -x -S
+                "$<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/MacOS/GhostWireDesktop"
+            COMMENT "Stripping macOS release binary"
+        )
+    endif()
 elseif(UNIX)
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         PLATFORM_LINUX
@@ -175,6 +183,13 @@ elseif(UNIX)
         INSTALL_RPATH "$ORIGIN:$ORIGIN/../lib"
         BUILD_RPATH "$ORIGIN"
     )
+    # Strip в Release-сборке для уменьшения размера
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND strip "$<TARGET_FILE:${PROJECT_NAME}>"
+            COMMENT "Stripping Linux release binary"
+        )
+    endif()
 endif()
 
 # Post-build: copy ghostwire library and OpenSSL DLLs next to executable
