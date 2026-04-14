@@ -98,6 +98,9 @@ set(RESOURCES
 
 if(WIN32)
     list(APPEND SOURCES resources/app.rc)
+    # Копируем манифест в каталог сборки — rc.exe ищет его по относительному пути из app.rc
+    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.manifest"
+         DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
 # Executable
@@ -107,6 +110,16 @@ add_executable(${PROJECT_NAME}
     ${HEADERS}
     ${RESOURCES}
 )
+
+if(WIN32)
+    # Копируем манифест рядом с exe (для удобства верификации)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.manifest"
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        COMMENT "Copying app.manifest to output directory"
+    )
+endif()
 
 if(LRELEASE_EXECUTABLE)
     add_dependencies(${PROJECT_NAME} translations)
@@ -134,6 +147,10 @@ if(WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         PLATFORM_WINDOWS
         _SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING
+    )
+    # Отключаем встроенный манифест линковщика — мы встраиваем свой через app.rc
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        LINK_FLAGS "/MANIFEST:NO"
     )
     if(MSVC)
         target_compile_options(${PROJECT_NAME} PRIVATE /W4)
@@ -253,6 +270,8 @@ if(WIN32)
         # Deploy OpenSSL
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${OPENSSL_DIR}/libcrypto-1_1-x64.dll" "${_PKG_DIR}/"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${OPENSSL_DIR}/libssl-1_1-x64.dll" "${_PKG_DIR}/"
+        # Манифест
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.manifest" "${_PKG_DIR}/"
         COMMENT "Deploying dependencies to package directory"
     )
 
