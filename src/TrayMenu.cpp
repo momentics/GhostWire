@@ -56,21 +56,8 @@ bool TrayMenu::event(QEvent* event) {
 
 void TrayMenu::showEvent(QShowEvent* event) {
     QWidget::showEvent(event);
-#ifdef Q_OS_LINUX
-    // Linux: Qt::Tool не получает FocusOut — запускаем polling с grace period.
-    // Grace period 500 ms — даём пользователю время довести мышь до меню.
-    // Без этого меню мгновенно скрывалось: showEvent → polling 100 ms →
-    // tryHideMenu() → underMouse() == false → hide().
-    m_autoHideTimer->stop();
-    m_autoHideTimer->setSingleShot(true);
-    m_autoHideTimer->setInterval(500);
-    m_autoHideTimer->start();
-    m_ipcMode = false;
-    m_wasUnderMouse = false;
-    m_ipcRequireHover = true;
-#endif
-    // Windows/macOS: Qt::Popup закрывается сам. Таймер запускать НЕ нужно,
-    // иначе меню схлопнется сразу после появления (пока мышь ещё на трее).
+    // На Linux скрытие управляется через startIpcFocusMonitor.
+    // На Windows/macOS Qt::Popup закрывается системой автоматически.
 }
 
 void TrayMenu::hideEvent(QHideEvent* event) {
@@ -245,10 +232,12 @@ void TrayMenu::hideMenu() {
 
 void TrayMenu::startIpcFocusMonitor(bool requireHover) {
     // IPC-показ: после grace period (500 ms) переключаемся на polling.
-    // Grace period уже запущен в showEvent(). Дожидаемся его завершения
-    // и включаем циклический polling (100 ms).
+    // Дожидаемся его завершения и включаем циклический polling (100 ms).
     m_ipcMode = true;
     m_ipcRequireHover = requireHover;
+    m_wasUnderMouse = false;
+    
+    m_autoHideTimer->stop();
 
     // Ждём завершения grace period (showEvent уже запустил singleShot на 500 ms).
     // После этого переключаемся на polling.

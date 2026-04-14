@@ -316,11 +316,11 @@ static bool isTelegramRunning() {
         << QString("IMAGENAME eq %1").arg(Config::TELEGRAM_PROCESS_NAME)
         << "/NH");
 #elif defined(__APPLE__)
-    proc.start("pgrep", QStringList() << "-xi" << Config::TELEGRAM_PROCESS_NAME);
+    proc.start("pgrep", QStringList() << "-i" << Config::TELEGRAM_PROCESS_NAME);
 #else
     // Linux: pgrep с case-insensitive по частичному имени «telegram»
     // ловит telegram-desktop, telegram-desktop-bin и т.д.
-    proc.start("pgrep", QStringList() << "-xi" << "telegram");
+    proc.start("pgrep", QStringList() << "-i" << "telegram");
 #endif
 
     proc.waitForFinished(3000);

@@ -110,12 +110,6 @@ void TrayManager::init() {
         emit iconClicked(QRect());
     });
     
-    linuxMenu->addSeparator();
-    
-    QAction* quitAction = linuxMenu->addAction(QStringLiteral("Quit GhostWire"));
-    connect(quitAction, &QAction::triggered, this, [this]() {
-        emit linuxQuitRequested();
-    });
     
     m_trayIcon->setContextMenu(linuxMenu);
 #endif
