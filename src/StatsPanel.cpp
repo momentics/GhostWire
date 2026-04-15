@@ -12,8 +12,9 @@ StatsPanel::StatsPanel(QWidget* parent)
     mainLayout->setContentsMargins(6, 2, 6, 2);
     mainLayout->setSpacing(2);
 
-    QFont font = this->font();
-    font.setPointSize(8);
+    // Используем pixel size вместо point size для независимости от DPI
+    QFont baseFont = QApplication::font();
+    baseFont.setPixelSize(13);
 
     // Грид: 2 колонки — 4 строки (Работает, Соединений, Пик, Всего)
     m_gridLayout = new QGridLayout();
@@ -22,46 +23,46 @@ StatsPanel::StatsPanel(QWidget* parent)
     m_gridLayout->setHorizontalSpacing(0);
 
     auto* labelUptimeText = new QLabel(tr("Работает:"), this);
-    labelUptimeText->setFont(font);
+    labelUptimeText->setFont(baseFont);
     labelUptimeText->setStyleSheet("color: #aaa;");
     m_gridLayout->addWidget(labelUptimeText, 0, 0, Qt::AlignLeft);
 
     m_labelUptime = new QLabel(this);
-    m_labelUptime->setFont(font);
+    m_labelUptime->setFont(baseFont);
     m_gridLayout->addWidget(m_labelUptime, 0, 1, Qt::AlignLeft);
 
     auto* labelConnections = new QLabel(tr("Соединений:"), this);
-    labelConnections->setFont(font);
+    labelConnections->setFont(baseFont);
     labelConnections->setStyleSheet("color: #aaa;");
     m_gridLayout->addWidget(labelConnections, 1, 0, Qt::AlignLeft);
 
     m_labelConnections = new QLabel(this);
-    m_labelConnections->setFont(font);
+    m_labelConnections->setFont(baseFont);
     m_gridLayout->addWidget(m_labelConnections, 1, 1, Qt::AlignLeft);
 
     auto* labelPeak = new QLabel(tr("Пик:"), this);
-    labelPeak->setFont(font);
+    labelPeak->setFont(baseFont);
     labelPeak->setStyleSheet("color: #aaa;");
     m_gridLayout->addWidget(labelPeak, 2, 0, Qt::AlignLeft);
 
     m_labelPeak = new QLabel(this);
-    m_labelPeak->setFont(font);
+    m_labelPeak->setFont(baseFont);
     m_gridLayout->addWidget(m_labelPeak, 2, 1, Qt::AlignLeft);
 
     auto* labelTotal = new QLabel(tr("Всего:"), this);
-    labelTotal->setFont(font);
+    labelTotal->setFont(baseFont);
     labelTotal->setStyleSheet("color: #aaa;");
     m_gridLayout->addWidget(labelTotal, 3, 0, Qt::AlignLeft);
 
     m_labelTotal = new QLabel(this);
-    m_labelTotal->setFont(font);
+    m_labelTotal->setFont(baseFont);
     m_gridLayout->addWidget(m_labelTotal, 3, 1, Qt::AlignLeft);
 
     // Колонка 1 (значения) растягивается до конца
     m_gridLayout->setColumnStretch(1, 1);
 
     // Ширина колонки 0 = самый длинный лейбл
-    QFontMetrics fm(font);
+    QFontMetrics fm(baseFont);
     int maxLabelWidth = 0;
     for (const auto* lbl : {labelUptimeText, labelConnections, labelPeak, labelTotal}) {
         int w = fm.horizontalAdvance(lbl->text());
@@ -73,7 +74,7 @@ StatsPanel::StatsPanel(QWidget* parent)
 
     // Версия — поверх грида, справа, без добавления высоты
     m_labelVersion = new QLabel(this);
-    m_labelVersion->setFont(font);
+    m_labelVersion->setFont(baseFont);
     m_labelVersion->setStyleSheet("color: #888; background: transparent;");
     m_labelVersion->setAttribute(Qt::WA_TransparentForMouseEvents);
     QString version = QCoreApplication::applicationVersion();

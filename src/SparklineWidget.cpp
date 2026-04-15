@@ -3,6 +3,7 @@
 #include "Config.h"
 #include <QPainter>
 #include <QFontMetrics>
+#include <QApplication>
 #include <cmath>
 
 SparklineWidget::SparklineWidget(QWidget* parent)
@@ -14,12 +15,12 @@ SparklineWidget::SparklineWidget(QWidget* parent)
     m_gridColor = QColor(255, 255, 255, 30);   // очень прозрачная сетка
     m_textColor = QColor(180, 180, 180, 200);  // серый текст
 
-    // Шрифты создаём один раз
-    m_labelFont = font();
-    m_labelFont.setPointSize(6);
+    // Используем pixel size вместо point size для независимости от DPI
+    m_labelFont = QFont(QApplication::font());
+    m_labelFont.setPixelSize(11);
 
-    m_legendFont = font();
-    m_legendFont.setPointSize(6);
+    m_legendFont = QFont(QApplication::font());
+    m_legendFont.setPixelSize(11);
 
     setMinimumHeight(100);
     setMaximumHeight(140);

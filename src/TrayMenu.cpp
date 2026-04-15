@@ -82,15 +82,18 @@ void TrayMenu::buildLayout() {
     mainLayout->setSpacing(4);
 
     // Стиль: похож на контекстное меню
+    // Явно задаём font-size в px для единообразия на всех DPI
     setStyleSheet(R"(
         TrayMenu {
             background-color: #2b2b2b;
             border: 1px solid #555;
             border-radius: 6px;
+            font-size: 13px;
         }
         QLabel {
             color: #ddd;
             padding: 2px 0;
+            font-size: 13px;
         }
         QPushButton {
             color: #ddd;
@@ -99,6 +102,7 @@ void TrayMenu::buildLayout() {
             border-radius: 4px;
             padding: 6px 16px;
             text-align: left;
+            font-size: 13px;
         }
         QPushButton:hover {
             background-color: #3a3a3a;
