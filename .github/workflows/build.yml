@@ -7,16 +7,33 @@ on:
 
 env:
   BUILD_TYPE: Release
+  QT_VERSION: 5.15.2
+  GHOSTWIRE_VERSION: 1.0.4
+  OPENSSL_VERSION_MACOS: 1.1.1w
 
 jobs:
   build:
+    name: ${{ matrix.job_name }}
     permissions:
       contents: write
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        #os: [windows-latest, ubuntu-22.04, macos-latest]
-        os: [windows-latest, ubuntu-22.04]
+        include:
+          - job_name: Windows
+            os: windows-latest
+          - job_name: Linux
+            os: ubuntu-22.04
+          - job_name: macOS Intel
+            os: macos-15-intel
+            macos_arch: x86_64
+            macos_artifact_name: GhostWire-Desktop-macOS-Intel
+            qt_arch: 'clang_64'
+          - job_name: macOS Silicon
+            os: macos-15
+            macos_arch: arm64
+            macos_artifact_name: GhostWire-Desktop-macOS-Silicon
+            qt_arch: 'clang_64'
 
     steps:
       # Checkout
@@ -38,13 +55,32 @@ jobs:
           printf '%s' "$CONFIG_JSON" > resources/config.json
           echo "config.json restored ($(wc -c < resources/config.json) bytes)"
 
+      - name: Download ghostwire.dll (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          ASSET="ghostwire-${{ env.GHOSTWIRE_VERSION }}-windows-x86_64.zip"
+          TMP_DIR="$(mktemp -d)"
+
+          mkdir -p libs/ghostwire
+          curl -fL "https://github.com/momentics/GhostWire.dist/releases/download/${{ env.GHOSTWIRE_VERSION }}/${ASSET}" -o "${TMP_DIR}/${ASSET}"
+          unzip -q "${TMP_DIR}/${ASSET}" -d "${TMP_DIR}"
+
+          DLL_PATH="$(find "${TMP_DIR}" -name "ghostwire.dll" -print -quit)"
+          if [ -z "$DLL_PATH" ]; then
+            echo "ERROR: ghostwire.dll not found in ${ASSET}" >&2
+            exit 1
+          fi
+
+          cp "$DLL_PATH" libs/ghostwire/ghostwire.dll
+          rm -rf "${TMP_DIR}"
+
       # Linux: Download libghostwire.so
       - name: Download libghostwire.so (Linux)
         if: runner.os == 'Linux'
         run: |
-          GW_VERSION="1.0.4"
-          ASSET="ghostwire-${GW_VERSION}-linux-x86_64.tar.gz"
-          curl -fL "https://github.com/momentics/GhostWire.dist/releases/download/${GW_VERSION}/${ASSET}" -o "/tmp/${ASSET}"
+          ASSET="ghostwire-${{ env.GHOSTWIRE_VERSION }}-linux-x86_64.tar.gz"
+          curl -fL "https://github.com/momentics/GhostWire.dist/releases/download/${{ env.GHOSTWIRE_VERSION }}/${ASSET}" -o "/tmp/${ASSET}"
           tar -xzf "/tmp/${ASSET}" -C libs/ghostwire/
           mv libs/ghostwire/ghostwire-linux-x86_64/libghostwire.so libs/ghostwire/libghostwire.so
           rm -rf libs/ghostwire/ghostwire-linux-x86_64
@@ -72,7 +108,7 @@ jobs:
         if: runner.os == 'Linux'
         uses: jurplel/install-qt-action@v4
         with:
-          version: '5.15.2'
+          version: ${{ env.QT_VERSION }}
           host: 'linux'
           target: 'desktop'
           arch: 'gcc_64'
@@ -154,7 +190,7 @@ jobs:
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
         with:
-          version: '5.15.2'
+          version: ${{ env.QT_VERSION }}
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2019_64'
@@ -230,18 +266,61 @@ jobs:
           path: ${{ env.MSI_PATH }}
 
       # macOS
+      - name: Download libghostwire.dylib (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          ASSET="ghostwire-${{ env.GHOSTWIRE_VERSION }}-macos-${{ matrix.macos_arch }}.tar.gz"
+          TMP_DIR="$(mktemp -d)"
+
+          mkdir -p libs/ghostwire
+          curl -fL "https://github.com/momentics/GhostWire.dist/releases/download/${{ env.GHOSTWIRE_VERSION }}/${ASSET}" -o "${TMP_DIR}/${ASSET}"
+          tar -xzf "${TMP_DIR}/${ASSET}" -C "${TMP_DIR}"
+
+          DYLIB_PATH="$(find "${TMP_DIR}" -name "libghostwire.dylib" -print -quit)"
+          if [ -z "$DYLIB_PATH" ]; then
+            echo "ERROR: libghostwire.dylib not found in ${ASSET}" >&2
+            exit 1
+          fi
+
+          cp "$DYLIB_PATH" libs/ghostwire/libghostwire.dylib
+          rm -rf "${TMP_DIR}"
+
+      - name: Install OpenSSL (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p libs/openssl/macos
+          OPENSSL_TARGET="darwin64-${{ matrix.macos_arch }}-cc"
+          OPENSSL_ARCHIVE="openssl-${{ env.OPENSSL_VERSION_MACOS }}.tar.gz"
+          OPENSSL_URL="https://openssl-library.org/source/old/1.1.1/${OPENSSL_ARCHIVE}"
+          TMP_DIR="$(mktemp -d)"
+
+          curl -fL "${OPENSSL_URL}" -o "${TMP_DIR}/${OPENSSL_ARCHIVE}"
+          tar -xzf "${TMP_DIR}/${OPENSSL_ARCHIVE}" -C "${TMP_DIR}"
+
+          pushd "${TMP_DIR}/openssl-${{ env.OPENSSL_VERSION_MACOS }}"
+          ./Configure "${OPENSSL_TARGET}" shared no-tests --prefix="${TMP_DIR}/openssl-install"
+          make -j"$(sysctl -n hw.ncpu)"
+          make install_sw
+          popd
+
+          cp "${TMP_DIR}/openssl-install/lib/libcrypto.1.1.dylib" libs/openssl/macos/
+          cp "${TMP_DIR}/openssl-install/lib/libssl.1.1.dylib" libs/openssl/macos/
+          cp "${TMP_DIR}/openssl-${{ env.OPENSSL_VERSION_MACOS }}/LICENSE" libs/openssl/macos/license.txt
+
+          rm -rf "${TMP_DIR}"
+
       - name: Install Qt (macOS)
         if: runner.os == 'macOS'
         uses: jurplel/install-qt-action@v4
         with:
-          version: '5.15.2'
+          version: ${{ env.QT_VERSION }}
           host: 'mac'
           target: 'desktop'
-          arch: 'clang_64'
+          arch: ${{ matrix.qt_arch }}
 
       - name: Configure CMake (macOS)
         if: runner.os == 'macOS'
-        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_OSX_ARCHITECTURES=${{ matrix.macos_arch }}
 
       - name: Build (macOS)
         if: runner.os == 'macOS'
@@ -275,5 +354,5 @@ jobs:
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
-          name: GhostWire-Desktop-macOS
+          name: ${{ matrix.macos_artifact_name }}
           path: ${{ env.DMG_PATH }}

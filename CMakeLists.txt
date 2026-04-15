@@ -63,6 +63,16 @@ if(WIN32)
         "${OPENSSL_DIR}/libssl-1_1-x64.dll"
         "${OPENSSL_DIR}/libcrypto-1_1-x64.dll"
     )
+elseif(APPLE)
+    set(OPENSSL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/macos")
+    file(GLOB OPENSSL_DYLIBS
+        "${OPENSSL_DIR}/libcrypto*.dylib"
+        "${OPENSSL_DIR}/libssl*.dylib"
+    )
+    if(NOT OPENSSL_DYLIBS)
+        message(FATAL_ERROR "OpenSSL dylibs not found in ${OPENSSL_DIR}")
+    endif()
+    set(OPENSSL_LICENSE_FILE "${OPENSSL_DIR}/license.txt")
 endif()
 
 # Sources
@@ -186,6 +196,8 @@ elseif(APPLE)
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_BUNDLE_NAME "GhostWire"
         MACOSX_BUNDLE_EXECUTABLE_NAME "GhostWireDesktop"
+        INSTALL_RPATH "@executable_path"
+        BUILD_RPATH "@executable_path"
     )
     # Strip в Release-сборке для уменьшения размера
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -235,6 +247,14 @@ elseif(APPLE)
             $<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/MacOS/
         COMMENT "Copying libghostwire.dylib to bundle"
     )
+    foreach(_openssl_dylib IN LISTS OPENSSL_DYLIBS)
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${_openssl_dylib}"
+                $<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/MacOS/
+            COMMENT "Copying OpenSSL dylibs to bundle"
+        )
+    endforeach()
 elseif(UNIX)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -270,13 +290,24 @@ elseif(APPLE)
     get_filename_component(_qt_bin_dir "${_qmake_executable}" DIRECTORY)
     find_program(MACDEPLOYQT_EXECUTABLE macdeployqt HINTS "${_qt_bin_dir}")
 
-    if(MACDEPLOYQT_EXECUTABLE)
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND "${MACDEPLOYQT_EXECUTABLE}"
-                $<TARGET_BUNDLE_DIR:${PROJECT_NAME}>
-            COMMENT "Running macdeployqt..."
-        )
+    if(NOT MACDEPLOYQT_EXECUTABLE)
+        message(FATAL_ERROR "macdeployqt not found")
     endif()
+
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND "${MACDEPLOYQT_EXECUTABLE}"
+            $<TARGET_BUNDLE_DIR:${PROJECT_NAME}>
+            -always-overwrite
+        COMMENT "Running macdeployqt..."
+    )
+
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+            -DAPP_CONTENTS_DIR=$<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>
+            -DAPP_EXECUTABLE_NAME=GhostWireDesktop
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FixupMacBundle.cmake"
+        COMMENT "Fixing up bundled macOS libraries"
+    )
 endif()
 
 # Install Rules
@@ -411,7 +442,9 @@ elseif(APPLE)
     install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION ".")
     install(FILES "${GHOSTWIRE_LIB_DIR}/LICENSE" DESTINATION "." RENAME "GHOSTWIRE_LIBRARY_LICENSE.txt")
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/QT_LICENSE.txt" DESTINATION ".")
-    install(FILES "${OPENSSL_DIR}/license.txt" DESTINATION "." RENAME "OPENSSL_LICENSE.txt")
+    if(EXISTS "${OPENSSL_LICENSE_FILE}")
+        install(FILES "${OPENSSL_LICENSE_FILE}" DESTINATION "." RENAME "OPENSSL_LICENSE.txt")
+    endif()
 endif()
 
 # CPack Configuration
@@ -450,6 +483,17 @@ elseif(UNIX AND NOT APPLE)
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "libssl3, libxkbcommon-x11-0, libegl1, libopengl0, libglib2.0-0, libfreetype6, libfontconfig1, libdbus-1-3, libx11-xcb1, libxcb1, libxcb-glx0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-randr0, libxcb-render0, libxcb-render-util0, libxcb-shape0, libxcb-shm0, libxcb-sync1, libxcb-util1, libxcb-xfixes0, libxcb-xinerama0")
     set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://github.com/momentics/GhostWire")
 elseif(APPLE)
+    set(_MACOS_PACKAGE_ARCH "${CMAKE_OSX_ARCHITECTURES}")
+    if(NOT _MACOS_PACKAGE_ARCH)
+        set(_MACOS_PACKAGE_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+    endif()
+    string(TOLOWER "${_MACOS_PACKAGE_ARCH}" _MACOS_PACKAGE_ARCH)
+    if(_MACOS_PACKAGE_ARCH MATCHES "^(arm64|aarch64)$")
+        set(_MACOS_PACKAGE_ARCH "arm64")
+    elseif(_MACOS_PACKAGE_ARCH MATCHES "^(x86_64|amd64)$")
+        set(_MACOS_PACKAGE_ARCH "x86_64")
+    endif()
+    set(CPACK_PACKAGE_FILE_NAME "GhostWireDesktop-${PROJECT_VERSION}-macos-${_MACOS_PACKAGE_ARCH}")
     set(CPACK_GENERATOR "DragNDrop")
 endif()
 
