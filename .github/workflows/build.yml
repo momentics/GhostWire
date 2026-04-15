@@ -30,12 +30,6 @@ jobs:
             ghostwire_asset_arch: x86_64
             macos_artifact_name: GhostWire-Desktop-macOS-Intel
             qt_arch: 'clang_64'
-          - job_name: macOS Silicon
-            os: macos-15
-            macos_arch: arm64
-            ghostwire_asset_arch: aarch64
-            macos_artifact_name: GhostWire-Desktop-macOS-Silicon
-            qt_arch: 'clang_64'
 
     steps:
       # Checkout
