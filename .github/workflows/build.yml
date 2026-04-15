@@ -91,12 +91,6 @@ jobs:
           cd build
           cpack -C ${{ env.BUILD_TYPE }}
 
-      - name: Package ZIP (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          cd build
-          cpack -G ZIP -C ${{ env.BUILD_TYPE }}
-
       - name: Find DEB file (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -108,14 +102,22 @@ jobs:
           echo "DEB_PATH=$DEB_FILE" >> $GITHUB_ENV
           echo "DEB_NAME=$(basename $DEB_FILE)" >> $GITHUB_ENV
 
-      - name: Find ZIP file (Linux)
+      - name: Package ZIP (Linux)
         if: runner.os == 'Linux'
         run: |
-          ZIP_FILE=$(find build -name "GhostWire*.zip" -print -quit)
-          if [ -z "$ZIP_FILE" ]; then
-            echo "ERROR: ZIP file not found!" >&2
-            exit 1
-          fi
+          ZIP_STAGE="$GITHUB_WORKSPACE/build/package-zip-root"
+          ZIP_FILE="$GITHUB_WORKSPACE/build/${DEB_NAME%.deb}.zip"
+
+          rm -rf "$ZIP_STAGE" "$ZIP_FILE"
+          mkdir -p "$ZIP_STAGE"
+
+          DESTDIR="$ZIP_STAGE" cmake --install build --config ${{ env.BUILD_TYPE }}
+
+          (
+            cd "$ZIP_STAGE"
+            zip -r -y "$ZIP_FILE" .
+          )
+
           echo "ZIP_PATH=$ZIP_FILE" >> $GITHUB_ENV
           echo "ZIP_NAME=$(basename $ZIP_FILE)" >> $GITHUB_ENV
 
