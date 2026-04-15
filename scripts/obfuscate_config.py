@@ -4,7 +4,7 @@ import sys
 import os
 import secrets
 
-KEY_LENGTH = 1
+KEY_LENGTH = 16
 
 
 def obfuscate(input_path: str, output_path: str) -> None:

@@ -137,10 +137,14 @@ bool Application::initialize() {
 }
 
 QString Application::loadConfig() const {
+    if (g_config_key_len == 0 || g_config_size == 0) {
+        return QString();
+    }
 
     QByteArray result(static_cast<int>(g_config_size), 0);
     for (size_t i = 0; i < g_config_size; i++) {
-        result[static_cast<int>(i)] = static_cast<char>(g_config_data[i] ^ g_config_key[0]);
+        const unsigned char keyByte = g_config_key[i % g_config_key_len];
+        result[static_cast<int>(i)] = static_cast<char>(g_config_data[i] ^ keyByte);
     }
 
     // Валидация JSON
