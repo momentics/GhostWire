@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(GhostWireDesktop VERSION 1.0.10 LANGUAGES CXX)
+project(GhostWireDesktop VERSION 1.0.9 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -318,10 +318,10 @@ set(_PKG_DIR "${CMAKE_CURRENT_BINARY_DIR}/package")
 # Windows Specifics (Qt + CRT)
 if(WIN32)
     # 1. Main Executable
-    install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ".")
+    install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION "." COMPONENT Runtime)
 
     # 2. GhostWire Library
-    install(FILES "${GHOSTWIRE_LIB}" DESTINATION ".")
+    install(FILES "${GHOSTWIRE_LIB}" DESTINATION "." COMPONENT Runtime)
 
     get_filename_component(_VCR_BIN_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
 
@@ -344,6 +344,7 @@ if(WIN32)
         COMMENT "Deploying dependencies to package directory"
     )
 
+    # Для MSI: всё что не exe, dll, manifest
     install(DIRECTORY "${_PKG_DIR}/"
         DESTINATION "." COMPONENT Runtime
         PATTERN "*.exe" EXCLUDE
@@ -352,14 +353,17 @@ if(WIN32)
         PATTERN "libssl-1_1-x64.dll" EXCLUDE
     )
 
-    # OpenSSL DLLs
-    install(FILES "${OPENSSL_DIR}/libcrypto-1_1-x64.dll" DESTINATION ".")
-    install(FILES "${OPENSSL_DIR}/libssl-1_1-x64.dll" DESTINATION ".")
+    # OpenSSL DLLs (для MSI)
+    install(FILES "${OPENSSL_DIR}/libcrypto-1_1-x64.dll" DESTINATION "." COMPONENT Runtime)
+    install(FILES "${OPENSSL_DIR}/libssl-1_1-x64.dll" DESTINATION "." COMPONENT Runtime)
 
-    # Library License
-    install(FILES "${GHOSTWIRE_LIB_DIR}/LICENSE" DESTINATION "." RENAME "GHOSTWIRE_LIBRARY_LICENSE.txt")
-    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/QT_LICENSE.txt" DESTINATION ".")
-    install(FILES "${OPENSSL_DIR}/license.txt" DESTINATION "." RENAME "OPENSSL_LICENSE.txt")
+    # Library License (для MSI)
+    install(FILES "${GHOSTWIRE_LIB_DIR}/LICENSE" DESTINATION "." COMPONENT Runtime RENAME "GHOSTWIRE_LIBRARY_LICENSE.txt")
+    install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/resources/QT_LICENSE.txt" DESTINATION "." COMPONENT Runtime)
+    install(FILES "${OPENSSL_DIR}/license.txt" DESTINATION "." COMPONENT Runtime RENAME "OPENSSL_LICENSE.txt")
+
+    # Для ZIP: полный набор файлов через CPack ZIP generator
+    # install() правила выше также используются ZIP-генератором
 
 # Linux (DEB)
 elseif(UNIX AND NOT APPLE)
@@ -459,7 +463,7 @@ set(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/ghostwire.pn
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
 
 if(WIN32)
-    set(CPACK_PACKAGE_FILE_NAME "GhostWire Desktop-${PROJECT_VERSION}-win64")
+    set(CPACK_PACKAGE_FILE_NAME "GhostWireDesktop-${PROJECT_VERSION}-win64")
     set(CPACK_GENERATOR "WIX")
     set(CPACK_WIX_UPGRADE_GUID "7EA11EB2-8EE5-46AD-A4CA-7B32F26DB5AB")
     set(CPACK_WIX_PRODUCT_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/ghostwire.ico")
@@ -467,11 +471,10 @@ if(WIN32)
     set(CPACK_WIX_LIGHT_EXTENSIONS "WixUIExtension")
     set(CPACK_WIX_UI_REF "WixUI_InstallDir")
     set(CPACK_WIX_LICENSE_RTF "${CMAKE_CURRENT_SOURCE_DIR}/resources/LICENSE.rtf")
-    
-    # Custom UI Images
+
     set(CPACK_WIX_UI_BANNER "${CMAKE_CURRENT_SOURCE_DIR}/resources/wix/banner.bmp")
     set(CPACK_WIX_UI_DIALOG "${CMAKE_CURRENT_SOURCE_DIR}/resources/wix/dialog.bmp")
-    
+
     set(CPACK_WIX_PROPERTY_ARPURLINFOABOUT "https://github.com/momentics/GhostWire")
     set(CPACK_CREATE_DESKTOP_LINKS "GhostWireDesktop")
     set(CPACK_PACKAGE_EXECUTABLES "GhostWireDesktop" "GhostWire Desktop")
