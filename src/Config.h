@@ -8,9 +8,6 @@ inline constexpr int STATS_POLL_INTERVAL_MS = 500;
 /// Максимальное количество точек на спарклайне (30 минут / 0.5с = 3600)
 inline constexpr int SPARKLINE_MAX_POINTS = 3600;
 
-/// Имя файла конфигурации для библиотеки GhostWire
-inline const char* LIB_CONFIG_RESOURCE = ":/config.json";
-
 /// Ресурсы иконок трея
 inline const char* TRAY_ICON_IDLE     = ":/icons/tray_idle.png";
 inline const char* TRAY_ICON_ACTIVE   = ":/icons/tray_active.png";

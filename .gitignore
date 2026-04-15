@@ -54,5 +54,8 @@ resources/gen_icons.py
 resources/gen_ico.py
 resources/config.json
 
+# Generated
+config_bin.h
+
 
 

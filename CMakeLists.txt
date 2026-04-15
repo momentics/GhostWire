@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(GhostWireDesktop VERSION 1.0.8 LANGUAGES CXX)
+project(GhostWireDesktop VERSION 1.0.9 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -96,6 +96,24 @@ set(RESOURCES
     resources/resources.qrc
 )
 
+# Найти Python для генерации config_bin.h
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+# XOR-обфускация config.json → config_bin.h (генерируется перед компиляцией)
+set(CONFIG_BIN_H "${CMAKE_CURRENT_BINARY_DIR}/config_bin.h")
+add_custom_command(
+    OUTPUT "${CONFIG_BIN_H}"
+    COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/scripts/obfuscate_config.py"
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/config.json"
+        "${CONFIG_BIN_H}"
+    DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/config.json"
+        "${CMAKE_CURRENT_SOURCE_DIR}/scripts/obfuscate_config.py"
+    COMMENT "Obfuscating config.json..."
+    VERBATIM
+)
+
 if(WIN32)
     list(APPEND SOURCES resources/app.rc)
     # Копируем манифест в каталог сборки — rc.exe ищет его по относительному пути из app.rc
@@ -109,7 +127,10 @@ add_executable(${PROJECT_NAME}
     ${SOURCES}
     ${HEADERS}
     ${RESOURCES}
+    "${CONFIG_BIN_H}"
 )
+add_custom_target(generate_config_bin DEPENDS "${CONFIG_BIN_H}")
+add_dependencies(${PROJECT_NAME} generate_config_bin)
 
 if(WIN32)
     # Копируем манифест рядом с exe (для удобства верификации)

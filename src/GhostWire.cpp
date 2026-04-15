@@ -104,16 +104,17 @@ bool GhostWire::create(const QString& configJson) {
         destroy();
     }
 
+    // держим configData. Это не лик
     QByteArray configData = configJson.toUtf8();
 
-    // Пробуем create (из строки), fallback — create_from_file (если строка — это путь)
+    // Пробуем create (из строки)
     if (m_create) {
         m_handle = m_create(configData.constData());
     }
 
-    if (!m_handle && m_createFromFile) {
-        m_handle = m_createFromFile(configData.constData());
-    }
+    //if (!m_handle && m_createFromFile) {
+    //    m_handle = m_createFromFile(configData.constData());
+    // }
 
     if (!m_handle) {
         qWarning() << "GhostWire::create — не удалось создать экземпляр";

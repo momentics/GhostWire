@@ -10,9 +10,10 @@
 #include "UpdateChecker.h"
 #include "Config.h"
 #include "Utils.h"
+#include "config_bin.h"
 
-#include <QFile>
-#include <QTextStream>
+#include <QJsonParseError>
+#include <QJsonDocument>
 #include <QDebug>
 #include <QCursor>
 #include <QApplication>
@@ -136,13 +137,20 @@ bool Application::initialize() {
 }
 
 QString Application::loadConfig() const {
-    QFile file(Config::LIB_CONFIG_RESOURCE);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "Application: не удалось открыть" << Config::LIB_CONFIG_RESOURCE;
+
+    QByteArray result(static_cast<int>(g_config_size), 0);
+    for (size_t i = 0; i < g_config_size; i++) {
+        result[static_cast<int>(i)] = static_cast<char>(g_config_data[i] ^ g_config_key[0]);
+    }
+
+    // Валидация JSON
+    QJsonParseError parseError;
+    QJsonDocument::fromJson(result, &parseError);
+    if (parseError.error != QJsonParseError::NoError) {
         return QString();
     }
-    QTextStream stream(&file);
-    return stream.readAll();
+
+    return QString::fromUtf8(result);
 }
 
 void Application::restoreState() {

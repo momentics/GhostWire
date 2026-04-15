@@ -1,7 +1,6 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
     <qresource prefix="/">
-        <file>config.json</file>
         <file alias="icons/tray_idle.png">icons/tray_idle.png</file>
         <file alias="icons/tray_active.png">icons/tray_active.png</file>
         <!-- Покадровая анимация: frame_01.png, frame_02.png, ... -->
