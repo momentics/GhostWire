@@ -34,6 +34,17 @@ int main(int argc, char* argv[]) {
     QLocale locale = QLocale::system();
     QString lang = locale.name().left(2); // "ru", "en", "de", ...
 
+    // Загружаем стандартные Qt-переводы (кнопки QMessageBox и т.д.)
+    // windeployqt кладёт qt_XX.qm в translations/ рядом с exe
+    QTranslator* qtTranslator = new QTranslator(&app);
+    QString qtTransPath = app.applicationDirPath() + "/translations/qt_" + lang + ".qm";
+    if (qtTranslator->load(qtTransPath)) {
+        app.installTranslator(qtTranslator);
+        qDebug() << "main: loaded Qt translation for" << lang;
+    } else {
+        delete qtTranslator;
+    }
+
     // По умолчанию русский (source), если не ru
     if (lang != "ru") {
         QTranslator* translator = new QTranslator(&app);

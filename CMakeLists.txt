@@ -85,6 +85,7 @@ set(SOURCES
     src/StatsPanel.cpp
     src/GhostWire.cpp
     src/UpdateChecker.cpp
+    src/UpdateNotifier.cpp
     src/SingleInstanceGuard.cpp
     src/Utils.cpp
 )
@@ -99,6 +100,7 @@ set(HEADERS
     src/Config.h
     src/Utils.h
     src/UpdateChecker.h
+    src/UpdateNotifier.h
     src/SingleInstanceGuard.h
 )
 

@@ -8,6 +8,7 @@
 #include "TrayManager.h"
 #include "TrayMenu.h"
 #include "UpdateChecker.h"
+#include "UpdateNotifier.h"
 #include "Config.h"
 #include "Utils.h"
 #include "config_bin.h"
@@ -35,6 +36,7 @@ Application::Application(QObject* parent)
         QCoreApplication::applicationVersion(),
         Config::GITHUB_REPO_OWNER,
         Config::GITHUB_REPO_NAME);
+    m_updateNotifier = std::make_unique<UpdateNotifier>(m_trayManager->trayIcon(), this);
 
     // Соединяем сигналы TrayMenu к Application
     connect(m_trayMenu.get(), &TrayMenu::startRequested, this, [this]() {
@@ -94,6 +96,10 @@ Application::Application(QObject* parent)
             this, &Application::onNoUpdate);
     connect(m_updateChecker.get(), &UpdateChecker::checkFailed,
             this, &Application::onUpdateCheckFailed);
+
+    // UpdateNotifier -> открыть URL
+    connect(m_updateNotifier.get(), &UpdateNotifier::openReleaseUrl,
+            this, &Application::onOpenReleaseUrl);
 }
 
 Application::~Application() = default;
@@ -431,21 +437,16 @@ void Application::onCheckUpdatesRequested() {
 
 void Application::onUpdateAvailable(const QString& version, const QString& releaseUrl) {
     qDebug() << "Application: доступна версия" << version;
-    QString current = QCoreApplication::applicationVersion();
+
     if (m_isManualUpdateCheck) {
         m_isManualUpdateCheck = false;
-        if (QMessageBox::question(nullptr, tr("Доступна новая версия"),
-                                  QString(tr("Текущая: %1, новая: %2. Открыть страницу загрузки?")).arg(current, version),
-                                  QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
-            QDesktopServices::openUrl(QUrl(releaseUrl));
-        }
+        // Ручная проверка — интерактивное подтверждение
+        m_updateNotifier->notifyUpdateAvailableManual(
+            QCoreApplication::applicationVersion(), version, releaseUrl);
     } else {
-        m_trayManager->showMessage(
-            tr("Доступна новая версия"),
-            QString(tr("Текущая: %1, новая: %2.")).arg(current, version),
-            QSystemTrayIcon::Information,
-            10000
-        );
+        // Автоматическая проверка — только уведомление (toast на Windows, MessageBox на Linux/macOS)
+        m_updateNotifier->notifyUpdateAvailableAuto(
+            QCoreApplication::applicationVersion(), version, releaseUrl);
     }
 }
 
@@ -453,14 +454,21 @@ void Application::onNoUpdate() {
     qDebug() << "Application: обновлений нет";
     if (m_isManualUpdateCheck) {
         m_isManualUpdateCheck = false;
-        QMessageBox::information(nullptr, tr("Обновления"), tr("Вы используете последнюю версию."));
+        m_updateNotifier->notifyNoUpdateManual();
     }
+    // Автоматический режим: ничего не делаем
 }
 
 void Application::onUpdateCheckFailed(const QString& error) {
     qDebug() << "Application: проверка обновлений не удалась —" << error;
     if (m_isManualUpdateCheck) {
         m_isManualUpdateCheck = false;
-        QMessageBox::warning(nullptr, tr("Проверка обновлений"), tr("Не удалось проверить обновления: %1").arg(error));
+        m_updateNotifier->notifyCheckFailedManual(error);
     }
+    // Автоматический режим: ничего не делаем
+}
+
+void Application::onOpenReleaseUrl(const QString& url) {
+    qDebug() << "Application: открытие страницы обновления:" << url;
+    QDesktopServices::openUrl(QUrl(url));
 }

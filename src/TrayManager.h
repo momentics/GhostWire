@@ -36,9 +36,10 @@ public:
                      int millisecondsTimeout = 3000);
 
     /// Получить геометрию иконки трея в экранных координатах.
-    /// На Windows обычно работает корректно. На Linux/macOS может возвращать
-    /// пустой QRect — в этом случае вызывающая сторона использует курсор.
     QRect trayIconGeometry() const;
+
+    /// Получить указатель на QSystemTrayIcon (для UpdateNotifier)
+    QSystemTrayIcon* trayIcon() const { return m_trayIcon; }
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
