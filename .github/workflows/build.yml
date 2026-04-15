@@ -91,6 +91,12 @@ jobs:
           cd build
           cpack -C ${{ env.BUILD_TYPE }}
 
+      - name: Package ZIP (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cd build
+          cpack -G ZIP -C ${{ env.BUILD_TYPE }}
+
       - name: Find DEB file (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -102,11 +108,29 @@ jobs:
           echo "DEB_PATH=$DEB_FILE" >> $GITHUB_ENV
           echo "DEB_NAME=$(basename $DEB_FILE)" >> $GITHUB_ENV
 
+      - name: Find ZIP file (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          ZIP_FILE=$(find build -name "GhostWire*.zip" -print -quit)
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ERROR: ZIP file not found!" >&2
+            exit 1
+          fi
+          echo "ZIP_PATH=$ZIP_FILE" >> $GITHUB_ENV
+          echo "ZIP_NAME=$(basename $ZIP_FILE)" >> $GITHUB_ENV
+
       - name: Upload DEB to Release (Linux)
         if: runner.os == 'Linux' && github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ env.DEB_PATH }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload ZIP to Release (Linux)
+        if: runner.os == 'Linux' && github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP_PATH }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload DEB artifact (Linux)
@@ -115,6 +139,13 @@ jobs:
         with:
           name: GhostWire-Desktop-Linux
           path: ${{ env.DEB_PATH }}
+
+      - name: Upload ZIP artifact (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: GhostWire-Desktop-Linux-ZIP
+          path: ${{ env.ZIP_PATH }}
 
       # Windows
       - name: Install Qt (Windows)
