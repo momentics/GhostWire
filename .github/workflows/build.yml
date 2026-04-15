@@ -293,7 +293,7 @@ jobs:
           mkdir -p libs/openssl/macos
           OPENSSL_TARGET="darwin64-${{ matrix.macos_arch }}-cc"
           OPENSSL_ARCHIVE="openssl-${{ env.OPENSSL_VERSION_MACOS }}.tar.gz"
-          OPENSSL_URL="https://openssl-library.org/source/old/1.1.1/${OPENSSL_ARCHIVE}"
+          OPENSSL_URL="https://github.com/openssl/openssl/releases/download/OpenSSL_1_1_1w/${OPENSSL_ARCHIVE}"
           TMP_DIR="$(mktemp -d)"
 
           curl -fL "${OPENSSL_URL}" -o "${TMP_DIR}/${OPENSSL_ARCHIVE}"
@@ -307,7 +307,12 @@ jobs:
 
           cp "${TMP_DIR}/openssl-install/lib/libcrypto.1.1.dylib" libs/openssl/macos/
           cp "${TMP_DIR}/openssl-install/lib/libssl.1.1.dylib" libs/openssl/macos/
-          cp "${TMP_DIR}/openssl-${{ env.OPENSSL_VERSION_MACOS }}/LICENSE" libs/openssl/macos/license.txt
+          OPENSSL_LICENSE="$(find "${TMP_DIR}/openssl-${{ env.OPENSSL_VERSION_MACOS }}" -maxdepth 1 -type f \( -name 'LICENSE' -o -name 'LICENSE.txt' \) | head -n 1)"
+          if [ -z "$OPENSSL_LICENSE" ]; then
+            echo "ERROR: OpenSSL license file not found" >&2
+            exit 1
+          fi
+          cp "${OPENSSL_LICENSE}" libs/openssl/macos/license.txt
 
           rm -rf "${TMP_DIR}"
 
