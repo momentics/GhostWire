@@ -4,7 +4,7 @@
 
 | | |
 |:---:|---|
-| <img src="resources/icons/ghostwire.png" alt="GhostWire Logo" width="512"> | A graphical front-end for the native **GhostWire** library with DPI (OSI L4-L7) protection for **Telegram Desktop**. The app runs in the system tray and does not use external services and servers. |
+| <img src="resources/icons/ghostwire.png" alt="GhostWire Logo" width="512"> | A graphical front-end for the native **GhostWire** library with DPI (OSI L4-L7) protection for **Telegram Desktop**. The app runs in the system tray (user mode) and does not use external services and servers. |
 
 ---
 

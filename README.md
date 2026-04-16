@@ -4,7 +4,7 @@
 
 | | |
 |:---:|---|
-| <img src="resources/icons/ghostwire.png" alt="GhostWire Logo" width="512"> | Графическая оболочка над нативной библиотекой **GhostWire** с защитой от DPI (OSI L4-L7), для **Telegram Desktop**. Приложение работает в системном трее, не использует внешние сервисы и сервера. |
+| <img src="resources/icons/ghostwire.png" alt="GhostWire Logo" width="512"> | Графическая оболочка над нативной библиотекой **GhostWire** с защитой от DPI (OSI L4-L7), для **Telegram Desktop**. Приложение работает в системном трее, в User Mode, не использует внешние сервисы и сервера. |
 
 ---
 
