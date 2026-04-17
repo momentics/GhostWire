@@ -7,6 +7,12 @@
 | <img src="resources/icons/ghostwire.png" alt="GhostWire Logo" width="512"> | A graphical front-end for the native **GhostWire** library with DPI (OSI L4-L7) protection for **Telegram Desktop**. The app runs in the system tray (user mode) and does not use external services and servers. |
 
 ---
+1. **Uninterrupted access** GhostWire ensures a reliable connection to the messaging platform, even under severe network restrictions and censorship attempts by internet service providers.
+2. **Total connection invisibility** The software securely conceals the true nature of the transmitted information. To monitoring equipment, your correspondence appears as standard web browsing on secure pages using popular applications like Chrome or Safari.
+3. **Protection against behavioral recognition** The intentional distortion of data volumes and the introduction of randomized delays prevent surveillance systems from identifying the application's activity through characteristic network rhythms.
+4. **Resilience to disconnections** Should the current network node suddenly become blocked or fail, the technology instantly and seamlessly transitions to backup addresses, keeping the conversation uninterrupted.
+5. **High-speed file transfer** Thanks to dedicated pathways for large attachments, users can send and receive photographs, videos, and documents without tedious waiting periods.
+---
 
 ## What it looks like
 
@@ -23,10 +29,11 @@ When launched, an animated icon appears in the tray. Right-clicking it opens a c
 </p>
 
 ### Context menu
-
+Windows
 <p align="center">
   <img src="resources/icons/MenuBar.png" alt="Context menu" width="350">
 </p>
+Linux
 <p align="center">
   <img src="resources/icons/MenuBarUbuntu.png" alt="Context menu" width="350">
 </p>
