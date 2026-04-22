@@ -80,7 +80,7 @@ Manual check: the **Check for updates** button in the context menu.
 
 ## Support the author
 
-to the Volga "famine-stricken gubernia"  :pray:  **OZON Bank: 2204 2402 8673 4225**
+to the Volga "famine-stricken" gubernia  :pray:  **OZON Bank: 2204 2402 8673 4225**
 
 
 ---
