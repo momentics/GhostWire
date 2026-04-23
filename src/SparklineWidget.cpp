@@ -5,6 +5,7 @@
 #include <QFontMetrics>
 #include <QApplication>
 #include <cmath>
+#include <numeric>
 
 SparklineWidget::SparklineWidget(QWidget* parent)
     : QWidget(parent)
@@ -17,10 +18,10 @@ SparklineWidget::SparklineWidget(QWidget* parent)
 
     // Используем pixel size вместо point size для независимости от DPI
     m_labelFont = QFont(QApplication::font());
-    m_labelFont.setPixelSize(11);
+    m_labelFont.setPixelSize(7);
 
     m_legendFont = QFont(QApplication::font());
-    m_legendFont.setPixelSize(11);
+    m_legendFont.setPixelSize(7);
 
     setMinimumHeight(100);
     setMaximumHeight(140);
@@ -64,7 +65,7 @@ void SparklineWidget::paintEvent(QPaintEvent*) {
     // Затемненная подложка
     QRect chartRect = rect().adjusted(2, 2, -2, -2);
     painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(40, 40, 40, 180));
+    painter.setBrush(QColor(30, 30, 30, 200));
     painter.drawRoundedRect(chartRect, 4, 4);
 
     if (m_rx.size() < 2 && m_tx.size() < 2) {
@@ -93,8 +94,18 @@ void SparklineWidget::paintEvent(QPaintEvent*) {
     drawTimeLabels(painter);
     drawYLabels(painter, maxVal);
     updatePointsCache(maxVal);
-    drawSeries(painter, m_rx, m_rxColor);
-    drawSeries(painter, m_tx, m_txColor);
+    
+    // Считаем суммы
+    double sumRx = std::accumulate(m_rx.begin(), m_rx.end(), 0.0);
+    double sumTx = std::accumulate(m_tx.begin(), m_tx.end(), 0.0);
+
+    if (sumRx > sumTx) {
+        drawSeries(painter, m_rx, m_rxColor);
+        drawSeries(painter, m_tx, m_txColor);
+    } else {
+        drawSeries(painter, m_tx, m_txColor);
+        drawSeries(painter, m_rx, m_rxColor);
+    }
     drawLegend(painter);
 }
 

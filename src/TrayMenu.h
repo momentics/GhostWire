@@ -19,7 +19,8 @@ public:
     ~TrayMenu();
 
     /// Обновить статистику (вызывается из Application по таймеру)
-    void setStats(uint64_t uptimeSecs, uint64_t websocketActive,
+    void setStats(uint64_t uptimeSecs, uint64_t websocketActive, uint64_t websocketPeak,
+                  uint64_t ipRotations, uint64_t ipSucRotations,
                   double peakRx, double peakTx,
                   uint64_t totalRx, uint64_t totalTx);
 

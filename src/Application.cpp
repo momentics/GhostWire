@@ -61,7 +61,7 @@ Application::Application(QObject* parent)
         m_trayManager->setConnectionsState(false);
         m_trayMenu->setRunningState(false);
         m_trayMenu->clearSparkline();
-        m_trayMenu->setStats(0, 0, 0, 0, 0, 0);
+        m_trayMenu->setStats(0, 0, 0, 0, 0, 0, 0, 0, 0);
         m_hasPrevStats = false;
         m_peakRx = 0;
         m_peakTx = 0;
@@ -222,9 +222,10 @@ void Application::onStatsTick() {
     }
 
     // Обновить UI
-    m_trayMenu->setStats(stats.uptime_secs, stats.websocket_active,
-                         m_peakRx, m_peakTx,
-                         stats.bytes_received, stats.bytes_sent);
+    m_trayMenu->setStats(stats.uptime_secs, stats.websocket_active, stats.peak_active_connections,
+                         stats.ip_rotations, stats.rotation_success,
+                         m_peakRx, m_peakTx, stats.bytes_received, stats.bytes_sent);
+
     m_trayMenu->setRunningState(true);
 
     m_prevBytesReceived = stats.bytes_received;

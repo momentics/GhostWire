@@ -14,7 +14,7 @@ StatsPanel::StatsPanel(QWidget* parent)
 
     // Используем pixel size вместо point size для независимости от DPI
     QFont baseFont = QApplication::font();
-    baseFont.setPixelSize(13);
+    baseFont.setPixelSize(11);
 
     // Грид: 2 колонки — 4 строки (Работает, Соединений, Пик, Всего)
     m_gridLayout = new QGridLayout();
@@ -40,23 +40,32 @@ StatsPanel::StatsPanel(QWidget* parent)
     m_labelConnections->setFont(baseFont);
     m_gridLayout->addWidget(m_labelConnections, 1, 1, Qt::AlignLeft);
 
+    auto* labelRotations = new QLabel(tr("Ротаций:"), this);
+    labelRotations->setFont(baseFont);
+    labelRotations->setStyleSheet("color: #aaa;");
+    m_gridLayout->addWidget(labelRotations, 2, 0, Qt::AlignLeft);
+
+    m_labelRotations = new QLabel(this);
+    m_labelRotations->setFont(baseFont);
+    m_gridLayout->addWidget(m_labelRotations, 2, 1, Qt::AlignLeft);
+
     auto* labelPeak = new QLabel(tr("Пик:"), this);
     labelPeak->setFont(baseFont);
     labelPeak->setStyleSheet("color: #aaa;");
-    m_gridLayout->addWidget(labelPeak, 2, 0, Qt::AlignLeft);
+    m_gridLayout->addWidget(labelPeak, 3, 0, Qt::AlignLeft);
 
     m_labelPeak = new QLabel(this);
     m_labelPeak->setFont(baseFont);
-    m_gridLayout->addWidget(m_labelPeak, 2, 1, Qt::AlignLeft);
+    m_gridLayout->addWidget(m_labelPeak, 3, 1, Qt::AlignLeft);
 
     auto* labelTotal = new QLabel(tr("Всего:"), this);
     labelTotal->setFont(baseFont);
     labelTotal->setStyleSheet("color: #aaa;");
-    m_gridLayout->addWidget(labelTotal, 3, 0, Qt::AlignLeft);
+    m_gridLayout->addWidget(labelTotal, 4, 0, Qt::AlignLeft);
 
     m_labelTotal = new QLabel(this);
     m_labelTotal->setFont(baseFont);
-    m_gridLayout->addWidget(m_labelTotal, 3, 1, Qt::AlignLeft);
+    m_gridLayout->addWidget(m_labelTotal, 4, 1, Qt::AlignLeft);
 
     // Колонка 1 (значения) растягивается до конца
     m_gridLayout->setColumnStretch(1, 1);
@@ -99,7 +108,8 @@ void StatsPanel::resizeEvent(QResizeEvent* event) {
     }
 }
 
-void StatsPanel::updateStats(uint64_t uptimeSecs, uint64_t websocketActive,
+void StatsPanel::updateStats(uint64_t uptimeSecs, uint64_t websocketActive, uint64_t websocketPeak,
+                             uint64_t ipRotations, uint64_t ipSucRotations, 
                              double peakRx, double peakTx,
                              uint64_t totalRx, uint64_t totalTx) {
     if (uptimeSecs == 0 && websocketActive == 0) {
@@ -133,7 +143,17 @@ void StatsPanel::updateStats(uint64_t uptimeSecs, uint64_t websocketActive,
         );
     }
 
-    m_labelConnections->setText(QString::number(websocketActive));
+    m_labelConnections->setText(
+        QString("%1 (%2)")
+            .arg(QString::number(websocketActive))
+            .arg(QString::number(websocketPeak))
+        );
+
+    m_labelRotations->setText(
+        QString("%1 (%2)")
+            .arg(QString::number(ipSucRotations))
+            .arg(QString::number(ipRotations))
+        );
 
     m_labelPeak->setText(
         QString("↓%1 ↑%2")

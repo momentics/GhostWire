@@ -88,12 +88,12 @@ void TrayMenu::buildLayout() {
             background-color: #2b2b2b;
             border: 1px solid #555;
             border-radius: 6px;
-            font-size: 13px;
+            font-size: 11px;
         }
         QLabel {
             color: #ddd;
             padding: 2px 0;
-            font-size: 13px;
+            font-size: 11px;
         }
         QPushButton {
             color: #ddd;
@@ -102,7 +102,7 @@ void TrayMenu::buildLayout() {
             border-radius: 4px;
             padding: 6px 16px;
             text-align: left;
-            font-size: 13px;
+            font-size: 11px;
         }
         QPushButton:hover {
             background-color: #3a3a3a;
@@ -174,11 +174,13 @@ void TrayMenu::buildLayout() {
     mainLayout->addWidget(m_exitButton);
 }
 
-void TrayMenu::setStats(uint64_t uptimeSecs, uint64_t websocketActive,
+void TrayMenu::setStats(uint64_t uptimeSecs, uint64_t websocketActive, uint64_t websocketPeak,
+                        uint64_t ipRotations, uint64_t ipSucRotations, 
                         double peakRx, double peakTx,
                         uint64_t totalRx, uint64_t totalTx) {
     if (m_statsPanel)
-        m_statsPanel->updateStats(uptimeSecs, websocketActive, peakRx, peakTx, totalRx, totalTx);
+        m_statsPanel->updateStats(uptimeSecs, websocketActive, websocketPeak, 
+            ipRotations, ipSucRotations , peakRx, peakTx, totalRx, totalTx);
 }
 
 void TrayMenu::addSparklinePoint(double rxBytesPerSec, double txBytesPerSec) {
