@@ -115,6 +115,7 @@ void StatsPanel::updateStats(uint64_t uptimeSecs, uint64_t websocketActive, uint
     if (uptimeSecs == 0 && websocketActive == 0) {
         m_labelUptime->setText("");
         m_labelConnections->clear();
+        m_labelRotations->clear();
         m_labelPeak->clear();
         m_labelTotal->clear();
         return;
