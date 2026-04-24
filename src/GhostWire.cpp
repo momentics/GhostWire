@@ -59,7 +59,7 @@ bool GhostWire::load(const QString& libDir) {
 
     resolveSymbols();
 
-    if (!m_createFromFile || !m_free || !m_start || !m_stop || !m_isRunning || !m_getStats) {
+    if (!m_createFromFile || !m_free || !m_start || !m_stop || !m_getState || !m_getStats) {
         qWarning() << "GhostWire: не все символы разрешены";
         m_lib.unload();
         return false;
@@ -80,8 +80,8 @@ void GhostWire::resolveSymbols() {
         m_lib.resolve("ghostwire_proxy_start"));
     m_stop = reinterpret_cast<FnStop>(
         m_lib.resolve("ghostwire_proxy_stop"));
-    m_isRunning = reinterpret_cast<FnIsRunning>(
-        m_lib.resolve("ghostwire_proxy_is_running"));
+    m_getState = reinterpret_cast<FnGetState>(
+        m_lib.resolve("ghostwire_proxy_get_state"));
     m_getStats = reinterpret_cast<FnGetStats>(
         m_lib.resolve("ghostwire_proxy_get_stats"));
 }
@@ -147,8 +147,14 @@ void GhostWire::stop() {
 }
 
 bool GhostWire::isRunning() const {
-    if (!m_handle || !m_isRunning) return false;
-    return m_isRunning(m_handle);
+    const auto proxyState = state();
+    return proxyState == GHOSTWIRE_PROXY_ONLINE
+        || proxyState == GHOSTWIRE_PROXY_DEGRADED;
+}
+
+GhostWireProxyState GhostWire::state() const {
+    if (!m_handle || !m_getState) return GHOSTWIRE_PROXY_OFFLINE;
+    return m_getState(m_handle);
 }
 
 GhostWireProxyStats GhostWire::getStats() const {

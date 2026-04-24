@@ -42,6 +42,12 @@ All runtime configuration is loaded from `config.json`.
 /* Opaque handle */
 typedef struct GwProxy GwProxy;
 
+typedef enum GhostWireProxyState {
+    GHOSTWIRE_PROXY_OFFLINE = 0,
+    GHOSTWIRE_PROXY_ONLINE = 1,
+    GHOSTWIRE_PROXY_DEGRADED = 2
+} GhostWireProxyState;
+
 /* Statistics snapshot */
 typedef struct GhostWireProxyStats {
     bool     running;
@@ -70,7 +76,7 @@ typedef GhostWireProxyStats ProxyStats;
 | `void ghostwire_proxy_free(GwProxy* proxy)` | Free proxy instance |
 | `int ghostwire_proxy_start(GwProxy* proxy)` | Start SOCKS5 server (0 = success, -1 = error) |
 | `void ghostwire_proxy_stop(GwProxy* proxy)` | Stop SOCKS5 server |
-| `bool ghostwire_proxy_is_running(const GwProxy* proxy)` | Check if proxy is running |
+| `GhostWireProxyState ghostwire_proxy_get_state(const GwProxy* proxy)` | Get proxy state: offline, online, or degraded |
 | `void ghostwire_proxy_get_stats(const GwProxy* proxy, GhostWireProxyStats* out_stats)` | Fill stats struct |
 
 All functions are `extern "C"` and safe to call from C++.
@@ -180,7 +186,8 @@ int main(void) {
     for (int i = 0; i < 6; i++) {
         SLEEP_MS(10000); /* 10 seconds */
         print_stats(proxy);
-        if (!ghostwire_proxy_is_running(proxy)) {
+        GhostWireProxyState state = ghostwire_proxy_get_state(proxy);
+        if (state == GHOSTWIRE_PROXY_OFFLINE) {
             printf("Proxy stopped unexpectedly!\n");
             break;
         }
@@ -256,7 +263,9 @@ public:
     }
 
     bool is_running() const {
-        return handle_ && ghostwire_proxy_is_running(handle_);
+        if (!handle_) return false;
+        GhostWireProxyState state = ghostwire_proxy_get_state(handle_);
+        return state == GHOSTWIRE_PROXY_ONLINE || state == GHOSTWIRE_PROXY_DEGRADED;
     }
 
     GhostWireProxyStats get_stats() const {
@@ -364,8 +373,12 @@ lib.ghostwire_proxy_stop.argtypes = [ctypes.c_void_p]
 lib.ghostwire_proxy_free.restype = None
 lib.ghostwire_proxy_free.argtypes = [ctypes.c_void_p]
 
-lib.ghostwire_proxy_is_running.restype = ctypes.c_bool
-lib.ghostwire_proxy_is_running.argtypes = [ctypes.c_void_p]
+GHOSTWIRE_PROXY_OFFLINE = 0
+GHOSTWIRE_PROXY_ONLINE = 1
+GHOSTWIRE_PROXY_DEGRADED = 2
+
+lib.ghostwire_proxy_get_state.restype = ctypes.c_int
+lib.ghostwire_proxy_get_state.argtypes = [ctypes.c_void_p]
 
 lib.ghostwire_proxy_get_stats.restype = None
 lib.ghostwire_proxy_get_stats.argtypes = [ctypes.c_void_p, ctypes.POINTER(ProxyStats)]
@@ -523,7 +536,7 @@ public class GhostWire {
     public static native int    proxyStart(long handle);
     public static native void   proxyStop(long handle);
     public static native void   proxyFree(long handle);
-    public static native boolean proxyIsRunning(long handle);
+    public static native int    proxyGetState(long handle);
 }
 ```
 
@@ -546,10 +559,14 @@ class GhostWireProxy(context: Context, configPath: String) {
     }
 
     fun isRunning(): Boolean {
-        return nativeIsRunning(handle)
+        val state = nativeGetState(handle)
+        return state == GHOSTWIRE_PROXY_ONLINE || state == GHOSTWIRE_PROXY_DEGRADED
     }
 
     companion object {
+        private const val GHOSTWIRE_PROXY_ONLINE = 1
+        private const val GHOSTWIRE_PROXY_DEGRADED = 2
+
         init {
             System.loadLibrary("ghostwire")
         }
@@ -560,7 +577,7 @@ class GhostWireProxy(context: Context, configPath: String) {
     private external fun nativeCreateFromFile(path: String): Long
     private external fun nativeStart(handle: Long): Int
     private external fun nativeStop(handle: Long)
-    private external fun nativeIsRunning(handle: Long): Boolean
+    private external fun nativeGetState(handle: Long): Int
 }
 ```
 
@@ -588,9 +605,9 @@ Java_com_example_GhostWireProxy_nativeStop(JNIEnv* env, jclass clazz, jlong hand
     ghostwire_proxy_stop((GwProxy*)(intptr_t)handle);
 }
 
-JNIEXPORT jboolean JNICALL
-Java_com_example_GhostWireProxy_nativeIsRunning(JNIEnv* env, jclass clazz, jlong handle) {
-    return ghostwire_proxy_is_running((GwProxy*)(intptr_t)handle);
+JNIEXPORT jint JNICALL
+Java_com_example_GhostWireProxy_nativeGetState(JNIEnv* env, jclass clazz, jlong handle) {
+    return (jint)ghostwire_proxy_get_state((GwProxy*)(intptr_t)handle);
 }
 ```
 
@@ -649,7 +666,8 @@ class GhostWireProxy {
 
     func isRunning() -> Bool {
         guard let handle = handle else { return false }
-        return ghostwire_proxy_is_running(handle)
+        let state = ghostwire_proxy_get_state(handle)
+        return state == GHOSTWIRE_PROXY_ONLINE || state == GHOSTWIRE_PROXY_DEGRADED
     }
 
     deinit {

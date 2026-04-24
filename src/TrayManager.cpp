@@ -32,11 +32,14 @@ void TrayManager::loadIcons() {
     // Загружаем статические иконки из ресурсов
     m_idleIcon = QIcon(Config::TRAY_ICON_IDLE);
     m_activeIcon = QIcon(Config::TRAY_ICON_ACTIVE);
+    m_degradedIcon = QIcon(Config::TRAY_ICON_DEGRADED);
 
     if (m_idleIcon.isNull())
         qWarning() << "TrayManager: не загружена иконка покоя" << Config::TRAY_ICON_IDLE;
     if (m_activeIcon.isNull())
         qWarning() << "TrayManager: не загружена иконка активности" << Config::TRAY_ICON_ACTIVE;
+    if (m_degradedIcon.isNull())
+        qWarning() << "TrayManager: не загружена иконка degraded" << Config::TRAY_ICON_DEGRADED;
 
     // Загружаем кадры покадровой анимации
     m_animFrames.clear();
@@ -135,14 +138,25 @@ void TrayManager::cleanup() {
     m_animFrames.clear();
 }
 
-void TrayManager::setState(bool running) {
-    m_running = running;
-    m_animFrameIndex = 0;
+void TrayManager::setState(GhostWireProxyState state) {
+    const bool stateChanged = (m_state != state);
+    m_state = state;
+    if (stateChanged) {
+        m_animFrameIndex = 0;
+    }
+
+    if (m_state != GHOSTWIRE_PROXY_ONLINE) {
+        m_hasConnections = false;
+    }
 
 #ifdef Q_OS_LINUX
     if (m_fallbackDock) {
         // Fallback dock: меняем иконку через stylesheet
-        if (running) {
+        if (m_state == GHOSTWIRE_PROXY_DEGRADED) {
+            m_fallbackDock->setStyleSheet(
+                "QWidget { background: transparent; border: 2px solid #D6A21A; border-radius: 4px; }"
+                "QWidget:hover { background: rgba(214,162,26,40); }");
+        } else if (m_state == GHOSTWIRE_PROXY_ONLINE) {
             m_fallbackDock->setStyleSheet(
                 "QWidget { background: transparent; border: 2px solid #4CAF50; border-radius: 4px; }"
                 "QWidget:hover { background: rgba(76,175,80,40); }");
@@ -156,14 +170,25 @@ void TrayManager::setState(bool running) {
     }
 #endif
 
-    if (running) {
+    if (m_state == GHOSTWIRE_PROXY_ONLINE) {
         // Прокси запущен — показываем статическую ACTIVE иконку.
         // Анимация включится отдельно через setConnectionsState(), когда появятся WS-соединения.
-        m_trayIcon->setIcon(m_activeIcon);
+        if (m_hasConnections && !m_animFrames.isEmpty()) {
+            if (stateChanged) {
+                m_trayIcon->setIcon(m_animFrames[0]);
+            }
+            if (!m_animTimer->isActive())
+                m_animTimer->start();
+        } else {
+            m_trayIcon->setIcon(m_activeIcon);
+            m_animTimer->stop();
+        }
+    } else if (m_state == GHOSTWIRE_PROXY_DEGRADED) {
+        // DEGRADED — рабочий режим без активных подключений, поэтому анимацию не включаем.
+        m_trayIcon->setIcon(m_degradedIcon);
         m_animTimer->stop();
     } else {
         // Прокси остановлен — показываем IDLE иконку, сбрасываем состояние соединений
-        m_hasConnections = false;
         m_trayIcon->setIcon(m_idleIcon);
         if (m_animTimer->isActive())
             m_animTimer->stop();
@@ -171,19 +196,23 @@ void TrayManager::setState(bool running) {
 }
 
 void TrayManager::setConnectionsState(bool hasConnections) {
-    m_hasConnections = hasConnections;
+    m_hasConnections = (m_state == GHOSTWIRE_PROXY_ONLINE) && hasConnections;
 
 #ifdef Q_OS_LINUX
     if (m_fallbackDock) {
         // Fallback dock: мигающая граница при наличии соединений
-        if (m_running && hasConnections) {
+        if (m_state == GHOSTWIRE_PROXY_ONLINE && m_hasConnections) {
             m_fallbackDock->setStyleSheet(
                 "QWidget { background: rgba(76,175,80,60); border: 2px solid #4CAF50; border-radius: 4px; }"
                 "QWidget:hover { background: rgba(76,175,80,80); }");
-        } else if (m_running) {
+        } else if (m_state == GHOSTWIRE_PROXY_ONLINE) {
             m_fallbackDock->setStyleSheet(
                 "QWidget { background: transparent; border: 2px solid #4CAF50; border-radius: 4px; }"
                 "QWidget:hover { background: rgba(76,175,80,40); }");
+        } else if (m_state == GHOSTWIRE_PROXY_DEGRADED) {
+            m_fallbackDock->setStyleSheet(
+                "QWidget { background: transparent; border: 2px solid #D6A21A; border-radius: 4px; }"
+                "QWidget:hover { background: rgba(214,162,26,40); }");
         } else {
             m_fallbackDock->setStyleSheet(
                 "QWidget { background: transparent; border: 2px solid #888; border-radius: 4px; }"
@@ -194,12 +223,20 @@ void TrayManager::setConnectionsState(bool hasConnections) {
     }
 #endif
 
-    if (!m_running) {
-        // Если прокси не запущен — игнорируем, остаёмся на IDLE
+    if (m_state == GHOSTWIRE_PROXY_OFFLINE) {
+        // Если прокси не запущен — игнорируем, остаёмся на IDLE.
         return;
     }
 
-    if (hasConnections) {
+    if (m_state == GHOSTWIRE_PROXY_DEGRADED) {
+        // DEGRADED не анимируется даже при ошибочно переданном флаге соединений.
+        m_trayIcon->setIcon(m_degradedIcon);
+        if (m_animTimer->isActive())
+            m_animTimer->stop();
+        return;
+    }
+
+    if (m_hasConnections) {
         // Есть WS-соединения — запускаем анимацию
         if (!m_animFrames.isEmpty()) {
             m_trayIcon->setIcon(m_animFrames[0]);
@@ -237,7 +274,7 @@ void TrayManager::onTrayActivated(QSystemTrayIcon::ActivationReason reason) {
 }
 
 void TrayManager::onAnimTick() {
-    if (!m_running || !m_hasConnections) return;
+    if (m_state != GHOSTWIRE_PROXY_ONLINE || !m_hasConnections) return;
     if (m_animFrames.isEmpty()) return;
 
     int nextFrame = (m_animFrameIndex + 1) % m_animFrames.size();

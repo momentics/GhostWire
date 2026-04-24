@@ -11,6 +11,7 @@ inline constexpr int SPARKLINE_MAX_POINTS = 3600;
 /// Ресурсы иконок трея
 inline const char* TRAY_ICON_IDLE     = ":/icons/tray_idle.png";
 inline const char* TRAY_ICON_ACTIVE   = ":/icons/tray_active.png";
+inline const char* TRAY_ICON_DEGRADED = ":/icons/tray_degraded.png";
 
 /// Имена кадров анимации (покадровая)
 inline const char* TRAY_ANIM_FRAME_PATTERN = ":/icons/tray_active_frames/frame_%1.png";

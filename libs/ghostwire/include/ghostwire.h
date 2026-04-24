@@ -26,6 +26,12 @@ extern "C" {
 
 typedef struct GwProxy GwProxy;
 
+typedef enum GhostWireProxyState {
+    GHOSTWIRE_PROXY_OFFLINE = 0,
+    GHOSTWIRE_PROXY_ONLINE = 1,
+    GHOSTWIRE_PROXY_DEGRADED = 2
+} GhostWireProxyState;
+
 typedef struct GhostWireProxyStats {
     bool running;
     uint64_t active_connections;
@@ -49,7 +55,7 @@ GHOSTWIRE_API void ghostwire_proxy_free(GwProxy* proxy);
 
 GHOSTWIRE_API int ghostwire_proxy_start(GwProxy* proxy);
 GHOSTWIRE_API void ghostwire_proxy_stop(GwProxy* proxy);
-GHOSTWIRE_API bool ghostwire_proxy_is_running(const GwProxy* proxy);
+GHOSTWIRE_API GhostWireProxyState ghostwire_proxy_get_state(const GwProxy* proxy);
 
 GHOSTWIRE_API void ghostwire_proxy_get_stats(
     const GwProxy* proxy,

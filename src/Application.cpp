@@ -42,7 +42,8 @@ Application::Application(QObject* parent)
     connect(m_trayMenu.get(), &TrayMenu::startRequested, this, [this]() {
         if (m_ghostWire->start()) {
             m_proxyRunning = true;
-            m_trayManager->setState(true);
+            m_trayManager->setState(m_ghostWire->state());
+            m_trayManager->setConnectionsState(false);
             m_trayMenu->setRunningState(true);
             m_trayMenu->clearSparkline();
             m_hasPrevStats = false;
@@ -57,7 +58,7 @@ Application::Application(QObject* parent)
         m_proxyRunning = false;
         m_ghostWire->stop();
         // Мгновенно очищаем UI
-        m_trayManager->setState(false);
+        m_trayManager->setState(GHOSTWIRE_PROXY_OFFLINE);
         m_trayManager->setConnectionsState(false);
         m_trayMenu->setRunningState(false);
         m_trayMenu->clearSparkline();
@@ -126,6 +127,7 @@ bool Application::initialize() {
 
     // 4. Инициализировать трей
     m_trayManager->init();
+    m_trayManager->setState(GHOSTWIRE_PROXY_OFFLINE);
     m_trayMenu->setRunningState(false);
 
     // 5. Создать таймер опроса статистики (запускается при Start)
@@ -172,7 +174,8 @@ void Application::restoreState() {
         qDebug() << "Application: восстановление предыдущего состояния — запуск прокси";
         if (m_ghostWire->start()) {
             m_proxyRunning = true;
-            m_trayManager->setState(true);
+            m_trayManager->setState(m_ghostWire->state());
+            m_trayManager->setConnectionsState(false);
             m_trayMenu->setRunningState(true);
             m_trayMenu->clearSparkline();
             m_hasPrevStats = false;
@@ -193,12 +196,28 @@ void Application::saveState() {
 void Application::onStatsTick() {
     if (!m_ghostWire || !m_proxyRunning) return;
 
+    const auto proxyState = m_ghostWire->state();
+    if (proxyState == GHOSTWIRE_PROXY_OFFLINE) {
+        m_proxyRunning = false;
+        if (m_statsTimer) m_statsTimer->stop();
+        m_trayManager->setState(GHOSTWIRE_PROXY_OFFLINE);
+        m_trayManager->setConnectionsState(false);
+        m_trayMenu->setRunningState(false);
+        m_prevWsActive = 0;
+        m_hasPrevStats = false;
+        return;
+    }
+
+    m_trayManager->setState(proxyState);
+
     auto stats = m_ghostWire->getStats();
 
     // Отслеживаем изменение количества WS-соединений для индикации
-    if (stats.websocket_active != m_prevWsActive) {
+    if (stats.websocket_active != m_prevWsActive || !m_hasPrevStats
+        || proxyState == GHOSTWIRE_PROXY_DEGRADED) {
         m_prevWsActive = stats.websocket_active;
-        m_trayManager->setConnectionsState(stats.websocket_active > 0);
+        m_trayManager->setConnectionsState(
+            proxyState == GHOSTWIRE_PROXY_ONLINE && stats.websocket_active > 0);
     }
 
     // Рассчитать дельту RX/TX и обновить пики

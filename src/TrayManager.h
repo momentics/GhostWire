@@ -7,6 +7,7 @@
 #include <QVector>
 #include <QRect>
 #include <QEvent>
+#include "../libs/ghostwire/include/ghostwire.h"
 
 /// Управляет иконкой в системном трее:
 /// - регистрация / удаление иконки
@@ -24,8 +25,8 @@ public:
     /// Очистить иконку из трея
     void cleanup();
 
-    /// Установить состояние: остановлен / запущен (переключает между IDLE и ACTIVE)
-    void setState(bool running);
+    /// Установить состояние прокси: Offline / Online / Degraded.
+    void setState(GhostWireProxyState state);
 
     /// Установить состояние соединений: есть WS-соединения / нет (переключает между ACTIVE и анимацией)
     void setConnectionsState(bool hasConnections);
@@ -60,7 +61,7 @@ private slots:
 private:
     QSystemTrayIcon* m_trayIcon = nullptr;
     QTimer*          m_animTimer = nullptr;
-    bool             m_running = false;
+    GhostWireProxyState m_state = GHOSTWIRE_PROXY_OFFLINE;
     bool             m_hasConnections = false;
     int              m_animFrameIndex = 0;
 
@@ -70,6 +71,7 @@ private:
     /// Кэшированные иконки
     QIcon m_idleIcon;
     QIcon m_activeIcon;
+    QIcon m_degradedIcon;
 
 #ifdef Q_OS_LINUX
     QWidget* m_fallbackDock = nullptr; ///< Fallback dock при отсутствии системного трея
