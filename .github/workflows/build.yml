@@ -10,6 +10,7 @@ env:
   QT_VERSION: 5.15.2
   GHOSTWIRE_VERSION: 1.0.6
   OPENSSL_VERSION_MACOS: 1.1.1w
+  MACOS_DEPLOYMENT_TARGET: 11.0
 
 jobs:
   build:
@@ -328,6 +329,7 @@ jobs:
       - name: Install OpenSSL (macOS)
         if: runner.os == 'macOS'
         run: |
+          export MACOSX_DEPLOYMENT_TARGET="${{ env.MACOS_DEPLOYMENT_TARGET }}"
           mkdir -p libs/openssl/macos
           OPENSSL_TARGET="darwin64-${{ matrix.macos_arch }}-cc"
           OPENSSL_ARCHIVE="openssl-${{ env.OPENSSL_VERSION_MACOS }}.tar.gz"
@@ -365,11 +367,83 @@ jobs:
 
       - name: Configure CMake (macOS)
         if: runner.os == 'macOS'
-        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_OSX_ARCHITECTURES=${{ matrix.macos_arch }}
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_OSX_ARCHITECTURES=${{ matrix.macos_arch }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ env.MACOS_DEPLOYMENT_TARGET }}
 
       - name: Build (macOS)
         if: runner.os == 'macOS'
         run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+
+      - name: Verify macOS deployment target
+        if: runner.os == 'macOS'
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          app = Path("build/GhostWireDesktop.app")
+
+          if not app.exists():
+              sys.exit(f"App bundle not found: {app}")
+
+          def parse_version(value):
+              parts = [int(part) for part in value.split(".")]
+              return tuple(parts + [0] * (3 - len(parts)))
+
+          target = parse_version(os.environ["MACOS_DEPLOYMENT_TARGET"])
+
+          def version_text(value):
+              parts = list(value)
+              while len(parts) > 1 and parts[-1] == 0:
+                  parts.pop()
+              return ".".join(str(part) for part in parts)
+
+          macho_files = []
+          for path in app.rglob("*"):
+              if not path.is_file() or path.is_symlink():
+                  continue
+              description = subprocess.run(
+                  ["file", str(path)],
+                  check=True,
+                  text=True,
+                  capture_output=True,
+              ).stdout
+              if "Mach-O" in description:
+                  macho_files.append(path)
+
+          if not macho_files:
+              sys.exit(f"No Mach-O files found in {app}")
+
+          failures = []
+          for path in sorted(macho_files):
+              output = subprocess.run(
+                  ["otool", "-l", str(path)],
+                  check=True,
+                  text=True,
+                  capture_output=True,
+              ).stdout
+              versions = [
+                  parse_version(match.group(1))
+                  for match in re.finditer(r"^\s*(?:minos|version)\s+([0-9]+(?:\.[0-9]+){1,2})", output, re.MULTILINE)
+              ]
+              if not versions:
+                  failures.append((path, "missing deployment target load command"))
+                  continue
+
+              too_new = [version for version in versions if version > target]
+              if too_new:
+                  failures.append((path, ", ".join(version_text(version) for version in too_new)))
+              else:
+                  print(f"OK {path}: min {', '.join(version_text(version) for version in sorted(set(versions)))}")
+
+          if failures:
+              print(f"Mach-O files requiring macOS newer than {os.environ['MACOS_DEPLOYMENT_TARGET']}:", file=sys.stderr)
+              for path, detail in failures:
+                  print(f"  {path}: {detail}", file=sys.stderr)
+              sys.exit(1)
+          PY
 
       - name: Package DMG (macOS)
         if: runner.os == 'macOS'
