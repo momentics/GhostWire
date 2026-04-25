@@ -34,9 +34,9 @@ private slots:
     void onTrayExit();
     void onConfigureTelegram();
     void onCheckUpdatesRequested();
-    void onUpdateAvailable(const QString& version, const QString& releaseUrl);
-    void onNoUpdate();
-    void onUpdateCheckFailed(const QString& error);
+    void onUpdateAvailable(const QString& version, const QString& releaseUrl, bool manual);
+    void onNoUpdate(bool manual);
+    void onUpdateCheckFailed(const QString& error, bool manual);
     void onOpenReleaseUrl(const QString& url);
 
 private:
@@ -44,6 +44,7 @@ private:
     std::unique_ptr<TrayManager> m_trayManager;
     std::unique_ptr<TrayMenu>    m_trayMenu;
     std::unique_ptr<QTimer>      m_statsTimer;
+    std::unique_ptr<QTimer>      m_updateCheckTimer;
     std::unique_ptr<UpdateChecker> m_updateChecker;
     std::unique_ptr<UpdateNotifier> m_updateNotifier;
 
@@ -60,9 +61,6 @@ private:
     // Явное состояние прокси: true = запущен, false = остановлен
     bool     m_proxyRunning = false;
 
-    // Флаг ручной проверки обновлений
-    bool     m_isManualUpdateCheck = false;
-
     /// Загрузить конфиг из ресурсов
     QString loadConfig() const;
 
@@ -74,6 +72,9 @@ private:
 
     /// Сохранить текущее состояние в QSettings
     void saveState();
+
+    /// Запланировать следующую автоматическую проверку обновлений.
+    void scheduleNextUpdateCheck();
 
     /// Показать контекстное меню
     void showTrayMenu(const QRect& iconRect);

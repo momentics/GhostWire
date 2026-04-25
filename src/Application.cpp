@@ -26,6 +26,12 @@
 #include <QProcess>
 #include <QMessageBox>
 
+namespace {
+constexpr int updateCheckIntervalMs() {
+    return Config::UPDATE_CHECK_INTERVAL_HOURS * 60 * 60 * 1000;
+}
+}
+
 Application::Application(QObject* parent)
     : QObject(parent)
 {
@@ -125,11 +131,21 @@ bool Application::initialize() {
     m_statsTimer = std::make_unique<QTimer>(this);
     connect(m_statsTimer.get(), &QTimer::timeout, this, &Application::onStatsTick);
 
-    // 6. Восстановить предыдущее состояние
+    // 6. Создать таймер периодической проверки обновлений.
+    m_updateCheckTimer = std::make_unique<QTimer>(this);
+    m_updateCheckTimer->setSingleShot(true);
+    connect(m_updateCheckTimer.get(), &QTimer::timeout, this, [this]() {
+        qDebug() << "Application: периодическая проверка обновлений";
+        m_updateChecker->checkForUpdates();
+        scheduleNextUpdateCheck();
+    });
+
+    // 7. Восстановить предыдущее состояние
     restoreState();
 
-    // 7. Запустить проверку обновлений
-    m_updateChecker->checkForUpdates();
+    // 8. Запустить проверку обновлений и последующие периодические проверки.
+    m_updateChecker->checkForUpdatesOnStartup();
+    scheduleNextUpdateCheck();
 
     qDebug() << "Application: инициализация завершена";
     return true;
@@ -196,6 +212,14 @@ void Application::saveState() {
     settings.setValue("proxyRunning", m_proxyRunning);
     settings.sync();
     qDebug() << "Application: сохранено состояние proxyRunning =" << m_proxyRunning;
+}
+
+void Application::scheduleNextUpdateCheck() {
+    if (!m_updateCheckTimer || !m_updateChecker)
+        return;
+
+    const int nextCheckDelayMs = m_updateChecker->millisecondsUntilNextCheck();
+    m_updateCheckTimer->start(nextCheckDelayMs > 0 ? nextCheckDelayMs : updateCheckIntervalMs());
 }
 
 void Application::onStatsTick() {
@@ -456,38 +480,42 @@ void Application::onConfigureTelegram() {
 void Application::onCheckUpdatesRequested() {
     qDebug() << "Application: ручная проверка обновлений";
     m_trayMenu->hideMenu();
-    m_isManualUpdateCheck = true;
     m_updateChecker->checkForUpdatesNow();
 }
 
-void Application::onUpdateAvailable(const QString& version, const QString& releaseUrl) {
+void Application::onUpdateAvailable(const QString& version, const QString& releaseUrl, bool manual) {
     qDebug() << "Application: доступна версия" << version;
 
-    if (m_isManualUpdateCheck) {
-        m_isManualUpdateCheck = false;
+    bool openedReleaseUrl = false;
+    if (manual) {
         // Ручная проверка — интерактивное подтверждение
-        m_updateNotifier->notifyUpdateAvailableManual(
+        openedReleaseUrl = m_updateNotifier->notifyUpdateAvailableManual(
             QCoreApplication::applicationVersion(), version, releaseUrl);
     } else {
         // Автоматическая проверка — только уведомление (toast на Windows, MessageBox на Linux/macOS)
-        m_updateNotifier->notifyUpdateAvailableAuto(
+        openedReleaseUrl = m_updateNotifier->notifyUpdateAvailableAuto(
             QCoreApplication::applicationVersion(), version, releaseUrl);
     }
+
+    if (!openedReleaseUrl) {
+        m_updateChecker->postponeUpdateNotification();
+    } else {
+        m_updateChecker->clearUpdateNotificationPostponement();
+    }
+    scheduleNextUpdateCheck();
 }
 
-void Application::onNoUpdate() {
+void Application::onNoUpdate(bool manual) {
     qDebug() << "Application: обновлений нет";
-    if (m_isManualUpdateCheck) {
-        m_isManualUpdateCheck = false;
+    if (manual) {
         m_updateNotifier->notifyNoUpdateManual();
     }
     // Автоматический режим: ничего не делаем
 }
 
-void Application::onUpdateCheckFailed(const QString& error) {
+void Application::onUpdateCheckFailed(const QString& error, bool manual) {
     qDebug() << "Application: проверка обновлений не удалась —" << error;
-    if (m_isManualUpdateCheck) {
-        m_isManualUpdateCheck = false;
+    if (manual) {
         m_updateNotifier->notifyCheckFailedManual(error);
     }
     // Автоматический режим: ничего не делаем

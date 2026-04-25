@@ -11,11 +11,11 @@ public:
     explicit UpdateNotifier(QSystemTrayIcon* trayIcon, QObject* parent = nullptr);
     ~UpdateNotifier() = default;
 
-    void notifyUpdateAvailableAuto(const QString& currentVersion,
+    bool notifyUpdateAvailableAuto(const QString& currentVersion,
                                     const QString& latestVersion,
                                     const QString& releaseUrl);
 
-    void notifyUpdateAvailableManual(const QString& currentVersion,
+    bool notifyUpdateAvailableManual(const QString& currentVersion,
                                       const QString& latestVersion,
                                       const QString& releaseUrl);
 
@@ -32,30 +32,30 @@ private:
     QSystemTrayIcon* m_trayIcon;
 
 #ifdef Q_OS_WIN
-    void notifyUpdateAvailableAutoWindows(const QString& currentVersion,
+    bool notifyUpdateAvailableAutoWindows(const QString& currentVersion,
                                            const QString& latestVersion,
                                            const QString& releaseUrl);
-    void notifyUpdateAvailableManualWindows(const QString& currentVersion,
+    bool notifyUpdateAvailableManualWindows(const QString& currentVersion,
                                              const QString& latestVersion,
                                              const QString& releaseUrl);
     void notifyNoUpdateManualWindows();
     void notifyCheckFailedManualWindows(const QString& error);
     void notifyStartupResourcesUnavailableWindows();
 #elif defined(Q_OS_MACOS)
-    void notifyUpdateAvailableAutoMacOS(const QString& currentVersion,
+    bool notifyUpdateAvailableAutoMacOS(const QString& currentVersion,
                                          const QString& latestVersion,
                                          const QString& releaseUrl);
-    void notifyUpdateAvailableManualMacOS(const QString& currentVersion,
+    bool notifyUpdateAvailableManualMacOS(const QString& currentVersion,
                                            const QString& latestVersion,
                                            const QString& releaseUrl);
     void notifyNoUpdateManualMacOS();
     void notifyCheckFailedManualMacOS(const QString& error);
     void notifyStartupResourcesUnavailableMacOS();
 #else
-    void notifyUpdateAvailableAutoLinux(const QString& currentVersion,
+    bool notifyUpdateAvailableAutoLinux(const QString& currentVersion,
                                          const QString& latestVersion,
                                          const QString& releaseUrl);
-    void notifyUpdateAvailableManualLinux(const QString& currentVersion,
+    bool notifyUpdateAvailableManualLinux(const QString& currentVersion,
                                            const QString& latestVersion,
                                            const QString& releaseUrl);
     void notifyNoUpdateManualLinux();

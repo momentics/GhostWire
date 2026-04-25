@@ -10,27 +10,27 @@ UpdateNotifier::UpdateNotifier(QSystemTrayIcon* trayIcon, QObject* parent)
 {
 }
 
-void UpdateNotifier::notifyUpdateAvailableAuto(const QString& currentVersion,
+bool UpdateNotifier::notifyUpdateAvailableAuto(const QString& currentVersion,
                                                 const QString& latestVersion,
                                                 const QString& releaseUrl) {
 #ifdef Q_OS_WIN
-    notifyUpdateAvailableAutoWindows(currentVersion, latestVersion, releaseUrl);
+    return notifyUpdateAvailableAutoWindows(currentVersion, latestVersion, releaseUrl);
 #elif defined(Q_OS_MACOS)
-    notifyUpdateAvailableAutoMacOS(currentVersion, latestVersion, releaseUrl);
+    return notifyUpdateAvailableAutoMacOS(currentVersion, latestVersion, releaseUrl);
 #else
-    notifyUpdateAvailableAutoLinux(currentVersion, latestVersion, releaseUrl);
+    return notifyUpdateAvailableAutoLinux(currentVersion, latestVersion, releaseUrl);
 #endif
 }
 
-void UpdateNotifier::notifyUpdateAvailableManual(const QString& currentVersion,
+bool UpdateNotifier::notifyUpdateAvailableManual(const QString& currentVersion,
                                                   const QString& latestVersion,
                                                   const QString& releaseUrl) {
 #ifdef Q_OS_WIN
-    notifyUpdateAvailableManualWindows(currentVersion, latestVersion, releaseUrl);
+    return notifyUpdateAvailableManualWindows(currentVersion, latestVersion, releaseUrl);
 #elif defined(Q_OS_MACOS)
-    notifyUpdateAvailableManualMacOS(currentVersion, latestVersion, releaseUrl);
+    return notifyUpdateAvailableManualMacOS(currentVersion, latestVersion, releaseUrl);
 #else
-    notifyUpdateAvailableManualLinux(currentVersion, latestVersion, releaseUrl);
+    return notifyUpdateAvailableManualLinux(currentVersion, latestVersion, releaseUrl);
 #endif
 }
 
@@ -66,7 +66,7 @@ void UpdateNotifier::notifyStartupResourcesUnavailable() {
 
 #ifdef Q_OS_WIN
 
-void UpdateNotifier::notifyUpdateAvailableAutoWindows(const QString& currentVersion,
+bool UpdateNotifier::notifyUpdateAvailableAutoWindows(const QString& currentVersion,
                                                        const QString& latestVersion,
                                                        const QString& /*releaseUrl*/) {
     // На Windows авто-уведомление — только toast, без блокирующих диалогов
@@ -78,9 +78,10 @@ void UpdateNotifier::notifyUpdateAvailableAutoWindows(const QString& currentVers
             10000
         );
     }
+    return false;
 }
 
-void UpdateNotifier::notifyUpdateAvailableManualWindows(const QString& currentVersion,
+bool UpdateNotifier::notifyUpdateAvailableManualWindows(const QString& currentVersion,
                                                          const QString& latestVersion,
                                                          const QString& releaseUrl) {
     QMessageBox msgBox;
@@ -93,7 +94,9 @@ void UpdateNotifier::notifyUpdateAvailableManualWindows(const QString& currentVe
 
     if (msgBox.exec() == QMessageBox::Yes) {
         emit openReleaseUrl(releaseUrl);
+        return true;
     }
+    return false;
 }
 
 void UpdateNotifier::notifyNoUpdateManualWindows() {
@@ -124,7 +127,7 @@ void UpdateNotifier::notifyStartupResourcesUnavailableWindows() {
 #ifdef Q_OS_MACOS
 
 // macOS: пока дублирует Linux — уточним поведение после тестирования
-void UpdateNotifier::notifyUpdateAvailableAutoMacOS(const QString& currentVersion,
+bool UpdateNotifier::notifyUpdateAvailableAutoMacOS(const QString& currentVersion,
                                                      const QString& latestVersion,
                                                      const QString& releaseUrl) {
     QMessageBox msgBox;
@@ -137,13 +140,15 @@ void UpdateNotifier::notifyUpdateAvailableAutoMacOS(const QString& currentVersio
 
     if (msgBox.exec() == QMessageBox::Open) {
         emit openReleaseUrl(releaseUrl);
+        return true;
     }
+    return false;
 }
 
-void UpdateNotifier::notifyUpdateAvailableManualMacOS(const QString& currentVersion,
+bool UpdateNotifier::notifyUpdateAvailableManualMacOS(const QString& currentVersion,
                                                        const QString& latestVersion,
                                                        const QString& releaseUrl) {
-    notifyUpdateAvailableAutoMacOS(currentVersion, latestVersion, releaseUrl);
+    return notifyUpdateAvailableAutoMacOS(currentVersion, latestVersion, releaseUrl);
 }
 
 void UpdateNotifier::notifyNoUpdateManualMacOS() {
@@ -168,7 +173,7 @@ void UpdateNotifier::notifyStartupResourcesUnavailableMacOS() {
 
 #if !defined(Q_OS_WIN) && !defined(Q_OS_MACOS)
 
-void UpdateNotifier::notifyUpdateAvailableAutoLinux(const QString& currentVersion,
+bool UpdateNotifier::notifyUpdateAvailableAutoLinux(const QString& currentVersion,
                                                      const QString& latestVersion,
                                                      const QString& releaseUrl) {
     QMessageBox msgBox;
@@ -181,13 +186,15 @@ void UpdateNotifier::notifyUpdateAvailableAutoLinux(const QString& currentVersio
 
     if (msgBox.exec() == QMessageBox::Open) {
         emit openReleaseUrl(releaseUrl);
+        return true;
     }
+    return false;
 }
 
-void UpdateNotifier::notifyUpdateAvailableManualLinux(const QString& currentVersion,
+bool UpdateNotifier::notifyUpdateAvailableManualLinux(const QString& currentVersion,
                                                        const QString& latestVersion,
                                                        const QString& releaseUrl) {
-    notifyUpdateAvailableAutoLinux(currentVersion, latestVersion, releaseUrl);
+    return notifyUpdateAvailableAutoLinux(currentVersion, latestVersion, releaseUrl);
 }
 
 void UpdateNotifier::notifyNoUpdateManualLinux() {
