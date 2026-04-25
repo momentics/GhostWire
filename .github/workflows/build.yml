@@ -247,11 +247,48 @@ jobs:
             exit 1
           }
 
+      - name: Package ZIP (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $zipStage = Join-Path $env:GITHUB_WORKSPACE "build\package-zip-root"
+          $zipFile = Join-Path $env:GITHUB_WORKSPACE "build\$($env:MSI_NAME -replace '\.msi$', '.zip')"
+
+          Remove-Item -Recurse -Force $zipStage, $zipFile -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $zipStage | Out-Null
+
+          cmake --install build --config $env:BUILD_TYPE --prefix $zipStage
+
+          $requiredFiles = @(
+            "GhostWireDesktop.exe",
+            "ghostwire.dll",
+            "libcrypto-1_1-x64.dll",
+            "libssl-1_1-x64.dll"
+          )
+          foreach ($file in $requiredFiles) {
+            $path = Join-Path $zipStage $file
+            if (!(Test-Path $path)) {
+              Write-Error "Required ZIP payload file is missing: $file"
+              exit 1
+            }
+          }
+
+          Compress-Archive -Path (Join-Path $zipStage "*") -DestinationPath $zipFile -Force
+
+          echo "WIN_ZIP_PATH=$zipFile" >> $env:GITHUB_ENV
+          echo "WIN_ZIP_NAME=$(Split-Path $zipFile -Leaf)" >> $env:GITHUB_ENV
+
       - name: Upload MSI to Release (Windows)
         if: runner.os == 'Windows' && github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ env.MSI_PATH }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload ZIP to Release (Windows)
+        if: runner.os == 'Windows' && github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.WIN_ZIP_PATH }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload MSI artifact (Windows)
@@ -260,6 +297,13 @@ jobs:
         with:
           name: GhostWire-Desktop-Windows
           path: ${{ env.MSI_PATH }}
+
+      - name: Upload ZIP artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: GhostWire-Desktop-Windows-ZIP
+          path: ${{ env.WIN_ZIP_PATH }}
 
       # macOS
       - name: Download libghostwire.dylib (macOS)
