@@ -205,5 +205,20 @@
         <source>Не удалось проверить обновления: %1</source>
         <translation>Неуспешна проверка за обновявания: %1</translation>
     </message>
+    <message>
+        <location filename="../src/UpdateNotifier.cpp" line="114"/>
+        <location filename="../src/UpdateNotifier.cpp" line="163"/>
+        <location filename="../src/UpdateNotifier.cpp" line="207"/>
+        <source>Невозможно выполнить команду</source>
+        <translation>Командата не може да бъде изпълнена</translation>
+    </message>
+    <message>
+        <location filename="../src/UpdateNotifier.cpp" line="115"/>
+        <location filename="../src/UpdateNotifier.cpp" line="164"/>
+        <location filename="../src/UpdateNotifier.cpp" line="208"/>
+        <source>Ресурсы для запуска отсутствуют</source>
+        <translation>Липсват ресурси за стартиране</translation>
+    </message>
+
 </context>
 </TS>

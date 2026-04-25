@@ -69,6 +69,9 @@ private:
     /// Восстановить предыдущее состояние (Start/Stop) из QSettings
     void restoreState();
 
+    /// Запустить прокси и синхронизировать UI. Возвращает false и показывает уведомление при отказе запуска.
+    bool startProxy();
+
     /// Сохранить текущее состояние в QSettings
     void saveState();
 

@@ -205,5 +205,20 @@ Ny version: %2</translation>
         <source>Не удалось проверить обновления: %1</source>
         <translation>Kunne ikke søge efter opdateringer: %1</translation>
     </message>
+    <message>
+        <location filename="../src/UpdateNotifier.cpp" line="114"/>
+        <location filename="../src/UpdateNotifier.cpp" line="163"/>
+        <location filename="../src/UpdateNotifier.cpp" line="207"/>
+        <source>Невозможно выполнить команду</source>
+        <translation>Kommandoen kan ikke udføres</translation>
+    </message>
+    <message>
+        <location filename="../src/UpdateNotifier.cpp" line="115"/>
+        <location filename="../src/UpdateNotifier.cpp" line="164"/>
+        <location filename="../src/UpdateNotifier.cpp" line="208"/>
+        <source>Ресурсы для запуска отсутствуют</source>
+        <translation>Ressourcer til start er ikke tilgængelige</translation>
+    </message>
+
 </context>
 </TS>

@@ -54,6 +54,16 @@ void UpdateNotifier::notifyCheckFailedManual(const QString& error) {
 #endif
 }
 
+void UpdateNotifier::notifyStartupResourcesUnavailable() {
+#ifdef Q_OS_WIN
+    notifyStartupResourcesUnavailableWindows();
+#elif defined(Q_OS_MACOS)
+    notifyStartupResourcesUnavailableMacOS();
+#else
+    notifyStartupResourcesUnavailableLinux();
+#endif
+}
+
 #ifdef Q_OS_WIN
 
 void UpdateNotifier::notifyUpdateAvailableAutoWindows(const QString& currentVersion,
@@ -98,6 +108,17 @@ void UpdateNotifier::notifyCheckFailedManualWindows(const QString& error) {
         tr("Не удалось проверить обновления: %1").arg(error));
 }
 
+void UpdateNotifier::notifyStartupResourcesUnavailableWindows() {
+    if (m_trayIcon) {
+        m_trayIcon->showMessage(
+            tr("Невозможно выполнить команду"),
+            tr("Ресурсы для запуска отсутствуют"),
+            QSystemTrayIcon::Warning,
+            5000
+        );
+    }
+}
+
 #endif
 
 #ifdef Q_OS_MACOS
@@ -137,6 +158,12 @@ void UpdateNotifier::notifyCheckFailedManualMacOS(const QString& error) {
         tr("Не удалось проверить обновления: %1").arg(error));
 }
 
+void UpdateNotifier::notifyStartupResourcesUnavailableMacOS() {
+    QMessageBox::warning(nullptr,
+        tr("Невозможно выполнить команду"),
+        tr("Ресурсы для запуска отсутствуют"));
+}
+
 #endif
 
 #if !defined(Q_OS_WIN) && !defined(Q_OS_MACOS)
@@ -173,6 +200,12 @@ void UpdateNotifier::notifyCheckFailedManualLinux(const QString& error) {
     QMessageBox::warning(nullptr,
         tr("Проверка обновлений"),
         tr("Не удалось проверить обновления: %1").arg(error));
+}
+
+void UpdateNotifier::notifyStartupResourcesUnavailableLinux() {
+    QMessageBox::warning(nullptr,
+        tr("Невозможно выполнить команду"),
+        tr("Ресурсы для запуска отсутствуют"));
 }
 
 #endif

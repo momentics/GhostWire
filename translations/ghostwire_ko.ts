@@ -205,5 +205,20 @@
         <source>Не удалось проверить обновления: %1</source>
         <translation>업데이트 확인 실패: %1</translation>
     </message>
+    <message>
+        <location filename="../src/UpdateNotifier.cpp" line="114"/>
+        <location filename="../src/UpdateNotifier.cpp" line="163"/>
+        <location filename="../src/UpdateNotifier.cpp" line="207"/>
+        <source>Невозможно выполнить команду</source>
+        <translation>명령을 실행할 수 없습니다</translation>
+    </message>
+    <message>
+        <location filename="../src/UpdateNotifier.cpp" line="115"/>
+        <location filename="../src/UpdateNotifier.cpp" line="164"/>
+        <location filename="../src/UpdateNotifier.cpp" line="208"/>
+        <source>Ресурсы для запуска отсутствуют</source>
+        <translation>시작에 필요한 리소스가 없습니다</translation>
+    </message>
+
 </context>
 </TS>

@@ -40,16 +40,7 @@ Application::Application(QObject* parent)
 
     // Соединяем сигналы TrayMenu к Application
     connect(m_trayMenu.get(), &TrayMenu::startRequested, this, [this]() {
-        if (m_ghostWire->start()) {
-            m_proxyRunning = true;
-            m_trayManager->setState(m_ghostWire->state());
-            m_trayManager->setConnectionsState(false);
-            m_trayMenu->setRunningState(true);
-            m_trayMenu->clearSparkline();
-            m_hasPrevStats = false;
-            m_prevWsActive = 0; // Сбросить — первый тик статистики установит корректное состояние
-            if (m_statsTimer) m_statsTimer->start(Config::STATS_POLL_INTERVAL_MS);
-        }
+        startProxy();
     });
 
     connect(m_trayMenu.get(), &TrayMenu::stopRequested, this, [this]() {
@@ -172,18 +163,32 @@ void Application::restoreState() {
     if (wasRunning) {
         // Восстановить предыдущее состояние — запустить прокси
         qDebug() << "Application: восстановление предыдущего состояния — запуск прокси";
-        if (m_ghostWire->start()) {
-            m_proxyRunning = true;
-            m_trayManager->setState(m_ghostWire->state());
-            m_trayManager->setConnectionsState(false);
-            m_trayMenu->setRunningState(true);
-            m_trayMenu->clearSparkline();
-            m_hasPrevStats = false;
-            m_prevWsActive = 0;
-            m_statsTimer->start(Config::STATS_POLL_INTERVAL_MS);
-        }
+        startProxy();
     }
     // Если wasRunning == false — остаёмся в состоянии STOP (по умолчанию)
+}
+
+bool Application::startProxy() {
+    if (m_ghostWire->start()) {
+        m_proxyRunning = true;
+        m_trayManager->setState(m_ghostWire->state());
+        m_trayManager->setConnectionsState(false);
+        m_trayMenu->setRunningState(true);
+        m_trayMenu->clearSparkline();
+        m_hasPrevStats = false;
+        m_prevWsActive = 0; // Сбросить — первый тик статистики установит корректное состояние
+        if (m_statsTimer) m_statsTimer->start(Config::STATS_POLL_INTERVAL_MS);
+        return true;
+    }
+
+    m_proxyRunning = false;
+    if (m_statsTimer) m_statsTimer->stop();
+    m_trayManager->setState(GHOSTWIRE_PROXY_OFFLINE);
+    m_trayManager->setConnectionsState(false);
+    m_trayMenu->setRunningState(false);
+    m_updateNotifier->notifyStartupResourcesUnavailable();
+    qWarning() << "Application: запуск прокси не выполнен — ресурсы для запуска отсутствуют";
+    return false;
 }
 
 void Application::saveState() {
