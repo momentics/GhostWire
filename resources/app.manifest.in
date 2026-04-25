@@ -43,7 +43,7 @@
   <assemblyIdentity
       type="win32"
       name="GhostWire.Desktop"
-      version="1.0.10.0"
+      version="@GHOSTWIRE_MANIFEST_VERSION@"
       processorArchitecture="amd64"
       publicKeyToken="none"
   />

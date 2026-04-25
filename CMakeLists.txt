@@ -8,7 +8,12 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 # Version header from project version
+set(GHOSTWIRE_MANIFEST_VERSION
+    "${GhostWireDesktop_VERSION_MAJOR}.${GhostWireDesktop_VERSION_MINOR}.${GhostWireDesktop_VERSION_PATCH}.0")
 configure_file(src/version.h.in "${CMAKE_CURRENT_BINARY_DIR}/version.h" @ONLY)
+configure_file(resources/app.manifest.in
+    "${CMAKE_CURRENT_BINARY_DIR}/app.manifest"
+    @ONLY)
 
 # Translations: compile .ts то .qm
 find_program(LRELEASE_EXECUTABLE lrelease)
@@ -128,9 +133,6 @@ add_custom_command(
 
 if(WIN32)
     list(APPEND SOURCES resources/app.rc)
-    # Копируем манифест в каталог сборки — rc.exe ищет его по относительному пути из app.rc
-    file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.manifest"
-         DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
 # Executable
@@ -148,7 +150,7 @@ if(WIN32)
     # Копируем манифест рядом с exe (для удобства верификации)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.manifest"
+            "${CMAKE_CURRENT_BINARY_DIR}/app.manifest"
             $<TARGET_FILE_DIR:${PROJECT_NAME}>
         COMMENT "Copying app.manifest to output directory"
     )
@@ -340,7 +342,7 @@ if(WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${OPENSSL_DIR}/libcrypto-1_1-x64.dll" "${_PKG_DIR}/"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${OPENSSL_DIR}/libssl-1_1-x64.dll" "${_PKG_DIR}/"
         # Манифест
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.manifest" "${_PKG_DIR}/"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_BINARY_DIR}/app.manifest" "${_PKG_DIR}/"
         COMMENT "Deploying dependencies to package directory"
     )
 
