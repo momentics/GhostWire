@@ -152,24 +152,24 @@ bool Application::initialize() {
 }
 
 QString Application::loadConfig() const {
-    if (g_config_key_len == 0 || g_config_size == 0) {
+    if constexpr (g_config_key_len == 0 || g_config_size == 0) {
         return QString();
-    }
+    } else {
+        QByteArray result(static_cast<int>(g_config_size), 0);
+        for (size_t i = 0; i < g_config_size; i++) {
+            const unsigned char keyByte = g_config_key[i % g_config_key_len];
+            result[static_cast<int>(i)] = static_cast<char>(g_config_data[i] ^ keyByte);
+        }
 
-    QByteArray result(static_cast<int>(g_config_size), 0);
-    for (size_t i = 0; i < g_config_size; i++) {
-        const unsigned char keyByte = g_config_key[i % g_config_key_len];
-        result[static_cast<int>(i)] = static_cast<char>(g_config_data[i] ^ keyByte);
-    }
+        // Валидация JSON
+        QJsonParseError parseError;
+        QJsonDocument::fromJson(result, &parseError);
+        if (parseError.error != QJsonParseError::NoError) {
+            return QString();
+        }
 
-    // Валидация JSON
-    QJsonParseError parseError;
-    QJsonDocument::fromJson(result, &parseError);
-    if (parseError.error != QJsonParseError::NoError) {
-        return QString();
+        return QString::fromUtf8(result);
     }
-
-    return QString::fromUtf8(result);
 }
 
 void Application::restoreState() {
