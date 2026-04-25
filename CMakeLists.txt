@@ -10,7 +10,16 @@ set(CMAKE_AUTOUIC ON)
 # Version header from project version
 set(GHOSTWIRE_MANIFEST_VERSION
     "${GhostWireDesktop_VERSION_MAJOR}.${GhostWireDesktop_VERSION_MINOR}.${GhostWireDesktop_VERSION_PATCH}.0")
+set(GHOSTWIRE_RC_ICON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/ghostwire.ico")
+set(GHOSTWIRE_FILE_DESCRIPTION "GhostWire Desktop - Telegram Gateway with anti-DPI protection")
+set(GHOSTWIRE_PRODUCT_NAME "GhostWire Desktop")
+set(GHOSTWIRE_COMPANY_NAME "momentics")
+set(GHOSTWIRE_COPYRIGHT "Copyright (C) 2026 momentics")
+set(GHOSTWIRE_ORIGINAL_FILENAME "GhostWireDesktop.exe")
 configure_file(src/version.h.in "${CMAKE_CURRENT_BINARY_DIR}/version.h" @ONLY)
+configure_file(resources/app.rc.in
+    "${CMAKE_CURRENT_BINARY_DIR}/app.rc"
+    @ONLY)
 configure_file(resources/app.manifest.in
     "${CMAKE_CURRENT_BINARY_DIR}/app.manifest"
     @ONLY)
@@ -132,7 +141,7 @@ add_custom_command(
 )
 
 if(WIN32)
-    list(APPEND SOURCES resources/app.rc)
+    list(APPEND SOURCES "${CMAKE_CURRENT_BINARY_DIR}/app.rc")
 endif()
 
 # Executable
@@ -200,6 +209,11 @@ elseif(APPLE)
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_BUNDLE_NAME "GhostWire"
         MACOSX_BUNDLE_EXECUTABLE_NAME "GhostWireDesktop"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_LONG_VERSION_STRING "GhostWire Desktop ${PROJECT_VERSION}"
+        MACOSX_BUNDLE_COPYRIGHT "${GHOSTWIRE_COPYRIGHT}"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.momentics.GhostWireDesktop"
         INSTALL_RPATH "@executable_path"
         BUILD_RPATH "@executable_path"
     )
