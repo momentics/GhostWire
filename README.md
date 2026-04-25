@@ -18,8 +18,9 @@
 ### Анимированная иконка в трее
 
 <p align="center">
-  <img src="resources/icons/TaskBar.png" alt="TaskBar icon" width="400">
+  <img src="resources/icons/TaskBar.png" alt="TaskBar icon" height="60"><img src="resources\icons\tray_idle.png" alt="IDLE TaskBar icon" width="16"><img src="resources\icons\tray_active.png" alt="ACTIVE TaskBar icon" width="16"><img src="resources\icons\tray_degraded.png" alt="DEGRADED TaskBar icon" width="16">
 </p>
+
 
 ### Контекстное меню
 Windows
