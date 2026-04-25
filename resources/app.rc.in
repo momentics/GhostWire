@@ -19,7 +19,7 @@ BEGIN
             VALUE "CompanyName", "@GHOSTWIRE_COMPANY_NAME@\0"
             VALUE "FileDescription", "@GHOSTWIRE_FILE_DESCRIPTION@\0"
             VALUE "FileVersion", "@GHOSTWIRE_MANIFEST_VERSION@\0"
-            VALUE "InternalName", "GhostWireDesktop\0"
+            VALUE "InternalName", "@GHOSTWIRE_INTERNAL_NAME@\0"
             VALUE "LegalCopyright", "@GHOSTWIRE_COPYRIGHT@\0"
             VALUE "OriginalFilename", "@GHOSTWIRE_ORIGINAL_FILENAME@\0"
             VALUE "ProductName", "@GHOSTWIRE_PRODUCT_NAME@\0"

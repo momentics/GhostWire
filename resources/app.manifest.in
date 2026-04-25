@@ -42,12 +42,12 @@
   <!-- Сведения о приложении -->
   <assemblyIdentity
       type="win32"
-      name="GhostWire.Desktop"
+      name="@GHOSTWIRE_MANIFEST_ASSEMBLY_NAME@"
       version="@GHOSTWIRE_MANIFEST_VERSION@"
       processorArchitecture="amd64"
       publicKeyToken="none"
   />
-  <description>GhostWire Desktop — Telegram Gateway with anti-DPI protection</description>
+  <description>@GHOSTWIRE_FILE_DESCRIPTION@</description>
 
   <!-- Уровень доступа: стандартные права пользователя (без запроса UAC) -->
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
