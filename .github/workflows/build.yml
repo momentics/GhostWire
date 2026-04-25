@@ -5,6 +5,7 @@ on:
   release:
     types: [published]
 
+
 env:
   BUILD_TYPE: Release
   QT_VERSION: 5.15.2
