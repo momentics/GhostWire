@@ -4,6 +4,8 @@
 #include <QVector>
 #include <QColor>
 
+class QString;
+
 /// Спарклайн — компактный линейный график RX/TX.
 /// - Ось X: последние значения, старые слева, новые справа (сдвиг)
 /// - Ось Y: autoscale по текущим данным
@@ -47,7 +49,7 @@ private:
     void drawGrid(QPainter& painter, double maxVal);
     void drawTimeLabels(QPainter& painter);
     void drawSeries(QPainter& painter, const QVector<double>& data, const QColor& color);
-    void drawYLabels(QPainter& painter, double maxVal);
+    void drawYLabels(QPainter& painter, const QString& label);
     void drawLegend(QPainter& painter);
     void updatePointsCache(double maxVal);
 };

@@ -1,11 +1,72 @@
 #include "SparklineWidget.h"
-#include "Utils.h"
 #include "Config.h"
 #include <QPainter>
 #include <QFontMetrics>
 #include <QApplication>
+#include <QtGlobal>
 #include <cmath>
 #include <numeric>
+
+namespace {
+
+enum class ScaleUnit {
+    Bytes,
+    KiB,
+    MiB,
+    GiB,
+    TiB
+};
+
+struct ScaleValue {
+    double bytes = 1.0;
+    double unit = 1.0;
+    ScaleUnit label = ScaleUnit::Bytes;
+};
+
+ScaleValue calculateScale(double maxBytes) {
+    static constexpr double KiB = 1024.0;
+    static constexpr double MiB = KiB * 1024.0;
+    static constexpr double GiB = MiB * 1024.0;
+    static constexpr double TiB = GiB * 1024.0;
+
+    ScaleValue scale;
+    if (maxBytes >= TiB) {
+        scale.unit = TiB;
+        scale.label = ScaleUnit::TiB;
+    } else if (maxBytes >= GiB) {
+        scale.unit = GiB;
+        scale.label = ScaleUnit::GiB;
+    } else if (maxBytes >= MiB) {
+        scale.unit = MiB;
+        scale.label = ScaleUnit::MiB;
+    } else if (maxBytes >= KiB) {
+        scale.unit = KiB;
+        scale.label = ScaleUnit::KiB;
+    }
+
+    const double scaledMax = qMax(maxBytes / scale.unit, 1.0);
+    scale.bytes = std::ceil(scaledMax) * scale.unit;
+    return scale;
+}
+
+QString formatScaleLabel(const ScaleValue& scale) {
+    const qint64 value = static_cast<qint64>(std::ceil(scale.bytes / scale.unit));
+    switch (scale.label) {
+    case ScaleUnit::TiB:
+        return QObject::tr("%1 ТБ").arg(value);
+    case ScaleUnit::GiB:
+        return QObject::tr("%1 ГБ").arg(value);
+    case ScaleUnit::MiB:
+        return QObject::tr("%1 МБ").arg(value);
+    case ScaleUnit::KiB:
+        return QObject::tr("%1 КБ").arg(value);
+    case ScaleUnit::Bytes:
+        return QObject::tr("%1 Б").arg(value);
+    }
+    return QObject::tr("%1 Б").arg(value);
+}
+
+} // namespace
 
 SparklineWidget::SparklineWidget(QWidget* parent)
     : QWidget(parent)
@@ -75,24 +136,19 @@ void SparklineWidget::paintEvent(QPaintEvent*) {
         return;
     }
 
-    // Определяем autoscale maxVal по обоим рядам
-    double maxVal = 0;
-    for (double v : m_rx) if (v > maxVal) maxVal = v;
-    for (double v : m_tx) if (v > maxVal) maxVal = v;
+    // Определяем autoscale по обоим рядам
+    double maxSample = 0;
+    for (double v : m_rx) if (v > maxSample) maxSample = v;
+    for (double v : m_tx) if (v > maxSample) maxSample = v;
 
     // Минимальный масштаб чтобы не делить на ноль
-    if (maxVal < 1.0) maxVal = 1.0;
+    if (maxSample < 1.0) maxSample = 1.0;
 
-    // Округляем maxVal до красивой цифры
-    double magnitude = std::pow(10, std::floor(std::log10(maxVal)));
-    double norm = maxVal / magnitude;
-    if (norm > 5)      maxVal = 10 * magnitude;
-    else if (norm > 2) maxVal = 5  * magnitude;
-    else if (norm > 1) maxVal = 2  * magnitude;
-
+    const ScaleValue scale = calculateScale(maxSample);
+    const double maxVal = scale.bytes;
     drawGrid(painter, maxVal);
     drawTimeLabels(painter);
-    drawYLabels(painter, maxVal);
+    drawYLabels(painter, formatScaleLabel(scale));
     updatePointsCache(maxVal);
     
     // Считаем суммы
@@ -166,13 +222,12 @@ void SparklineWidget::drawTimeLabels(QPainter& painter) {
     }
 }
 
-void SparklineWidget::drawYLabels(QPainter& painter, double maxVal) {
+void SparklineWidget::drawYLabels(QPainter& painter, const QString& label) {
     painter.setPen(m_textColor);
     painter.setFont(m_labelFont);
     QFontMetrics fm(m_labelFont);
 
     // Метка в области отступа слева
-    QString label = formatBytes(maxVal);
     int labelW = fm.horizontalAdvance(label);
     int x = PAD_LEFT - labelW - 4;
     if (x < 0) x = 0;

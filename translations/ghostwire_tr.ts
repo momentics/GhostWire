@@ -52,23 +52,23 @@
     <name>QObject</name>
     <message>
         <source>%1 Б</source>
-        <translation type="vanished">%1 B</translation>
+        <translation>%1 B</translation>
     </message>
     <message>
         <source>%1 КБ</source>
-        <translation type="vanished">%1 KB</translation>
+        <translation>%1 KB</translation>
     </message>
     <message>
         <source>%1 МБ</source>
-        <translation type="vanished">%1 MB</translation>
+        <translation>%1 MB</translation>
     </message>
     <message>
         <source>%1 ГБ</source>
-        <translation type="vanished">%1 GB</translation>
+        <translation>%1 GB</translation>
     </message>
     <message>
         <source>%1 ТБ</source>
-        <translation type="vanished">%1 TB</translation>
+        <translation>%1 TB</translation>
     </message>
 </context>
 <context>
