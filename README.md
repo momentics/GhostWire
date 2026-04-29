@@ -4,7 +4,7 @@
 
 | | |
 |:---:|---|
-| <img src="resources/icons/ghostwire.png" alt="GhostWire Logo" width="512"> | **GhostWire Desktop** помогает **Telegram Desktop** работать через локальный защищённый прокси. Приложение запускает SOCKS5 на вашем компьютере, подключает к нему Telegram и передаёт трафик через **HTTPS Tunelling** с защитой от DPI на уровне **L4-L4**. Системный VPN, внешние прокси-сервисы и сторонние аккаунты не нужны. |
+| <img src="resources/icons/ghostwire.png" alt="GhostWire Logo" width="512"> | **GhostWire Desktop** помогает **Telegram Desktop** работать через локальный защищённый прокси. Приложение запускает SOCKS5 на вашем компьютере, подключает к нему Telegram и передаёт трафик через **HTTPS Tunelling** с защитой от DPI на уровне **L4-L7**. Системный VPN, внешние прокси-сервисы и сторонние аккаунты не нужны. |
 
 ---
 
