@@ -12,9 +12,9 @@ StatsPanel::StatsPanel(QWidget* parent)
     mainLayout->setContentsMargins(6, 2, 6, 2);
     mainLayout->setSpacing(2);
 
-    // Используем pixel size вместо point size для независимости от DPI
+    // Размер в пунктах сохраняет масштаб текста статистики согласованным с настройками ОС.
     QFont baseFont = QApplication::font();
-    baseFont.setPixelSize(11);
+    baseFont.setPointSizeF(8.25);
 
     // Грид: 2 колонки — 4 строки (Работает, Соединений, Пик, Всего)
     m_gridLayout = new QGridLayout();

@@ -16,12 +16,12 @@ SparklineWidget::SparklineWidget(QWidget* parent)
     m_gridColor = QColor(255, 255, 255, 30);   // очень прозрачная сетка
     m_textColor = QColor(180, 180, 180, 200);  // серый текст
 
-    // Используем pixel size вместо point size для независимости от DPI
+    // Размер в пунктах сохраняет читаемость подписей при дробном масштабе экрана.
     m_labelFont = QFont(QApplication::font());
-    m_labelFont.setPixelSize(7);
+    m_labelFont.setPointSizeF(5.25);
 
     m_legendFont = QFont(QApplication::font());
-    m_legendFont.setPixelSize(7);
+    m_legendFont.setPointSizeF(5.25);
 
     setMinimumHeight(100);
     setMaximumHeight(140);

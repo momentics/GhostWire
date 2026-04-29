@@ -2,14 +2,21 @@
 #include "SingleInstanceGuard.h"
 #include "version.h"
 #include <QApplication>
+#include <QGuiApplication>
 #include <QDebug>
 #include <QTranslator>
 #include <QLocale>
+#include <QtGlobal>
 
 int main(int argc, char* argv[]) {
     // Включаем сглаживание и поддержку HiDPI для всего приложения
     QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+    // Сохраняем дробные масштабы Windows вроде 125% и 175%.
+    QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
+        Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+#endif
 
     QApplication app(argc, argv);
     app.setApplicationName("GhostWire Desktop");
