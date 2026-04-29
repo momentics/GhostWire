@@ -76,9 +76,9 @@ Or configure the proxy manually:
 
 ## Update checking
 
-On startup, the app automatically checks for new versions on GitHub (no more than once every 24 hours). When an update is found, a tray notification appears with a link to the release page.
+GhostWire Desktop checks for a new version when it starts and then periodically while it is running. If an update is available, the app notifies you and offers to open the GitHub release page.
 
-Manual check: the **Check for updates** button in the context menu.
+Updates are not installed automatically: you choose and install the correct package for your system yourself. You can also start a check manually from **Check for updates** in the app menu.
 
 ---
 

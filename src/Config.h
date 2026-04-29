@@ -48,9 +48,9 @@ inline const char* GITHUB_REPO_OWNER = "momentics";
 inline const char* GITHUB_REPO_NAME = "GhostWire";
 
 /// Интервал штатной проверки обновлений (часы)
-inline constexpr int UPDATE_CHECK_INTERVAL_HOURS = 1;
+inline constexpr int UPDATE_CHECK_INTERVAL_HOURS = 4;
 
 /// Пауза после отказа открыть страницу обновления (часы)
-inline constexpr int UPDATE_CHECK_DECLINED_COOLDOWN_HOURS = 24;
+inline constexpr int UPDATE_CHECK_DECLINED_COOLDOWN_HOURS = 48;
 
 } // namespace Config
