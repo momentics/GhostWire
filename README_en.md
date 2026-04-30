@@ -32,7 +32,7 @@ GhostWire acts as a small local gateway for applications that explicitly connect
 1. A local SOCKS5 proxy starts on your computer at `127.0.0.1:1080`.
 2. Telegram Desktop sends its connections to that local proxy.
 3. GhostWire detects the target Telegram DC and selects an appropriate route.
-4. Traffic is then forwarded over `wss` on port 443, so it looks like a regular encrypted HTTPS/WebSocket connection.
+4. Traffic is then forwarded over `HTTPS` on port 443, so it looks like a regular encrypted Web connection.
 5. If a route becomes unavailable, the library can switch to another endpoint for the same destination.
 
 ---
@@ -55,9 +55,11 @@ GhostWire does not promise a universal bypass for every kind of blocking. Its pu
 
 The current configuration uses:
 
+- **DNS Bypass**
 - **L4-L4 DPI protection**
-- **HTTPS Tunneling**
-- **SNI for Telegram Web**
+- **HTTPS Tunelling**
+- **SNI для Telegram Servers**
+- **Mimicry for Web traffic**
 - **DC-aware routing** - GhostWire maps Telegram IP ranges to the corresponding datacenters
 - **Endpoint rotation** - datacenters have primary and fallback endpoints
 - **Media routing** - some destinations have dedicated media endpoints and media hostnames
@@ -133,7 +135,7 @@ macOS
 | Field | Meaning |
 |---|---|
 | **Uptime** | How long the proxy has been running since the last start |
-| **Connections** | Active WebSocket connections, with the peak value in parentheses |
+| **Connections** | Active connections, with the peak value in parentheses |
 | **Rotations** | Successful endpoint rotations, with the total number of attempts in parentheses |
 | **Peak** | Maximum receive and send speed during the current run |
 | **Total** | Total amount of received and sent traffic |
