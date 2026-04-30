@@ -56,7 +56,7 @@ GhostWire не обещает «магического» обхода любых
 В текущей конфигурации используются:
 
 - **DNS Bypass**
-- **L4-L4 DPI protection**
+- **L4-L7 DPI protection**
 - **HTTPS Tunelling**
 - **SNI для Telegram Servers**
 - **Mimicry for Web traffic**

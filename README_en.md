@@ -56,7 +56,7 @@ GhostWire does not promise a universal bypass for every kind of blocking. Its pu
 The current configuration uses:
 
 - **DNS Bypass**
-- **L4-L4 DPI protection**
+- **L4-L7 DPI protection**
 - **HTTPS Tunelling**
 - **SNI для Telegram Servers**
 - **Mimicry for Web traffic**
