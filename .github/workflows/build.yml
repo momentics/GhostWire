@@ -425,10 +425,16 @@ jobs:
                   text=True,
                   capture_output=True,
               ).stdout
-              versions = [
-                  parse_version(match.group(1))
-                  for match in re.finditer(r"^\s*(?:minos|version)\s+([0-9]+(?:\.[0-9]+){1,2})", output, re.MULTILINE)
-              ]
+              versions = []
+              for block in re.split(r"(?=^Load command \d+$)", output, flags=re.MULTILINE):
+                  if re.search(r"^\s*cmd\s+LC_BUILD_VERSION$", block, re.MULTILINE):
+                      match = re.search(r"^\s*minos\s+([0-9]+(?:\.[0-9]+){1,2})", block, re.MULTILINE)
+                      if match:
+                          versions.append(parse_version(match.group(1)))
+                  elif re.search(r"^\s*cmd\s+LC_VERSION_MIN_MACOSX$", block, re.MULTILINE):
+                      match = re.search(r"^\s*version\s+([0-9]+(?:\.[0-9]+){1,2})", block, re.MULTILINE)
+                      if match:
+                          versions.append(parse_version(match.group(1)))
               if not versions:
                   failures.append((path, "missing deployment target load command"))
                   continue
