@@ -30,6 +30,7 @@ signals:
 
 private:
     QSystemTrayIcon* m_trayIcon;
+    QString m_pendingReleaseUrl;
 
 #ifdef Q_OS_WIN
     bool notifyUpdateAvailableAutoWindows(const QString& currentVersion,

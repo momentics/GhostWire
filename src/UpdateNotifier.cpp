@@ -8,6 +8,16 @@ UpdateNotifier::UpdateNotifier(QSystemTrayIcon* trayIcon, QObject* parent)
     : QObject(parent)
     , m_trayIcon(trayIcon)
 {
+    if (m_trayIcon) {
+        connect(m_trayIcon, &QSystemTrayIcon::messageClicked, this, [this]() {
+            if (m_pendingReleaseUrl.isEmpty())
+                return;
+
+            const QString releaseUrl = m_pendingReleaseUrl;
+            m_pendingReleaseUrl.clear();
+            emit openReleaseUrl(releaseUrl);
+        });
+    }
 }
 
 bool UpdateNotifier::notifyUpdateAvailableAuto(const QString& currentVersion,
@@ -35,6 +45,7 @@ bool UpdateNotifier::notifyUpdateAvailableManual(const QString& currentVersion,
 }
 
 void UpdateNotifier::notifyNoUpdateManual() {
+    m_pendingReleaseUrl.clear();
 #ifdef Q_OS_WIN
     notifyNoUpdateManualWindows();
 #elif defined(Q_OS_MACOS)
@@ -45,6 +56,7 @@ void UpdateNotifier::notifyNoUpdateManual() {
 }
 
 void UpdateNotifier::notifyCheckFailedManual(const QString& error) {
+    m_pendingReleaseUrl.clear();
 #ifdef Q_OS_WIN
     notifyCheckFailedManualWindows(error);
 #elif defined(Q_OS_MACOS)
@@ -55,6 +67,7 @@ void UpdateNotifier::notifyCheckFailedManual(const QString& error) {
 }
 
 void UpdateNotifier::notifyStartupResourcesUnavailable() {
+    m_pendingReleaseUrl.clear();
 #ifdef Q_OS_WIN
     notifyStartupResourcesUnavailableWindows();
 #elif defined(Q_OS_MACOS)
@@ -68,8 +81,9 @@ void UpdateNotifier::notifyStartupResourcesUnavailable() {
 
 bool UpdateNotifier::notifyUpdateAvailableAutoWindows(const QString& currentVersion,
                                                        const QString& latestVersion,
-                                                       const QString& /*releaseUrl*/) {
+                                                       const QString& releaseUrl) {
     // На Windows авто-уведомление — только toast, без блокирующих диалогов
+    m_pendingReleaseUrl = releaseUrl;
     if (m_trayIcon) {
         m_trayIcon->showMessage(
             tr("Доступна новая версия"),
@@ -77,6 +91,8 @@ bool UpdateNotifier::notifyUpdateAvailableAutoWindows(const QString& currentVers
             QSystemTrayIcon::Information,
             10000
         );
+    } else {
+        m_pendingReleaseUrl.clear();
     }
     return false;
 }
@@ -84,6 +100,7 @@ bool UpdateNotifier::notifyUpdateAvailableAutoWindows(const QString& currentVers
 bool UpdateNotifier::notifyUpdateAvailableManualWindows(const QString& currentVersion,
                                                          const QString& latestVersion,
                                                          const QString& releaseUrl) {
+    m_pendingReleaseUrl.clear();
     QMessageBox msgBox;
     msgBox.setWindowTitle(tr("Доступна новая версия"));
     msgBox.setIcon(QMessageBox::Information);

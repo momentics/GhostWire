@@ -523,5 +523,8 @@ void Application::onUpdateCheckFailed(const QString& error, bool manual) {
 
 void Application::onOpenReleaseUrl(const QString& url) {
     qDebug() << "Application: открытие страницы обновления:" << url;
+    if (m_updateChecker) {
+        m_updateChecker->clearUpdateNotificationPostponement();
+    }
     QDesktopServices::openUrl(QUrl(url));
 }
