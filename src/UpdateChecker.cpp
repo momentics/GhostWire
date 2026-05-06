@@ -7,7 +7,12 @@
 #include <QSettings>
 #include <QDateTime>
 #include <QRegularExpression>
+#include <QTimer>
 #include <QDebug>
+
+namespace {
+constexpr int kUpdateCheckTimeoutMs = 15000;
+}
 
 UpdateChecker::UpdateChecker(const QString& currentVersion,
                              const QString& repoOwner,
@@ -66,6 +71,16 @@ void UpdateChecker::startCheck(bool manual, bool ignoreSchedule) {
         request.setRawHeader("If-Modified-Since", lastModified.toUtf8());
 
     QNetworkReply* reply = m_net.get(request);
+    auto* timeoutTimer = new QTimer(reply);
+    timeoutTimer->setSingleShot(true);
+    timeoutTimer->setInterval(kUpdateCheckTimeoutMs);
+    connect(timeoutTimer, &QTimer::timeout, reply, [reply]() {
+        if (reply->isRunning())
+            reply->abort();
+    });
+    connect(reply, &QNetworkReply::finished, timeoutTimer, &QObject::deleteLater);
+    timeoutTimer->start();
+
     connect(reply, &QNetworkReply::finished, this, [this, reply, manual]() {
         onReplyFinished(reply, manual);
         reply->deleteLater();
