@@ -57,8 +57,8 @@ The current configuration uses:
 
 - **DNS Bypass**
 - **L4-L7 DPI protection**
-- **HTTPS Tunelling**
-- **SNI для Telegram Servers**
+- **HTTPS Tunneling**
+- **SNI for Telegram Servers**
 - **Mimicry for Web traffic**
 - **DC-aware routing** - GhostWire maps Telegram IP ranges to the corresponding datacenters
 - **Endpoint rotation** - datacenters have primary and fallback endpoints
