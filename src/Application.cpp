@@ -6,9 +6,13 @@
 #include "Application.h"
 #include "GhostWire.h"
 #include "TrayManager.h"
+#include "IGhostWire.h"
+#include "ITrayManager.h"
 #include "TrayMenu.h"
 #include "UpdateChecker.h"
 #include "UpdateNotifier.h"
+#include "StatsTracker.h"
+#include "SettingsManager.h"
 #include "Config.h"
 #include "Utils.h"
 #include "config_bin.h"
@@ -20,7 +24,6 @@
 #include <QApplication>
 #include <QGuiApplication>
 #include <QScreen>
-#include <QSettings>
 #include <QDesktopServices>
 #include <QUrl>
 #include <QProcess>
@@ -38,6 +41,8 @@ Application::Application(QObject* parent)
     m_ghostWire   = std::make_unique<GhostWire>();
     m_trayManager = std::make_unique<TrayManager>();
     m_trayMenu    = std::make_unique<TrayMenu>();
+    m_statsTracker = std::make_unique<StatsTracker>();
+    m_settings     = std::make_unique<SettingsManager>();
     m_updateChecker = std::make_unique<UpdateChecker>(
         QCoreApplication::applicationVersion(),
         Config::GITHUB_REPO_OWNER,
@@ -60,12 +65,7 @@ Application::Application(QObject* parent)
         m_trayMenu->setRunningState(false);
         m_trayMenu->clearSparkline();
         m_trayMenu->setStats(0, 0, 0, 0, 0, 0, 0, 0, 0);
-        m_hasPrevStats = false;
-        m_peakRx = 0;
-        m_peakTx = 0;
-        m_prevWsActive = 0;
-        m_prevBytesReceived = 0;
-        m_prevBytesSent = 0;
+        m_statsTracker->reset();
     });
 
     connect(m_trayMenu.get(), &TrayMenu::exitRequested, this, &Application::onTrayExit);
@@ -173,8 +173,7 @@ QString Application::loadConfig() const {
 }
 
 void Application::restoreState() {
-    QSettings settings("GhostWire", "GhostWireDesktop");
-    bool wasRunning = settings.value("proxyRunning", false).toBool();
+    bool wasRunning = m_settings->getProxyRunning();
 
     if (wasRunning) {
         // Восстановить предыдущее состояние — запустить прокси
@@ -191,8 +190,7 @@ bool Application::startProxy() {
         m_trayManager->setConnectionsState(false);
         m_trayMenu->setRunningState(true);
         m_trayMenu->clearSparkline();
-        m_hasPrevStats = false;
-        m_prevWsActive = 0; // Сбросить — первый тик статистики установит корректное состояние
+        m_statsTracker->reset();
         if (m_statsTimer) m_statsTimer->start(Config::STATS_POLL_INTERVAL_MS);
         return true;
     }
@@ -208,9 +206,7 @@ bool Application::startProxy() {
 }
 
 void Application::saveState() {
-    QSettings settings("GhostWire", "GhostWireDesktop");
-    settings.setValue("proxyRunning", m_proxyRunning);
-    settings.sync();
+    m_settings->setProxyRunning(m_proxyRunning);
     qDebug() << "Application: сохранено состояние proxyRunning =" << m_proxyRunning;
 }
 
@@ -232,8 +228,6 @@ void Application::onStatsTick() {
         m_trayManager->setState(GHOSTWIRE_PROXY_OFFLINE);
         m_trayManager->setConnectionsState(false);
         m_trayMenu->setRunningState(false);
-        m_prevWsActive = 0;
-        m_hasPrevStats = false;
         return;
     }
 
@@ -241,44 +235,35 @@ void Application::onStatsTick() {
 
     auto stats = m_ghostWire->getStats();
 
-    // Отслеживаем изменение количества WS-соединений для индикации
-    if (stats.websocket_active != m_prevWsActive || !m_hasPrevStats
-        || proxyState == GHOSTWIRE_PROXY_DEGRADED) {
-        m_prevWsActive = stats.websocket_active;
+    double peakRx = 0;
+    double peakTx = 0;
+    double rxRate = 0;
+    double txRate = 0;
+    bool hasConnections = false;
+
+    if (!m_statsTracker->processTick(stats, proxyState, peakRx, peakTx, rxRate, txRate, hasConnections)) {
+        m_proxyRunning = false;
+        if (m_statsTimer) m_statsTimer->stop();
+        m_trayManager->setState(GHOSTWIRE_PROXY_OFFLINE);
+        m_trayManager->setConnectionsState(false);
+        m_trayMenu->setRunningState(false);
+        return;
+    }
+
+    if (hasConnections) {
         m_trayManager->setConnectionsState(
             proxyState == GHOSTWIRE_PROXY_ONLINE && stats.websocket_active > 0);
     }
 
-    // Рассчитать дельту RX/TX и обновить пики
-    double rxDelta = 0;
-    double txDelta = 0;
-    if (m_hasPrevStats) {
-        // Защита от wrap-around: если счётчик сбросился, дельта = 0
-        if (stats.bytes_received >= m_prevBytesReceived)
-            rxDelta = static_cast<double>(stats.bytes_received - m_prevBytesReceived);
-        if (stats.bytes_sent >= m_prevBytesSent)
-            txDelta = static_cast<double>(stats.bytes_sent - m_prevBytesSent);
-
-        // Нормализуем в байты/сек для пика
-        double intervalSec = Config::STATS_POLL_INTERVAL_MS / 1000.0;
-        double rxRate = rxDelta / intervalSec;
-        double txRate = txDelta / intervalSec;
-        if (rxRate > m_peakRx) m_peakRx = rxRate;
-        if (txRate > m_peakTx) m_peakTx = txRate;
-
+    if (rxRate > 0 || txRate > 0) {
         m_trayMenu->addSparklinePoint(rxRate, txRate);
     }
 
-    // Обновить UI
     m_trayMenu->setStats(stats.uptime_secs, stats.websocket_active, stats.peak_active_connections,
-                         stats.ip_rotations, stats.rotation_success,
-                         m_peakRx, m_peakTx, stats.bytes_received, stats.bytes_sent);
+                          stats.ip_rotations, stats.rotation_success,
+                          peakRx, peakTx, stats.bytes_received, stats.bytes_sent);
 
     m_trayMenu->setRunningState(true);
-
-    m_prevBytesReceived = stats.bytes_received;
-    m_prevBytesSent = stats.bytes_sent;
-    m_hasPrevStats = true;
 }
 
 void Application::onTrayExit() {

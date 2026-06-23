@@ -97,15 +97,20 @@ StatsPanel::StatsPanel(QWidget* parent)
 
 void StatsPanel::resizeEvent(QResizeEvent* event) {
     QWidget::resizeEvent(event);
-    // Позиционируем версию по центру первой строки грида
-    if (m_labelVersion) {
-        int x = width() - m_labelVersion->sizeHint().width();
-        // Центр первой строки грида
-        int y = m_gridLayout->itemAtPosition(0, 0)->widget()->y() +
-                m_gridLayout->itemAtPosition(0, 0)->widget()->height() / 2 -
-                m_labelVersion->height() / 2;
-        m_labelVersion->move(x, y);
-    }
+    if (!m_labelVersion || !m_gridLayout)
+        return;
+
+    QLayoutItem* item = m_gridLayout->itemAtPosition(0, 0);
+    if (!item)
+        return;
+
+    QWidget* refWidget = item->widget();
+    if (!refWidget)
+        return;
+
+    int x = width() - m_labelVersion->sizeHint().width();
+    int y = refWidget->y() + refWidget->height() / 2 - m_labelVersion->height() / 2;
+    m_labelVersion->move(x, y);
 }
 
 void StatsPanel::updateStats(uint64_t uptimeSecs, uint64_t websocketActive, uint64_t websocketPeak,

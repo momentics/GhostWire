@@ -24,65 +24,7 @@ bool UpdateNotifier::notifyUpdateAvailableAuto(const QString& currentVersion,
                                                 const QString& latestVersion,
                                                 const QString& releaseUrl) {
 #ifdef Q_OS_WIN
-    return notifyUpdateAvailableAutoWindows(currentVersion, latestVersion, releaseUrl);
-#elif defined(Q_OS_MACOS)
-    return notifyUpdateAvailableAutoMacOS(currentVersion, latestVersion, releaseUrl);
-#else
-    return notifyUpdateAvailableAutoLinux(currentVersion, latestVersion, releaseUrl);
-#endif
-}
-
-bool UpdateNotifier::notifyUpdateAvailableManual(const QString& currentVersion,
-                                                  const QString& latestVersion,
-                                                  const QString& releaseUrl) {
-#ifdef Q_OS_WIN
-    return notifyUpdateAvailableManualWindows(currentVersion, latestVersion, releaseUrl);
-#elif defined(Q_OS_MACOS)
-    return notifyUpdateAvailableManualMacOS(currentVersion, latestVersion, releaseUrl);
-#else
-    return notifyUpdateAvailableManualLinux(currentVersion, latestVersion, releaseUrl);
-#endif
-}
-
-void UpdateNotifier::notifyNoUpdateManual() {
-    m_pendingReleaseUrl.clear();
-#ifdef Q_OS_WIN
-    notifyNoUpdateManualWindows();
-#elif defined(Q_OS_MACOS)
-    notifyNoUpdateManualMacOS();
-#else
-    notifyNoUpdateManualLinux();
-#endif
-}
-
-void UpdateNotifier::notifyCheckFailedManual(const QString& error) {
-    m_pendingReleaseUrl.clear();
-#ifdef Q_OS_WIN
-    notifyCheckFailedManualWindows(error);
-#elif defined(Q_OS_MACOS)
-    notifyCheckFailedManualMacOS(error);
-#else
-    notifyCheckFailedManualLinux(error);
-#endif
-}
-
-void UpdateNotifier::notifyStartupResourcesUnavailable() {
-    m_pendingReleaseUrl.clear();
-#ifdef Q_OS_WIN
-    notifyStartupResourcesUnavailableWindows();
-#elif defined(Q_OS_MACOS)
-    notifyStartupResourcesUnavailableMacOS();
-#else
-    notifyStartupResourcesUnavailableLinux();
-#endif
-}
-
-#ifdef Q_OS_WIN
-
-bool UpdateNotifier::notifyUpdateAvailableAutoWindows(const QString& currentVersion,
-                                                       const QString& latestVersion,
-                                                       const QString& releaseUrl) {
-    // На Windows авто-уведомление — только toast, без блокирующих диалогов
+    // Windows: non-blocking tray notification for auto checks
     m_pendingReleaseUrl = releaseUrl;
     if (m_trayIcon) {
         m_trayIcon->showMessage(
@@ -95,11 +37,16 @@ bool UpdateNotifier::notifyUpdateAvailableAutoWindows(const QString& currentVers
         m_pendingReleaseUrl.clear();
     }
     return false;
+#else
+    // macOS/Linux: blocking dialog (same for auto and manual)
+    return showUpdateAvailableDialog(currentVersion, latestVersion, releaseUrl);
+#endif
 }
 
-bool UpdateNotifier::notifyUpdateAvailableManualWindows(const QString& currentVersion,
-                                                         const QString& latestVersion,
-                                                         const QString& releaseUrl) {
+bool UpdateNotifier::notifyUpdateAvailableManual(const QString& currentVersion,
+                                                  const QString& latestVersion,
+                                                  const QString& releaseUrl) {
+#ifdef Q_OS_WIN
     m_pendingReleaseUrl.clear();
     QMessageBox msgBox;
     msgBox.setWindowTitle(tr("Доступна новая версия"));
@@ -114,21 +61,25 @@ bool UpdateNotifier::notifyUpdateAvailableManualWindows(const QString& currentVe
         return true;
     }
     return false;
+#else
+    // macOS/Linux: same dialog as auto
+    return showUpdateAvailableDialog(currentVersion, latestVersion, releaseUrl);
+#endif
 }
 
-void UpdateNotifier::notifyNoUpdateManualWindows() {
-    QMessageBox::information(nullptr,
-        tr("Обновления"),
-        tr("Вы используете последнюю версию."));
+void UpdateNotifier::notifyNoUpdateManual() {
+    m_pendingReleaseUrl.clear();
+    showNoUpdateInfo();
 }
 
-void UpdateNotifier::notifyCheckFailedManualWindows(const QString& error) {
-    QMessageBox::warning(nullptr,
-        tr("Проверка обновлений"),
-        tr("Не удалось проверить обновления: %1").arg(error));
+void UpdateNotifier::notifyCheckFailedManual(const QString& error) {
+    m_pendingReleaseUrl.clear();
+    showCheckFailedWarning(error);
 }
 
-void UpdateNotifier::notifyStartupResourcesUnavailableWindows() {
+void UpdateNotifier::notifyStartupResourcesUnavailable() {
+    m_pendingReleaseUrl.clear();
+#ifdef Q_OS_WIN
     if (m_trayIcon) {
         m_trayIcon->showMessage(
             tr("Невозможно выполнить команду"),
@@ -137,16 +88,16 @@ void UpdateNotifier::notifyStartupResourcesUnavailableWindows() {
             5000
         );
     }
+#else
+    QMessageBox::warning(nullptr,
+        tr("Невозможно выполнить команду"),
+        tr("Ресурсы для запуска отсутствуют"));
+#endif
 }
 
-#endif
-
-#ifdef Q_OS_MACOS
-
-// macOS: пока дублирует Linux — уточним поведение после тестирования
-bool UpdateNotifier::notifyUpdateAvailableAutoMacOS(const QString& currentVersion,
-                                                     const QString& latestVersion,
-                                                     const QString& releaseUrl) {
+bool UpdateNotifier::showUpdateAvailableDialog(const QString& currentVersion,
+                                                const QString& latestVersion,
+                                                const QString& releaseUrl) {
     QMessageBox msgBox;
     msgBox.setWindowTitle(tr("Доступна новая версия"));
     msgBox.setIcon(QMessageBox::Information);
@@ -162,74 +113,14 @@ bool UpdateNotifier::notifyUpdateAvailableAutoMacOS(const QString& currentVersio
     return false;
 }
 
-bool UpdateNotifier::notifyUpdateAvailableManualMacOS(const QString& currentVersion,
-                                                       const QString& latestVersion,
-                                                       const QString& releaseUrl) {
-    return notifyUpdateAvailableAutoMacOS(currentVersion, latestVersion, releaseUrl);
-}
-
-void UpdateNotifier::notifyNoUpdateManualMacOS() {
+void UpdateNotifier::showNoUpdateInfo() {
     QMessageBox::information(nullptr,
         tr("Обновления"),
         tr("Вы используете последнюю версию."));
 }
 
-void UpdateNotifier::notifyCheckFailedManualMacOS(const QString& error) {
+void UpdateNotifier::showCheckFailedWarning(const QString& error) {
     QMessageBox::warning(nullptr,
         tr("Проверка обновлений"),
         tr("Не удалось проверить обновления: %1").arg(error));
 }
-
-void UpdateNotifier::notifyStartupResourcesUnavailableMacOS() {
-    QMessageBox::warning(nullptr,
-        tr("Невозможно выполнить команду"),
-        tr("Ресурсы для запуска отсутствуют"));
-}
-
-#endif
-
-#if !defined(Q_OS_WIN) && !defined(Q_OS_MACOS)
-
-bool UpdateNotifier::notifyUpdateAvailableAutoLinux(const QString& currentVersion,
-                                                     const QString& latestVersion,
-                                                     const QString& releaseUrl) {
-    QMessageBox msgBox;
-    msgBox.setWindowTitle(tr("Доступна новая версия"));
-    msgBox.setIcon(QMessageBox::Information);
-    msgBox.setText(tr("Текущая версия: %1\nНовая версия: %2").arg(currentVersion, latestVersion));
-    msgBox.setInformativeText(tr("Открыть страницу загрузки?"));
-    msgBox.setStandardButtons(QMessageBox::Open | QMessageBox::Cancel);
-    msgBox.setDefaultButton(QMessageBox::Open);
-
-    if (msgBox.exec() == QMessageBox::Open) {
-        emit openReleaseUrl(releaseUrl);
-        return true;
-    }
-    return false;
-}
-
-bool UpdateNotifier::notifyUpdateAvailableManualLinux(const QString& currentVersion,
-                                                       const QString& latestVersion,
-                                                       const QString& releaseUrl) {
-    return notifyUpdateAvailableAutoLinux(currentVersion, latestVersion, releaseUrl);
-}
-
-void UpdateNotifier::notifyNoUpdateManualLinux() {
-    QMessageBox::information(nullptr,
-        tr("Обновления"),
-        tr("Вы используете последнюю версию."));
-}
-
-void UpdateNotifier::notifyCheckFailedManualLinux(const QString& error) {
-    QMessageBox::warning(nullptr,
-        tr("Проверка обновлений"),
-        tr("Не удалось проверить обновления: %1").arg(error));
-}
-
-void UpdateNotifier::notifyStartupResourcesUnavailableLinux() {
-    QMessageBox::warning(nullptr,
-        tr("Невозможно выполнить команду"),
-        tr("Ресурсы для запуска отсутствуют"));
-}
-
-#endif

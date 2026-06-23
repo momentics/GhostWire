@@ -3,33 +3,22 @@
 #include <QString>
 #include <QLibrary>
 #include <memory>
-#include "../libs/ghostwire/include/ghostwire.h"
+#include "IGhostWire.h"
 
-class GhostWire {
+class GhostWire : public IGhostWire {
 public:
     GhostWire();
-    ~GhostWire();
+    ~GhostWire() override;
 
-    /// Загрузить библиотеку из пути или из директории приложения
-    bool load(const QString& libDir = QString());
-
-    /// Создать экземпляр прокси из конфигурационной строки
-    bool create(const QString& configJson);
-
-    /// Уничтожить экземпляр
-    void destroy();
-
-    /// Запустить / остановить
-    bool start();
-    void stop();
+    bool load(const QString& libDir = QString()) override;
+    bool create(const QString& configJson) override;
+    void destroy() override;
+    bool start() override;
+    void stop() override;
+    GhostWireProxyState state() const override;
+    GhostWireProxyStats getStats() const override;
 
     bool isRunning() const;
-    GhostWireProxyState state() const;
-
-    /// Получить текущую статистику
-    GhostWireProxyStats getStats() const;
-
-    /// Загружена ли библиотека
     bool isLoaded() const;
 
 private:

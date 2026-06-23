@@ -32,35 +32,15 @@ private:
     QSystemTrayIcon* m_trayIcon;
     QString m_pendingReleaseUrl;
 
-#ifdef Q_OS_WIN
-    bool notifyUpdateAvailableAutoWindows(const QString& currentVersion,
-                                           const QString& latestVersion,
-                                           const QString& releaseUrl);
-    bool notifyUpdateAvailableManualWindows(const QString& currentVersion,
-                                             const QString& latestVersion,
-                                             const QString& releaseUrl);
-    void notifyNoUpdateManualWindows();
-    void notifyCheckFailedManualWindows(const QString& error);
-    void notifyStartupResourcesUnavailableWindows();
-#elif defined(Q_OS_MACOS)
-    bool notifyUpdateAvailableAutoMacOS(const QString& currentVersion,
-                                         const QString& latestVersion,
-                                         const QString& releaseUrl);
-    bool notifyUpdateAvailableManualMacOS(const QString& currentVersion,
-                                           const QString& latestVersion,
-                                           const QString& releaseUrl);
-    void notifyNoUpdateManualMacOS();
-    void notifyCheckFailedManualMacOS(const QString& error);
-    void notifyStartupResourcesUnavailableMacOS();
-#else
-    bool notifyUpdateAvailableAutoLinux(const QString& currentVersion,
-                                         const QString& latestVersion,
-                                         const QString& releaseUrl);
-    bool notifyUpdateAvailableManualLinux(const QString& currentVersion,
-                                           const QString& latestVersion,
-                                           const QString& releaseUrl);
-    void notifyNoUpdateManualLinux();
-    void notifyCheckFailedManualLinux(const QString& error);
-    void notifyStartupResourcesUnavailableLinux();
-#endif
+    /// Показать диалог обновления (MessageBox) — общий для macOS/Linux.
+    /// Возвращает true если пользователь открыл страницу.
+    bool showUpdateAvailableDialog(const QString& currentVersion,
+                                    const QString& latestVersion,
+                                    const QString& releaseUrl);
+
+    /// Показать информационное сообщение «Обновлений нет» — общий для всех платформ.
+    void showNoUpdateInfo();
+
+    /// Показать предупреждение об ошибке проверки — общий для всех платформ.
+    void showCheckFailedWarning(const QString& error);
 };

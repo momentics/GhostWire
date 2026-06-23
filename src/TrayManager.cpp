@@ -16,7 +16,7 @@
 #endif
 
 TrayManager::TrayManager(QObject* parent)
-    : QObject(parent)
+    : ITrayManager(parent)
     , m_trayIcon(new QSystemTrayIcon(this))
     , m_animTimer(new QTimer(this))
 {
@@ -138,6 +138,43 @@ void TrayManager::cleanup() {
     m_animFrames.clear();
 }
 
+void TrayManager::applyIconState() {
+    if (m_state == GHOSTWIRE_PROXY_ONLINE) {
+        if (m_hasConnections && !m_animFrames.isEmpty()) {
+            if (!m_animTimer->isActive()) {
+                m_trayIcon->setIcon(m_animFrames[0]);
+                m_animTimer->start();
+            }
+        } else {
+            m_trayIcon->setIcon(m_activeIcon);
+            m_animTimer->stop();
+        }
+    } else if (m_state == GHOSTWIRE_PROXY_DEGRADED) {
+        m_trayIcon->setIcon(m_degradedIcon);
+        m_animTimer->stop();
+    } else {
+        m_trayIcon->setIcon(m_idleIcon);
+        m_animTimer->stop();
+    }
+}
+
+QString TrayManager::applyFallbackDockStyle() const {
+    if (m_state == GHOSTWIRE_PROXY_ONLINE && m_hasConnections) {
+        return "QWidget { background: rgba(76,175,80,60); border: 2px solid #4CAF50; border-radius: 4px; }"
+               "QWidget:hover { background: rgba(76,175,80,80); }";
+    }
+    if (m_state == GHOSTWIRE_PROXY_ONLINE) {
+        return "QWidget { background: transparent; border: 2px solid #4CAF50; border-radius: 4px; }"
+               "QWidget:hover { background: rgba(76,175,80,40); }";
+    }
+    if (m_state == GHOSTWIRE_PROXY_DEGRADED) {
+        return "QWidget { background: transparent; border: 2px solid #D6A21A; border-radius: 4px; }"
+               "QWidget:hover { background: rgba(214,162,26,40); }";
+    }
+    return "QWidget { background: transparent; border: 2px solid #888; border-radius: 4px; }"
+           "QWidget:hover { background: rgba(255,255,255,30); }";
+}
+
 void TrayManager::setState(GhostWireProxyState state) {
     const bool stateChanged = (m_state != state);
     m_state = state;
@@ -151,48 +188,13 @@ void TrayManager::setState(GhostWireProxyState state) {
 
 #ifdef Q_OS_LINUX
     if (m_fallbackDock) {
-        // Fallback dock: меняем иконку через stylesheet
-        if (m_state == GHOSTWIRE_PROXY_DEGRADED) {
-            m_fallbackDock->setStyleSheet(
-                "QWidget { background: transparent; border: 2px solid #D6A21A; border-radius: 4px; }"
-                "QWidget:hover { background: rgba(214,162,26,40); }");
-        } else if (m_state == GHOSTWIRE_PROXY_ONLINE) {
-            m_fallbackDock->setStyleSheet(
-                "QWidget { background: transparent; border: 2px solid #4CAF50; border-radius: 4px; }"
-                "QWidget:hover { background: rgba(76,175,80,40); }");
-        } else {
-            m_fallbackDock->setStyleSheet(
-                "QWidget { background: transparent; border: 2px solid #888; border-radius: 4px; }"
-                "QWidget:hover { background: rgba(255,255,255,30); }");
-        }
+        m_fallbackDock->setStyleSheet(applyFallbackDockStyle());
         m_fallbackDock->update();
         return;
     }
 #endif
 
-    if (m_state == GHOSTWIRE_PROXY_ONLINE) {
-        // Прокси запущен — показываем статическую ACTIVE иконку.
-        // Анимация включится отдельно через setConnectionsState(), когда появятся WS-соединения.
-        if (m_hasConnections && !m_animFrames.isEmpty()) {
-            if (stateChanged) {
-                m_trayIcon->setIcon(m_animFrames[0]);
-            }
-            if (!m_animTimer->isActive())
-                m_animTimer->start();
-        } else {
-            m_trayIcon->setIcon(m_activeIcon);
-            m_animTimer->stop();
-        }
-    } else if (m_state == GHOSTWIRE_PROXY_DEGRADED) {
-        // DEGRADED — рабочий режим без активных подключений, поэтому анимацию не включаем.
-        m_trayIcon->setIcon(m_degradedIcon);
-        m_animTimer->stop();
-    } else {
-        // Прокси остановлен — показываем IDLE иконку, сбрасываем состояние соединений
-        m_trayIcon->setIcon(m_idleIcon);
-        if (m_animTimer->isActive())
-            m_animTimer->stop();
-    }
+    applyIconState();
 }
 
 void TrayManager::setConnectionsState(bool hasConnections) {
@@ -200,59 +202,13 @@ void TrayManager::setConnectionsState(bool hasConnections) {
 
 #ifdef Q_OS_LINUX
     if (m_fallbackDock) {
-        // Fallback dock: мигающая граница при наличии соединений
-        if (m_state == GHOSTWIRE_PROXY_ONLINE && m_hasConnections) {
-            m_fallbackDock->setStyleSheet(
-                "QWidget { background: rgba(76,175,80,60); border: 2px solid #4CAF50; border-radius: 4px; }"
-                "QWidget:hover { background: rgba(76,175,80,80); }");
-        } else if (m_state == GHOSTWIRE_PROXY_ONLINE) {
-            m_fallbackDock->setStyleSheet(
-                "QWidget { background: transparent; border: 2px solid #4CAF50; border-radius: 4px; }"
-                "QWidget:hover { background: rgba(76,175,80,40); }");
-        } else if (m_state == GHOSTWIRE_PROXY_DEGRADED) {
-            m_fallbackDock->setStyleSheet(
-                "QWidget { background: transparent; border: 2px solid #D6A21A; border-radius: 4px; }"
-                "QWidget:hover { background: rgba(214,162,26,40); }");
-        } else {
-            m_fallbackDock->setStyleSheet(
-                "QWidget { background: transparent; border: 2px solid #888; border-radius: 4px; }"
-                "QWidget:hover { background: rgba(255,255,255,30); }");
-        }
+        m_fallbackDock->setStyleSheet(applyFallbackDockStyle());
         m_fallbackDock->update();
         return;
     }
 #endif
 
-    if (m_state == GHOSTWIRE_PROXY_OFFLINE) {
-        // Если прокси не запущен — игнорируем, остаёмся на IDLE.
-        return;
-    }
-
-    if (m_state == GHOSTWIRE_PROXY_DEGRADED) {
-        // DEGRADED не анимируется даже при ошибочно переданном флаге соединений.
-        m_trayIcon->setIcon(m_degradedIcon);
-        if (m_animTimer->isActive())
-            m_animTimer->stop();
-        return;
-    }
-
-    if (m_hasConnections) {
-        // Есть WS-соединения — запускаем анимацию
-        if (!m_animFrames.isEmpty()) {
-            m_trayIcon->setIcon(m_animFrames[0]);
-            m_animFrameIndex = 0;
-            if (!m_animTimer->isActive())
-                m_animTimer->start();
-        } else {
-            // Нет кадров — fallback на ACTIVE
-            m_trayIcon->setIcon(m_activeIcon);
-        }
-    } else {
-        // Нет соединений — возвращаемся к статической ACTIVE иконке
-        m_trayIcon->setIcon(m_activeIcon);
-        if (m_animTimer->isActive())
-            m_animTimer->stop();
-    }
+    applyIconState();
 }
 
 void TrayManager::onTrayActivated(QSystemTrayIcon::ActivationReason reason) {

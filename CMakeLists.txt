@@ -101,9 +101,11 @@ set(SOURCES
     src/TrayMenu.cpp
     src/SparklineWidget.cpp
     src/StatsPanel.cpp
+    src/StatsTracker.cpp
     src/GhostWire.cpp
     src/UpdateChecker.cpp
     src/UpdateNotifier.cpp
+    src/SettingsManager.cpp
     src/SingleInstanceGuard.cpp
     src/Utils.cpp
 )
@@ -114,11 +116,15 @@ set(HEADERS
     src/TrayMenu.h
     src/SparklineWidget.h
     src/StatsPanel.h
+    src/StatsTracker.h
     src/GhostWire.h
+    src/IGhostWire.h
+    src/ITrayManager.h
     src/Config.h
     src/Utils.h
     src/UpdateChecker.h
     src/UpdateNotifier.h
+    src/SettingsManager.h
     src/SingleInstanceGuard.h
 )
 
