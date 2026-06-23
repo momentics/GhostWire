@@ -255,9 +255,7 @@ void Application::onStatsTick() {
             proxyState == GHOSTWIRE_PROXY_ONLINE && stats.websocket_active > 0);
     }
 
-    if (rxRate > 0 || txRate > 0) {
-        m_trayMenu->addSparklinePoint(rxRate, txRate);
-    }
+    m_trayMenu->addSparklinePoint(rxRate, txRate);
 
     m_trayMenu->setStats(stats.uptime_secs, stats.websocket_active, stats.peak_active_connections,
                           stats.ip_rotations, stats.rotation_success,
