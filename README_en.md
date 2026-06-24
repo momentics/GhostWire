@@ -145,7 +145,7 @@ The tray icon also shows the current state:
 - <img src="resources/icons/tray_idle.png" alt="IDLE TaskBar icon" width="16"> - the proxy is stopped.
 - <img src="resources/icons/tray_active.png" alt="ACTIVE TaskBar icon" width="16"> - the proxy is running.
 - <img src="resources/icons/tray_active_frames/frame_03.png" alt="ACTIVE connection frame" width="16"> - active connections are present.
-- <img src="resources/icons/tray_degraded.png" alt="DEGRADED TaskBar icon" width="16"> - the proxy is running, but no routes or resources are unavailable.
+- <img src="resources/icons/tray_degraded.png" alt="DEGRADED TaskBar icon" width="16"> - the proxy is running, but no routes or resources are available.
 
 ---
 
