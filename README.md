@@ -145,7 +145,7 @@ macOS
 - <img src="resources/icons/tray_idle.png" alt="IDLE TaskBar icon" width="16"> - прокси остановлен.
 - <img src="resources/icons/tray_active.png" alt="DEGRADED TaskBar icon" width="16"> - прокси запущен.
 - <img src="resources/icons/tray_active_frames/frame_03.png" alt="ACTIVE TaskBar icon" width="16"> - есть активные соединения.
-- <img src="resources/icons/tray_degraded.png" alt="DEGRADED TaskBar icon" width="16"> - прокси работает, но один из маршрутов или ресурсов недоступен.
+- <img src="resources/icons/tray_degraded.png" alt="DEGRADED TaskBar icon" width="16"> - прокси работает, но ни один из маршрутов или ресурсов недоступен.
 
 ---
 

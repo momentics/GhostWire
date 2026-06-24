@@ -250,10 +250,8 @@ void Application::onStatsTick() {
         return;
     }
 
-    if (hasConnections) {
-        m_trayManager->setConnectionsState(
-            proxyState == GHOSTWIRE_PROXY_ONLINE && stats.websocket_active > 0);
-    }
+    m_trayManager->setConnectionsState(
+        proxyState == GHOSTWIRE_PROXY_ONLINE && stats.websocket_active > 0);
 
     m_trayMenu->addSparklinePoint(rxRate, txRate);
 
