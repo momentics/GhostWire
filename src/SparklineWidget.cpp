@@ -1,6 +1,8 @@
 #include "SparklineWidget.h"
 #include "Config.h"
 #include <QPainter>
+#include <QPainterPath>
+#include <QLinearGradient>
 #include <QFontMetrics>
 #include <QApplication>
 #include <QtGlobal>
@@ -246,21 +248,63 @@ void SparklineWidget::drawSeries(QPainter& painter, const QVector<double>& serie
     int gridH = height() - PAD_TOP - PAD_BOT;
     double baseline = PAD_TOP + gridH;
 
-    // Filled area
-    QPolygonF area;
-    area.reserve(points.size() + 2);
-    for (auto& p : points) area.append(p);
-    area.append(QPointF(points.last().x(), baseline));
-    area.append(QPointF(points.first().x(), baseline));
+    // Gradient fill: full color at top, transparent at bottom
+    QLinearGradient grad(0, PAD_TOP, 0, baseline);
+    grad.setColorAt(0.0, QColor(color.red(), color.green(), color.blue(), color.alpha()));
+    grad.setColorAt(1.0, QColor(color.red(), color.green(), color.blue(), 0));
 
-    QPen pen(color, 1.0);
-    painter.setPen(pen);
-    painter.setBrush(color);
-    painter.drawPolygon(area);
+    // Build smooth filled area using Catmull-Rom spline
+    QPainterPath areaPath;
+    areaPath.moveTo(points.first());
 
-    // Line on top
+    int n = points.size();
+    for (int i = 0; i < n - 1; ++i) {
+        int prev = qMax(i - 1, 0);
+        int next = qMin(i + 2, n - 1);
+        const QPointF& p0 = points[prev];
+        const QPointF& p1 = points[i];
+        const QPointF& p2 = points[i + 1];
+        const QPointF& p3 = points[next];
+
+        QPointF cp1(p1.x() + (p2.x() - p0.x()) / 6.0,
+                    p1.y() + (p2.y() - p0.y()) / 6.0);
+        QPointF cp2(p2.x() - (p3.x() - p1.x()) / 6.0,
+                    p2.y() - (p3.y() - p1.y()) / 6.0);
+
+        areaPath.cubicTo(cp1, cp2, p2);
+    }
+
+    areaPath.lineTo(points.last().x(), baseline);
+    areaPath.lineTo(points.first().x(), baseline);
+    areaPath.closeSubpath();
+
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(grad);
+    painter.drawPath(areaPath);
+
+    // Smooth line on top
+    QPainterPath linePath;
+    linePath.moveTo(points.first());
+
+    for (int i = 0; i < n - 1; ++i) {
+        int prev = qMax(i - 1, 0);
+        int next = qMin(i + 2, n - 1);
+        const QPointF& p0 = points[prev];
+        const QPointF& p1 = points[i];
+        const QPointF& p2 = points[i + 1];
+        const QPointF& p3 = points[next];
+
+        QPointF cp1(p1.x() + (p2.x() - p0.x()) / 6.0,
+                    p1.y() + (p2.y() - p0.y()) / 6.0);
+        QPointF cp2(p2.x() - (p3.x() - p1.x()) / 6.0,
+                    p2.y() - (p3.y() - p1.y()) / 6.0);
+
+        linePath.cubicTo(cp1, cp2, p2);
+    }
+
+    painter.setPen(QPen(color, 1.0));
     painter.setBrush(Qt::NoBrush);
-    painter.drawPolyline(points.constData(), points.size());
+    painter.drawPath(linePath);
 }
 
 void SparklineWidget::updatePointsCache(double maxVal) {
