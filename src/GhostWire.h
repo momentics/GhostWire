@@ -25,17 +25,15 @@ private:
     QLibrary m_lib;
     GwProxy* m_handle = nullptr;
 
-    using FnCreateFromFile = GwProxy*(*)(const char*);
-    using FnCreate         = GwProxy*(*)(const char*);
-    using FnFree           = void(*)(GwProxy*);
+    using FnCreate = GwProxy*(*)(const char*);
+    using FnFree   = void(*)(GwProxy*);
     using FnStart          = int(*)(GwProxy*);
     using FnStop           = void(*)(GwProxy*);
     using FnGetState       = GhostWireProxyState(*)(const GwProxy*);
     using FnGetStats       = void(*)(const GwProxy*, GhostWireProxyStats*);
 
-    FnCreateFromFile m_createFromFile = nullptr;
-    FnCreate         m_create         = nullptr;
-    FnFree           m_free           = nullptr;
+    FnCreate m_create = nullptr;
+    FnFree   m_free   = nullptr;
     FnStart          m_start          = nullptr;
     FnStop           m_stop           = nullptr;
     FnGetState       m_getState       = nullptr;

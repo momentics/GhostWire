@@ -3,7 +3,7 @@
 #include <cstdint>
 
 struct GhostWireProxyStats;
-enum GhostWireProxyState : int;
+enum GhostWireProxyState;
 
 /// Отслеживает дельты RX/TX, пики скорости и изменения WS-соединений.
 /// Инкапсулирует логику расчёта, вынесенную из Application (SRP).

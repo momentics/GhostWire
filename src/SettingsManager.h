@@ -1,12 +1,13 @@
 #pragma once
 
 #include <QString>
-
-class QSettings;
+#include <QSettings>
+#include <memory>
 
 class SettingsManager {
 public:
     SettingsManager();
+    ~SettingsManager() = default;
 
     bool getProxyRunning() const;
     void setProxyRunning(bool value);
@@ -28,5 +29,5 @@ public:
     void removeUpdateCheckLastModified();
 
 private:
-    QSettings* m_settings;
+    std::unique_ptr<QSettings> m_settings;
 };

@@ -5,7 +5,7 @@
 SingleInstanceGuard::SingleInstanceGuard(QObject* parent)
     : QObject(parent)
 {
-    m_server = new QLocalServer(this);
+    m_server = std::make_unique<QLocalServer>(this);
 
     // Удаляем stale-сокет (например, после аварийного завершения)
     QLocalServer::removeServer(QLatin1String(SINGLE_INSTANCE_SOCKET_NAME));
@@ -15,7 +15,7 @@ SingleInstanceGuard::SingleInstanceGuard(QObject* parent)
         qDebug() << "SingleInstanceGuard: первичный экземпляр, сокет создан";
 
         // Принимаем подключения от вторичных экземпляров
-        connect(m_server, &QLocalServer::newConnection,
+        connect(m_server.get(), &QLocalServer::newConnection,
                 this, &SingleInstanceGuard::onNewConnection);
     } else {
         qWarning() << "SingleInstanceGuard: не удалось создать сокет —"
@@ -26,10 +26,10 @@ SingleInstanceGuard::SingleInstanceGuard(QObject* parent)
 SingleInstanceGuard::~SingleInstanceGuard() {
     if (m_server && m_server->isListening()) {
         m_server->close();
-        // Удаляем сокет-файл (Linux/macOS) или именованный канал (Windows)
-        QLocalServer::removeServer(QLatin1String(SINGLE_INSTANCE_SOCKET_NAME));
-        qDebug() << "SingleInstanceGuard: сокет удалён";
     }
+    // Удаляем сокет-файл (Linux/macOS) или именованный канал (Windows)
+    QLocalServer::removeServer(QLatin1String(SINGLE_INSTANCE_SOCKET_NAME));
+    qDebug() << "SingleInstanceGuard: сокет удалён";
 }
 
 void SingleInstanceGuard::onNewConnection() {

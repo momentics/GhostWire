@@ -256,12 +256,12 @@ void SparklineWidget::drawSeries(QPainter& painter, const QVector<double>& serie
     int gridH = height() - PAD_TOP - PAD_BOT;
     double baseline = PAD_TOP + gridH;
 
-    // Gradient fill: full color at top, transparent at bottom
+    // Градиент: 100% альфа сверху, 40% альфа снизу
     QLinearGradient grad(0, PAD_TOP, 0, baseline);
     grad.setColorAt(0.0, QColor(color.red(), color.green(), color.blue(), color.alpha()));
-    grad.setColorAt(1.0, QColor(color.red(), color.green(), color.blue(), 0));
+    grad.setColorAt(1.0, QColor(color.red(), color.green(), color.blue(), static_cast<int>(color.alpha() * 0.4)));
 
-    // Build smooth filled area using Catmull-Rom spline
+    // Плавная закрашенная область с помощью сплайна Catmull-Rom
     QPainterPath areaPath;
     areaPath.moveTo(points.first());
 
@@ -290,7 +290,7 @@ void SparklineWidget::drawSeries(QPainter& painter, const QVector<double>& serie
     painter.setBrush(grad);
     painter.drawPath(areaPath);
 
-    // Smooth line on top
+    // Плавная линия поверх области
     QPainterPath linePath;
     linePath.moveTo(points.first());
 

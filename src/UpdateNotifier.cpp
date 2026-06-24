@@ -24,7 +24,7 @@ bool UpdateNotifier::notifyUpdateAvailableAuto(const QString& currentVersion,
                                                 const QString& latestVersion,
                                                 const QString& releaseUrl) {
 #ifdef Q_OS_WIN
-    // Windows: non-blocking tray notification for auto checks
+    // Windows: неблокирующее уведомление трея для автоматических проверок
     m_pendingReleaseUrl = releaseUrl;
     if (m_trayIcon) {
         m_trayIcon->showMessage(

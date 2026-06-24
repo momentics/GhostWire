@@ -61,6 +61,9 @@ private:
     /// Запустить прокси и синхронизировать UI. Возвращает false и показывает уведомление при отказе запуска.
     bool startProxy();
 
+    /// Остановить прокси и сбросить UI.
+    void stopProxy();
+
     /// Сохранить текущее состояние в QSettings
     void saveState();
 
@@ -73,7 +76,4 @@ private:
     /// Показать контекстное меню в заданной экранных точке.
     /// Содержит общую логику: screen correction, move, raise, show, activateWindow.
     void showTrayMenuAtPoint(const QPoint& pos);
-
-    /// Проверить, зарегистрирован ли обработчик tg:// протокола
-    bool isTelegramSchemeRegistered() const;
 };

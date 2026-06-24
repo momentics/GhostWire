@@ -1,8 +1,3 @@
-#ifdef _WIN32
-#define NOMINMAX
-#include <windows.h>
-#endif
-
 #include "Application.h"
 #include "GhostWire.h"
 #include "TrayManager.h"
@@ -13,6 +8,7 @@
 #include "UpdateNotifier.h"
 #include "StatsTracker.h"
 #include "SettingsManager.h"
+#include "TelegramManager.h"
 #include "Config.h"
 #include "Utils.h"
 #include "config_bin.h"
@@ -55,17 +51,7 @@ Application::Application(QObject* parent)
     });
 
     connect(m_trayMenu.get(), &TrayMenu::stopRequested, this, [this]() {
-        // Сначала останавливаем таймер
-        if (m_statsTimer) m_statsTimer->stop();
-        m_proxyRunning = false;
-        m_ghostWire->stop();
-        // Мгновенно очищаем UI
-        m_trayManager->setState(GHOSTWIRE_PROXY_OFFLINE);
-        m_trayManager->setConnectionsState(false);
-        m_trayMenu->setRunningState(false);
-        m_trayMenu->clearSparkline();
-        m_trayMenu->setStats(0, 0, 0, 0, 0, 0, 0, 0, 0);
-        m_statsTracker->reset();
+        stopProxy();
     });
 
     connect(m_trayMenu.get(), &TrayMenu::exitRequested, this, &Application::onTrayExit);
@@ -205,6 +191,18 @@ bool Application::startProxy() {
     return false;
 }
 
+void Application::stopProxy() {
+    if (m_statsTimer) m_statsTimer->stop();
+    m_proxyRunning = false;
+    m_ghostWire->stop();
+    m_trayManager->setState(GHOSTWIRE_PROXY_OFFLINE);
+    m_trayManager->setConnectionsState(false);
+    m_trayMenu->setRunningState(false);
+    m_trayMenu->clearSparkline();
+    m_trayMenu->setStats(0, 0, 0, 0, 0, 0, 0, 0, 0);
+    m_statsTracker->reset();
+}
+
 void Application::saveState() {
     m_settings->setProxyRunning(m_proxyRunning);
     qDebug() << "Application: сохранено состояние proxyRunning =" << m_proxyRunning;
@@ -223,11 +221,7 @@ void Application::onStatsTick() {
 
     const auto proxyState = m_ghostWire->state();
     if (proxyState == GHOSTWIRE_PROXY_OFFLINE) {
-        m_proxyRunning = false;
-        if (m_statsTimer) m_statsTimer->stop();
-        m_trayManager->setState(GHOSTWIRE_PROXY_OFFLINE);
-        m_trayManager->setConnectionsState(false);
-        m_trayMenu->setRunningState(false);
+        stopProxy();
         return;
     }
 
@@ -242,11 +236,7 @@ void Application::onStatsTick() {
     bool hasConnections = false;
 
     if (!m_statsTracker->processTick(stats, proxyState, peakRx, peakTx, rxRate, txRate, hasConnections)) {
-        m_proxyRunning = false;
-        if (m_statsTimer) m_statsTimer->stop();
-        m_trayManager->setState(GHOSTWIRE_PROXY_OFFLINE);
-        m_trayManager->setConnectionsState(false);
-        m_trayMenu->setRunningState(false);
+        stopProxy();
         return;
     }
 
@@ -294,7 +284,7 @@ void Application::showTrayMenuAtCursor() {
         m_trayMenu->startIpcFocusMonitor(true, true);
         qDebug() << "Application: tray menu shown at tray icon geometry" << iconRect;
     } else {
-        // Fallback к позиции курсора
+        // Резервный вариант: позиция курсора
         m_trayMenu->adjustSize();
         QPoint cursorPos = QCursor::pos();
         showTrayMenuAtPoint(cursorPos);
@@ -355,79 +345,12 @@ void Application::showTrayMenuAtPoint(const QPoint& pos) {
     m_trayMenu->activateWindow();
 }
 
-/// Проверить, запущен ли процесс Telegram Desktop (кроссплатформенно)
-static bool isTelegramRunning() {
-    QProcess proc;
-
-#ifdef _WIN32
-    proc.start("tasklist", QStringList() << "/FI"
-        << QString("IMAGENAME eq %1").arg(Config::TELEGRAM_PROCESS_NAME)
-        << "/NH");
-#elif defined(__APPLE__)
-    proc.start("pgrep", QStringList() << "-i" << Config::TELEGRAM_PROCESS_NAME);
-#else
-    // Linux: pgrep с case-insensitive по частичному имени «telegram»
-    // ловит telegram-desktop, telegram-desktop-bin и т.д.
-    proc.start("pgrep", QStringList() << "-i" << "telegram");
-#endif
-
-    proc.waitForFinished(3000);
-    QString output = QString::fromLocal8Bit(proc.readAllStandardOutput());
-
-#ifdef _WIN32
-    return output.contains(Config::TELEGRAM_PROCESS_NAME, Qt::CaseInsensitive);
-#else
-    // pgrep возвращает PID (число) если процесс найден, пусто если нет
-    return !output.trimmed().isEmpty();
-#endif
-}
-
-/// Проверить, зарегистрирован ли обработчик tg:// протокола
-bool Application::isTelegramSchemeRegistered() const {
-#ifdef _WIN32
-    // Проверяем реестр: HKEY_CLASSES_ROOT/tg/
-    HKEY hKey;
-    LONG result = RegOpenKeyExW(HKEY_CLASSES_ROOT, L"tg", 0, KEY_READ, &hKey);
-    if (result == ERROR_SUCCESS) {
-        RegCloseKey(hKey);
-        return true;
-    }
-    return false;
-#elif defined(__APPLE__)
-    // macOS: через LaunchServices проверяем, есть ли приложение для tg://
-    QProcess proc;
-    proc.start("osascript", QStringList()
-        << "-e" << "on run {url}"
-        << "-e" << "tell application \"System Events\" to get (name of processes whose name is \"Telegram\")"
-        << "-e" << "end run"
-        << "tg://");
-    proc.waitForFinished(2000);
-    // Если Telegram запущен — handler точно есть
-    if (proc.exitCode() == 0 && !proc.readAllStandardOutput().trimmed().isEmpty())
-        return true;
-    // Иначе проверяем через launchctl: есть ли приложение, обрабатывающее tg://
-    QProcess lsProc;
-    lsProc.start("sh", QStringList() << "-c"
-        << "lsregister -dump 2>/dev/null | grep -qi 'tg:' && echo yes");
-    lsProc.waitForFinished(2000);
-    return lsProc.readAllStandardOutput().trimmed() == "yes";
-#else
-    // Linux: через xdg-settings проверяем handler для tg://
-    QProcess proc;
-    proc.start("xdg-settings", QStringList()
-        << "get" << "default-url-scheme-handler" << "tg");
-    proc.waitForFinished(2000);
-    QString handler = QString::fromLocal8Bit(proc.readAllStandardOutput()).trimmed();
-    return !handler.isEmpty() && !handler.contains("not found", Qt::CaseInsensitive);
-#endif
-}
-
 void Application::onConfigureTelegram() {
     // Скрываем меню в любом случае
     m_trayMenu->hideMenu();
 
     // Проверяем, зарегистрирован ли tg:// handler
-    if (!isTelegramSchemeRegistered()) {
+    if (!TelegramManager::isSchemeRegistered()) {
         m_trayManager->showMessage(
             tr("Telegram не установлен"),
             tr("Установите Telegram Desktop для автоматической настройки прокси"),
@@ -439,7 +362,7 @@ void Application::onConfigureTelegram() {
     }
 
     // Проверяем, запущен ли процесс Telegram
-    if (isTelegramRunning()) {
+    if (TelegramManager::isProcessRunning()) {
         // Telegram запущен — открываем моникер
         QString url = QString("tg://socks?server=%1&port=%2")
             .arg(Config::SOCKS_SERVER)

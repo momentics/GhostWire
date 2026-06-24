@@ -17,12 +17,12 @@
 
 TrayManager::TrayManager(QObject* parent)
     : ITrayManager(parent)
-    , m_trayIcon(new QSystemTrayIcon(this))
-    , m_animTimer(new QTimer(this))
+    , m_trayIcon(std::make_unique<QSystemTrayIcon>(this))
+    , m_animTimer(std::make_unique<QTimer>(this))
 {
-    connect(m_trayIcon, &QSystemTrayIcon::activated,
+    connect(m_trayIcon.get(), &QSystemTrayIcon::activated,
             this, &TrayManager::onTrayActivated);
-    connect(m_animTimer, &QTimer::timeout,
+    connect(m_animTimer.get(), &QTimer::timeout,
             this, &TrayManager::onAnimTick);
 }
 
@@ -64,7 +64,7 @@ void TrayManager::init() {
     // Gnome Shell (Ubuntu 22.04+) не имеет системного трея.
     // Если AppIndicator не установлен — создаём fallback dock.
     if (!QSystemTrayIcon::isSystemTrayAvailable()) {
-        m_fallbackDock = new QWidget(nullptr,
+        m_fallbackDock = std::make_unique<QWidget>(nullptr,
             Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::X11BypassWindowManagerHint);
         m_fallbackDock->setFixedSize(24, 24);
         m_fallbackDock->setAttribute(Qt::WA_ShowWithoutActivating);
@@ -105,7 +105,7 @@ void TrayManager::init() {
     // если к ней не привязано нативное QMenu. Создаем минимальное меню-заглушку.
     // Левый клик по иконке по-прежнему будет генерировать Trigger (в зависимости от DE),
     // или пользователь сможет открыть дашборд через это меню.
-    QMenu* linuxMenu = new QMenu();
+    QMenu* linuxMenu = new QMenu(m_trayIcon.get());
     
     QAction* openAction = linuxMenu->addAction(QStringLiteral("GhostWire Dashboard"));
     connect(openAction, &QAction::triggered, this, [this]() {
@@ -127,8 +127,7 @@ void TrayManager::cleanup() {
 #ifdef Q_OS_LINUX
     if (m_fallbackDock) {
         m_fallbackDock->close();
-        delete m_fallbackDock;
-        m_fallbackDock = nullptr;
+        m_fallbackDock.reset();
     }
 #endif
     if (m_trayIcon) {

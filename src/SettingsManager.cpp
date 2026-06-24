@@ -2,7 +2,7 @@
 #include <QSettings>
 
 SettingsManager::SettingsManager()
-    : m_settings(new QSettings("GhostWire", "GhostWireDesktop"))
+    : m_settings(std::make_unique<QSettings>("GhostWire", "GhostWireDesktop"))
 {
 }
 

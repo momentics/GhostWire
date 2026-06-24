@@ -108,6 +108,7 @@ set(SOURCES
     src/SettingsManager.cpp
     src/SingleInstanceGuard.cpp
     src/Utils.cpp
+    src/TelegramManager.cpp
 )
 
 set(HEADERS
@@ -126,6 +127,7 @@ set(HEADERS
     src/UpdateNotifier.h
     src/SettingsManager.h
     src/SingleInstanceGuard.h
+    src/TelegramManager.h
 )
 
 set(RESOURCES

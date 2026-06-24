@@ -7,6 +7,7 @@
 #include <QVector>
 #include <QRect>
 #include <QEvent>
+#include <memory>
 #include "ITrayManager.h"
 
 class TrayManager : public ITrayManager {
@@ -23,7 +24,7 @@ public:
                      QSystemTrayIcon::MessageIcon icon = QSystemTrayIcon::Information,
                      int millisecondsTimeout = 3000) override;
     QRect trayIconGeometry() const override;
-    QSystemTrayIcon* trayIcon() const override { return m_trayIcon; }
+    QSystemTrayIcon* trayIcon() const override { return m_trayIcon.get(); }
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -33,8 +34,8 @@ private slots:
     void onAnimTick();
 
 private:
-    QSystemTrayIcon* m_trayIcon = nullptr;
-    QTimer*          m_animTimer = nullptr;
+    std::unique_ptr<QSystemTrayIcon> m_trayIcon;
+    std::unique_ptr<QTimer>          m_animTimer;
     GhostWireProxyState m_state = GHOSTWIRE_PROXY_OFFLINE;
     bool             m_hasConnections = false;
     int              m_animFrameIndex = 0;
@@ -48,7 +49,7 @@ private:
     QIcon m_degradedIcon;
 
 #ifdef Q_OS_LINUX
-    QWidget* m_fallbackDock = nullptr; ///< Fallback dock при отсутствии системного трея
+    std::unique_ptr<QWidget> m_fallbackDock; ///< Fallback dock при отсутствии системного трея
 #endif
 
     void loadIcons();
