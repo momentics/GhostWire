@@ -153,7 +153,14 @@ void SparklineWidget::paintEvent(QPaintEvent*) {
     drawTimeLabels(painter);
     drawYLabels(painter, formatScaleLabel(scale));
     updatePointsCache(maxVal);
-    
+
+    // Ограничиваем рисование серий областью сетки, чтобы сплайн не выходил за границы
+    int gridH = height() - PAD_TOP - PAD_BOT;
+    int gridW = width() - PAD_LEFT - PAD_RIGHT;
+    QRectF gridClipRect(PAD_LEFT, PAD_TOP, gridW, gridH);
+    painter.save();
+    painter.setClipRect(gridClipRect);
+
     double sumRx = 0.0;
     double sumTx = 0.0;
     for (int i = 0; i < m_count; ++i) {
@@ -169,6 +176,7 @@ void SparklineWidget::paintEvent(QPaintEvent*) {
         drawSeries(painter, m_tx, m_txColor);
         drawSeries(painter, m_rx, m_rxColor);
     }
+    painter.restore();
     drawLegend(painter);
 }
 
