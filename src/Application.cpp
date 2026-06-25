@@ -195,6 +195,7 @@ void Application::restoreState() {
 bool Application::startProxy() {
     if (m_ghostWire->start()) {
         m_proxyRunning = true;
+        saveState();
         m_trayManager->setState(m_ghostWire->state());
         m_trayManager->setConnectionsState(false);
         m_trayMenu->setRunningState(true);
@@ -205,6 +206,7 @@ bool Application::startProxy() {
     }
 
     m_proxyRunning = false;
+    saveState();
     if (m_statsTimer) m_statsTimer->stop();
     m_trayManager->setState(GHOSTWIRE_PROXY_OFFLINE);
     m_trayManager->setConnectionsState(false);
@@ -224,6 +226,7 @@ void Application::stopProxy() {
     m_trayMenu->clearSparkline();
     m_trayMenu->setStats(0, 0, 0, 0, 0, 0, 0, 0, 0);
     m_statsTracker->reset();
+    saveState();
 }
 
 void Application::saveState() {
