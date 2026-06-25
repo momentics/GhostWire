@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QGuiApplication>
 #include <QDebug>
+#include <QLocalServer>
 #include <QTranslator>
 #include <QLocale>
 #include <QtGlobal>
@@ -25,18 +26,32 @@ int main(int argc, char* argv[]) {
     app.setQuitOnLastWindowClosed(false); // Нет окон — не выходим автоматически
 
     // ─── Проверка единственного экземпляра ──────────────────────────────────
-    // Пытаемся отправить команду первичному экземпляру.
-    // Если удалось — значит, приложение уже запущено, показываем меню и выходим.
-    if (SingleInstanceGuard::notifyPrimaryInstance(COMMAND_SHOW_MENU)) {
-        qDebug() << "main: приложение уже запущено, отправили команду show_menu, завершаем";
-        return 0;
+    // Сначала пытаемся занять сокет (атомарная операция — только один процесс
+    // может успешно вызвать listen() на одном имени). Если не удалось — значит,
+    // приложение уже запущено; отправляем команду первичному экземпляру и выходим.
+    auto guard = std::make_unique<SingleInstanceGuard>(&app);
+
+    if (!guard->isPrimaryInstance()) {
+        // Сокет занят — отправляем команду существующему экземпляру.
+        if (SingleInstanceGuard::notifyPrimaryInstance(COMMAND_SHOW_MENU)) {
+            qDebug() << "main: приложение уже запущено, отправили команду show_menu, завершаем";
+            return 0;
+        }
+
+        // Уведомление не доставлено — первичный экземпляр может быть зависшим.
+        // Пытаемся повторно занять сокет.
+        QLocalServer::removeServer(QLatin1String(SINGLE_INSTANCE_SOCKET_NAME));
+        guard = std::make_unique<SingleInstanceGuard>(&app);
+
+        if (!guard->isPrimaryInstance()) {
+            qCritical() << "main: невозможно запустить — сокет занят, но экземпляр не отвечает";
+            return 1;
+        }
+
+        qDebug() << "main: первичный экземпляр завис — перезаняли сокет, запускаемся";
     }
 
-    // Первичный экземпляр не найден — продолжаем запуск
-    qDebug() << "main: первичный экземпляр не обнаружен, запускаемся";
-
-    // Держим guard живым весь жизненный цикл приложения
-    auto guard = std::make_unique<SingleInstanceGuard>(&app);
+    qDebug() << "main: первичный экземпляр, запускаемся";
 
     // ─── Мультиязычность: определяем язык ОС ───────────────────────────────
     QLocale locale = QLocale::system();

@@ -7,9 +7,8 @@ SingleInstanceGuard::SingleInstanceGuard(QObject* parent)
 {
     m_server = std::make_unique<QLocalServer>(this);
 
-    // Удаляем stale-сокет (например, после аварийного завершения)
-    QLocalServer::removeServer(QLatin1String(SINGLE_INSTANCE_SOCKET_NAME));
-
+    // Атомарная попытка занять сокет — только один процесс может
+    // успешно вызвать listen() на одном и том же имени сокета.
     if (m_server->listen(QLatin1String(SINGLE_INSTANCE_SOCKET_NAME))) {
         m_isPrimary = true;
         qDebug() << "SingleInstanceGuard: первичный экземпляр, сокет создан";
@@ -17,10 +16,25 @@ SingleInstanceGuard::SingleInstanceGuard(QObject* parent)
         // Принимаем подключения от вторичных экземпляров
         connect(m_server.get(), &QLocalServer::newConnection,
                 this, &SingleInstanceGuard::onNewConnection);
-    } else {
-        qWarning() << "SingleInstanceGuard: не удалось создать сокет —"
-                   << m_server->errorString();
+        return;
     }
+
+    // Сокет занят — возможно, это stale-сокет после аварийного завершения.
+    // Удаляем его и повторяем попытку.
+    QLocalServer::removeServer(QLatin1String(SINGLE_INSTANCE_SOCKET_NAME));
+
+    if (m_server->listen(QLatin1String(SINGLE_INSTANCE_SOCKET_NAME))) {
+        m_isPrimary = true;
+        qDebug() << "SingleInstanceGuard: первичный экземпляр, stale-сокет очищен и создан";
+
+        connect(m_server.get(), &QLocalServer::newConnection,
+                this, &SingleInstanceGuard::onNewConnection);
+        return;
+    }
+
+    // Сокет занят другим процессом — этот экземпляр вторичный.
+    qWarning() << "SingleInstanceGuard: вторичный экземпляр, сокет занят —"
+               << m_server->errorString();
 }
 
 SingleInstanceGuard::~SingleInstanceGuard() {
