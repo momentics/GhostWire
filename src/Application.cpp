@@ -86,7 +86,30 @@ Application::Application(QObject* parent)
             this, &Application::onOpenReleaseUrl);
 }
 
-Application::~Application() = default;
+Application::~Application() {
+    if (m_proxyRunning) {
+        if (m_statsTimer) {
+            m_statsTimer->stop();
+        }
+        if (m_ghostWire) {
+            m_ghostWire->stop();
+        }
+        m_proxyRunning = false;
+    }
+
+    if (m_trayMenu) {
+        m_trayMenu->setRunningState(false);
+    }
+
+    if (m_trayManager) {
+        m_trayManager->setState(GHOSTWIRE_PROXY_OFFLINE);
+        m_trayManager->setConnectionsState(false);
+    }
+
+    if (m_ghostWire) {
+        m_ghostWire->destroy();
+    }
+}
 
 bool Application::initialize() {
     // 1. Загрузить библиотеку

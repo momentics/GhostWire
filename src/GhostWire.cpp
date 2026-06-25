@@ -16,6 +16,9 @@
 GhostWire::GhostWire() = default;
 
 GhostWire::~GhostWire() {
+    if (m_handle && m_stop) {
+        m_stop(m_handle);
+    }
     destroy();
     if (m_lib.isLoaded())
         m_lib.unload();
@@ -99,14 +102,15 @@ bool GhostWire::create(const QString& configJson) {
     }
 
     if (m_handle) {
+        if (m_stop) {
+            m_stop(m_handle);
+        }
         destroy();
     }
 
-    // Пробуем create (из строки) — toUtf8() возвращает QByteArray, который
-    // живёт до вызова m_create(). Указатель constData() валиден пока
-    // QByteArray существует (в рамках одного выражения).
+    QByteArray utf8Config = configJson.toUtf8();
     if (m_create) {
-        m_handle = m_create(configJson.toUtf8().constData());
+        m_handle = m_create(utf8Config.constData());
     }
 
     if (!m_handle) {
