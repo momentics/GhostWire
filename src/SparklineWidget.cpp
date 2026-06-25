@@ -1,11 +1,12 @@
 #include "SparklineWidget.h"
 #include "Config.h"
 #include <QPainter>
+#include <QPainterPath>
+#include <QLinearGradient>
 #include <QFontMetrics>
 #include <QApplication>
 #include <QtGlobal>
 #include <cmath>
-#include <numeric>
 
 namespace {
 
@@ -71,7 +72,11 @@ QString formatScaleLabel(const ScaleValue& scale) {
 SparklineWidget::SparklineWidget(QWidget* parent)
     : QWidget(parent)
     , m_maxPoints(Config::SPARKLINE_MAX_POINTS)
+    , m_writeIndex(0)
+    , m_count(0)
 {
+    m_rx.resize(m_maxPoints);
+    m_tx.resize(m_maxPoints);
     m_rxColor   = QColor(80, 160, 255, 180);   // синий полупрозрачный
     m_txColor   = QColor(255, 120, 80, 180);   // оранжевый полупрозрачный
     m_gridColor = QColor(255, 255, 255, 30);   // очень прозрачная сетка
@@ -90,14 +95,11 @@ SparklineWidget::SparklineWidget(QWidget* parent)
 }
 
 void SparklineWidget::addPoint(double rx, double tx) {
-    m_rx.append(rx);
-    m_tx.append(tx);
+    m_rx[m_writeIndex] = rx;
+    m_tx[m_writeIndex] = tx;
+    if (m_count < m_maxPoints) ++m_count;
+    m_writeIndex = (m_writeIndex + 1) % m_maxPoints;
 
-    // Храним не больше m_maxPoints точек
-    while (m_rx.size() > m_maxPoints) m_rx.removeFirst();
-    while (m_tx.size() > m_maxPoints) m_tx.removeFirst();
-
-    // Сбрасываем кеш точек — пересчитается при следующем paint
     m_rxPoints.clear();
     m_txPoints.clear();
 
@@ -105,8 +107,8 @@ void SparklineWidget::addPoint(double rx, double tx) {
 }
 
 void SparklineWidget::clear() {
-    m_rx.clear();
-    m_tx.clear();
+    m_count = 0;
+    m_writeIndex = 0;
     m_rxPoints.clear();
     m_txPoints.clear();
     update();
@@ -129,17 +131,18 @@ void SparklineWidget::paintEvent(QPaintEvent*) {
     painter.setBrush(QColor(30, 30, 30, 200));
     painter.drawRoundedRect(chartRect, 4, 4);
 
-    if (m_rx.size() < 2 && m_tx.size() < 2) {
-        // Нет данных — рисуем заглушку
+    if (m_count < 2) {
         painter.setPen(m_textColor);
         painter.drawText(chartRect, Qt::AlignCenter, tr("нет данных"));
         return;
     }
 
-    // Определяем autoscale по обоим рядам
     double maxSample = 0;
-    for (double v : m_rx) if (v > maxSample) maxSample = v;
-    for (double v : m_tx) if (v > maxSample) maxSample = v;
+    for (int i = 0; i < m_count; ++i) {
+        int idx = (m_writeIndex - m_count + i + m_maxPoints) % m_maxPoints;
+        if (m_rx[idx] > maxSample) maxSample = m_rx[idx];
+        if (m_tx[idx] > maxSample) maxSample = m_tx[idx];
+    }
 
     // Минимальный масштаб чтобы не делить на ноль
     if (maxSample < 1.0) maxSample = 1.0;
@@ -150,10 +153,21 @@ void SparklineWidget::paintEvent(QPaintEvent*) {
     drawTimeLabels(painter);
     drawYLabels(painter, formatScaleLabel(scale));
     updatePointsCache(maxVal);
-    
-    // Считаем суммы
-    double sumRx = std::accumulate(m_rx.begin(), m_rx.end(), 0.0);
-    double sumTx = std::accumulate(m_tx.begin(), m_tx.end(), 0.0);
+
+    // Ограничиваем рисование серий областью сетки, чтобы сплайн не выходил за границы
+    int gridH = height() - PAD_TOP - PAD_BOT;
+    int gridW = width() - PAD_LEFT - PAD_RIGHT;
+    QRectF gridClipRect(PAD_LEFT, PAD_TOP, gridW, gridH);
+    painter.save();
+    painter.setClipRect(gridClipRect);
+
+    double sumRx = 0.0;
+    double sumTx = 0.0;
+    for (int i = 0; i < m_count; ++i) {
+        int idx = (m_writeIndex - m_count + i + m_maxPoints) % m_maxPoints;
+        sumRx += m_rx[idx];
+        sumTx += m_tx[idx];
+    }
 
     if (sumRx > sumTx) {
         drawSeries(painter, m_rx, m_rxColor);
@@ -162,6 +176,7 @@ void SparklineWidget::paintEvent(QPaintEvent*) {
         drawSeries(painter, m_tx, m_txColor);
         drawSeries(painter, m_rx, m_rxColor);
     }
+    painter.restore();
     drawLegend(painter);
 }
 
@@ -184,7 +199,7 @@ void SparklineWidget::drawGrid(QPainter& painter, double) {
     }
 
     // Вертикальные линии
-    int numPoints = qMax(m_rx.size(), m_tx.size());
+    int numPoints = m_count;
     if (numPoints < 2) return;
 
     painter.setPen(QPen(m_gridColor, 0.8));
@@ -238,34 +253,91 @@ void SparklineWidget::drawSeries(QPainter& painter, const QVector<double>& serie
     const QVector<QPointF>& points = (series == m_rx) ? m_rxPoints : m_txPoints;
     if (points.isEmpty()) return;
 
-    QPen pen(color, 1.0);
-    painter.setPen(pen);
-    painter.drawPolyline(points.constData(), points.size());
+    int gridH = height() - PAD_TOP - PAD_BOT;
+    double baseline = PAD_TOP + gridH;
+
+    // Градиент: 100% альфа сверху, 40% альфа снизу
+    QLinearGradient grad(0, PAD_TOP, 0, baseline);
+    grad.setColorAt(0.0, QColor(color.red(), color.green(), color.blue(), color.alpha()));
+    grad.setColorAt(1.0, QColor(color.red(), color.green(), color.blue(), static_cast<int>(color.alpha() * 0.4)));
+
+    // Плавная закрашенная область с помощью сплайна Catmull-Rom
+    QPainterPath areaPath;
+    areaPath.moveTo(points.first());
+
+    int n = points.size();
+    for (int i = 0; i < n - 1; ++i) {
+        int prev = qMax(i - 1, 0);
+        int next = qMin(i + 2, n - 1);
+        const QPointF& p0 = points[prev];
+        const QPointF& p1 = points[i];
+        const QPointF& p2 = points[i + 1];
+        const QPointF& p3 = points[next];
+
+        QPointF cp1(p1.x() + (p2.x() - p0.x()) / 6.0,
+                    p1.y() + (p2.y() - p0.y()) / 6.0);
+        QPointF cp2(p2.x() - (p3.x() - p1.x()) / 6.0,
+                    p2.y() - (p3.y() - p1.y()) / 6.0);
+
+        areaPath.cubicTo(cp1, cp2, p2);
+    }
+
+    areaPath.lineTo(points.last().x(), baseline);
+    areaPath.lineTo(points.first().x(), baseline);
+    areaPath.closeSubpath();
+
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(grad);
+    painter.drawPath(areaPath);
+
+    // Плавная линия поверх области
+    QPainterPath linePath;
+    linePath.moveTo(points.first());
+
+    for (int i = 0; i < n - 1; ++i) {
+        int prev = qMax(i - 1, 0);
+        int next = qMin(i + 2, n - 1);
+        const QPointF& p0 = points[prev];
+        const QPointF& p1 = points[i];
+        const QPointF& p2 = points[i + 1];
+        const QPointF& p3 = points[next];
+
+        QPointF cp1(p1.x() + (p2.x() - p0.x()) / 6.0,
+                    p1.y() + (p2.y() - p0.y()) / 6.0);
+        QPointF cp2(p2.x() - (p3.x() - p1.x()) / 6.0,
+                    p2.y() - (p3.y() - p1.y()) / 6.0);
+
+        linePath.cubicTo(cp1, cp2, p2);
+    }
+
+    painter.setPen(QPen(color, 1.0));
+    painter.setBrush(Qt::NoBrush);
+    painter.drawPath(linePath);
 }
 
 void SparklineWidget::updatePointsCache(double maxVal) {
     int gridH = height() - PAD_TOP - PAD_BOT;
     int gridW = width() - PAD_LEFT - PAD_RIGHT;
 
-    auto computePoints = [gridW, gridH, maxVal, this](const QVector<double>& series) -> QVector<QPointF> {
+    auto computePoints = [this, gridW, gridH, maxVal](const QVector<double>& series) -> QVector<QPointF> {
         QVector<QPointF> pts;
-        int n = series.size();
-        if (n < 2) return pts;
+        if (m_count < 2) return pts;
 
-        int offset = m_maxPoints - n;
-        pts.reserve(n);
-        for (int i = 0; i < n; ++i) {
+        pts.reserve(m_count);
+        int offset = m_maxPoints - m_count;
+        for (int i = 0; i < m_count; ++i) {
+            int idx = (m_writeIndex - m_count + i + m_maxPoints) % m_maxPoints;
             double frac = static_cast<double>(i + offset) / static_cast<double>(m_maxPoints - 1);
             double x = PAD_LEFT + frac * gridW;
-            double y = PAD_TOP + gridH - (series[i] / maxVal) * gridH;
+            double y = PAD_TOP + gridH - (series[idx] / maxVal) * gridH;
             pts.append(QPointF(x, y));
         }
         return pts;
     };
 
-    if (m_rxPoints.isEmpty() && !m_rx.isEmpty())
+    if (m_rxPoints.isEmpty())
         m_rxPoints = computePoints(m_rx);
-    if (m_txPoints.isEmpty() && !m_tx.isEmpty())
+    if (m_txPoints.isEmpty())
         m_txPoints = computePoints(m_tx);
 }
 

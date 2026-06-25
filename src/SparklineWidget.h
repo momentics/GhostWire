@@ -37,6 +37,8 @@ private:
     QVector<QPointF> m_rxPoints;
     QVector<QPointF> m_txPoints;
     int m_maxPoints;
+    int m_writeIndex;
+    int m_count;
 
     QColor m_rxColor;
     QColor m_txColor;
