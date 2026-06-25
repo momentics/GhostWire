@@ -12,8 +12,8 @@
 
 TrayMenu::TrayMenu(QWidget* parent)
     : QWidget(parent, makeWindowFlags())
-    , m_autoHideTimer(new QTimer(this))
-    , m_ipcTimeoutTimer(new QTimer(this))
+    , m_autoHideTimer(std::make_unique<QTimer>(this))
+    , m_ipcTimeoutTimer(std::make_unique<QTimer>(this))
 {
     setAttribute(Qt::WA_TranslucentBackground, false);
     setAttribute(Qt::WA_DeleteOnClose, false);
@@ -24,11 +24,11 @@ TrayMenu::TrayMenu(QWidget* parent)
 
     m_autoHideTimer->setSingleShot(true);
     m_autoHideTimer->setInterval(50);
-    connect(m_autoHideTimer, &QTimer::timeout, this, &TrayMenu::tryHideMenu);
+    connect(m_autoHideTimer.get(), &QTimer::timeout, this, &TrayMenu::tryHideMenu);
 
     m_ipcTimeoutTimer->setSingleShot(true);
     m_ipcTimeoutTimer->setInterval(3000); // 3-секундный таймер
-    connect(m_ipcTimeoutTimer, &QTimer::timeout, this, [this]() {
+    connect(m_ipcTimeoutTimer.get(), &QTimer::timeout, this, [this]() {
         // Срабатывает, если был запущен второй экземпляр, но пользователь не пошевелил мышью
         // Если мышь не над меню и фокуса нет, скрываем
         if (!underMouse() && (qApp->applicationState() != Qt::ApplicationActive)) {
@@ -54,9 +54,7 @@ bool TrayMenu::event(QEvent* event) {
     return QWidget::event(event);
 }
 
-void TrayMenu::showEvent(QShowEvent* event) {
-    QWidget::showEvent(event);
-}
+
 
 void TrayMenu::hideEvent(QHideEvent* event) {
     m_autoHideTimer->stop();
@@ -137,13 +135,6 @@ void TrayMenu::buildLayout() {
     });
     mainLayout->addWidget(m_toggleButton);
 
-    // Разделитель 1
-    //auto* line1 = new QFrame(this);
-    //line1->setFrameShape(QFrame::HLine);
-    //line1->setFrameShadow(QFrame::Sunken);
-    //line1->setStyleSheet("QFrame { background-color: #555; margin: 0 6px; }");
-    //mainLayout->addWidget(line1);
-
     // Кнопка Подключить Telegram
     m_telegramButton = new QPushButton(tr("Подключить Telegram"), this);
     connect(m_telegramButton, &QPushButton::clicked, this, [this]() {
@@ -157,13 +148,6 @@ void TrayMenu::buildLayout() {
         emit checkUpdatesRequested();
     });
     mainLayout->addWidget(m_updateButton);
-
-    // Разделитель 2
-    //auto* line2 = new QFrame(this);
-    //line2->setFrameShape(QFrame::HLine);
-    //line2->setFrameShadow(QFrame::Sunken);
-    //line2->setStyleSheet("QFrame { background-color: #555; margin: 0 6px; }");
-    //mainLayout->addWidget(line2);
 
     // Кнопка Выход
     m_exitButton = new QPushButton(tr("Выход"), this);

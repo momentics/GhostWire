@@ -4,13 +4,13 @@
 #include <QPushButton>
 #include <QTimer>
 #include <QEvent>
-#include <QShowEvent>
 #include <QHideEvent>
+#include <memory>
 
 class StatsPanel;
 class SparklineWidget;
 
-/// Borderless popup-окно, имитирующее контекстное меню трея.
+/// Окно без рамки, имитирующее контекстное меню трея.
 /// Содержит: статистику, график RX/TX, кнопки Старт/Стоп и Выход.
 class TrayMenu : public QWidget {
     Q_OBJECT
@@ -49,7 +49,6 @@ signals:
 protected:
     bool event(QEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;
-    void showEvent(QShowEvent* event) override;
     void hideEvent(QHideEvent* event) override;
 
 private:
@@ -65,8 +64,8 @@ private:
     static Qt::WindowFlags makeWindowFlags();
 
     bool m_isRunning = false;
-    QTimer* m_autoHideTimer = nullptr;
-    QTimer* m_ipcTimeoutTimer = nullptr;
+    std::unique_ptr<QTimer> m_autoHideTimer;
+    std::unique_ptr<QTimer> m_ipcTimeoutTimer;
     bool    m_ipcMode = false;
     bool    m_wasUnderMouse = false;
     bool    m_ipcRequireHover = true;

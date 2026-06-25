@@ -38,7 +38,7 @@ bool GhostWire::load(const QString& libDir) {
     }
 
     if (libPath.isEmpty() || !QFile::exists(libPath)) {
-        // Fallback: из директории приложения
+        // Резервный вариант: из директории приложения
         QString appDir = QCoreApplication::applicationDirPath();
 #ifdef _WIN32
         libPath = QDir(appDir).filePath("ghostwire.dll");
@@ -59,7 +59,7 @@ bool GhostWire::load(const QString& libDir) {
 
     resolveSymbols();
 
-    if (!m_createFromFile || !m_free || !m_start || !m_stop || !m_getState || !m_getStats) {
+    if (!m_create || !m_free || !m_start || !m_stop || !m_getState || !m_getStats) {
         qWarning() << "GhostWire: не все символы разрешены";
         m_lib.unload();
         return false;
@@ -70,8 +70,6 @@ bool GhostWire::load(const QString& libDir) {
 }
 
 void GhostWire::resolveSymbols() {
-    m_createFromFile = reinterpret_cast<FnCreateFromFile>(
-        m_lib.resolve("ghostwire_proxy_create_from_file"));
     m_create = reinterpret_cast<FnCreate>(
         m_lib.resolve("ghostwire_proxy_create"));
     m_free = reinterpret_cast<FnFree>(
@@ -104,17 +102,12 @@ bool GhostWire::create(const QString& configJson) {
         destroy();
     }
 
-    // держим configData. Это не лик
-    QByteArray configData = configJson.toUtf8();
-
-    // Пробуем create (из строки)
+    // Пробуем create (из строки) — toUtf8() возвращает QByteArray, который
+    // живёт до вызова m_create(). Указатель constData() валиден пока
+    // QByteArray существует (в рамках одного выражения).
     if (m_create) {
-        m_handle = m_create(configData.constData());
+        m_handle = m_create(configJson.toUtf8().constData());
     }
-
-    //if (!m_handle && m_createFromFile) {
-    //    m_handle = m_createFromFile(configData.constData());
-    // }
 
     if (!m_handle) {
         qWarning() << "GhostWire::create — не удалось создать экземпляр";

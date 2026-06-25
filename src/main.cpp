@@ -7,6 +7,7 @@
 #include <QTranslator>
 #include <QLocale>
 #include <QtGlobal>
+#include <memory>
 
 int main(int argc, char* argv[]) {
     // Включаем сглаживание и поддержку HiDPI для всего приложения
@@ -35,7 +36,7 @@ int main(int argc, char* argv[]) {
     qDebug() << "main: первичный экземпляр не обнаружен, запускаемся";
 
     // Держим guard живым весь жизненный цикл приложения
-    auto* guard = new SingleInstanceGuard(&app);
+    auto guard = std::make_unique<SingleInstanceGuard>(&app);
 
     // ─── Мультиязычность: определяем язык ОС ───────────────────────────────
     QLocale locale = QLocale::system();
@@ -67,7 +68,7 @@ int main(int argc, char* argv[]) {
     Application application;
 
     // Связываем команды guard с Application
-    QObject::connect(guard, &SingleInstanceGuard::commandReceived,
+    QObject::connect(guard.get(), &SingleInstanceGuard::commandReceived,
                      &application, [&application](const QString& command) {
         if (command == QLatin1String(COMMAND_SHOW_MENU)) {
             application.showTrayMenuAtCursor();

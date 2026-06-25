@@ -3,6 +3,9 @@
 #include <QObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <memory>
+
+class SettingsManager;
 
 struct SemVer {
     int major = 0;
@@ -66,4 +69,6 @@ private:
     QString loadEtag() const;
     QString loadLastModified() const;
     qint64 lastCheckTime() const;
+
+    std::unique_ptr<SettingsManager> m_settings;
 };

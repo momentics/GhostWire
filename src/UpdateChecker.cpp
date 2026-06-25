@@ -1,10 +1,10 @@
 #include "UpdateChecker.h"
 #include "Config.h"
+#include "SettingsManager.h"
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QSettings>
 #include <QDateTime>
 #include <QRegularExpression>
 #include <QTimer>
@@ -15,13 +15,14 @@ constexpr int kUpdateCheckTimeoutMs = 15000;
 }
 
 UpdateChecker::UpdateChecker(const QString& currentVersion,
-                             const QString& repoOwner,
-                             const QString& repoName,
-                             QObject* parent)
+                              const QString& repoOwner,
+                              const QString& repoName,
+                              QObject* parent)
     : QObject(parent)
     , m_currentVersion(currentVersion)
     , m_repoOwner(repoOwner)
     , m_repoName(repoName)
+    , m_settings(std::make_unique<SettingsManager>())
 {
 }
 
@@ -79,11 +80,11 @@ void UpdateChecker::startCheck(bool manual, bool ignoreSchedule) {
             reply->abort();
     });
     connect(reply, &QNetworkReply::finished, timeoutTimer, &QObject::deleteLater);
+    connect(reply, &QNetworkReply::finished, reply, &QObject::deleteLater);
     timeoutTimer->start();
 
     connect(reply, &QNetworkReply::finished, this, [this, reply, manual]() {
         onReplyFinished(reply, manual);
-        reply->deleteLater();
         m_checkInProgress = false;
 
         if (m_manualCheckQueued) {
@@ -121,25 +122,21 @@ int UpdateChecker::millisecondsUntilNextCheck() const {
 }
 
 void UpdateChecker::postponeUpdateNotification() {
-    QSettings settings("GhostWire", "GhostWireDesktop");
     const qint64 postponedUntilSecs = QDateTime::currentSecsSinceEpoch()
         + Config::UPDATE_CHECK_DECLINED_COOLDOWN_HOURS * 3600;
-    settings.setValue("updateCheckPostponedUntil", postponedUntilSecs);
+    m_settings->setUpdateCheckPostponedUntil(postponedUntilSecs);
 }
 
 void UpdateChecker::clearUpdateNotificationPostponement() {
-    QSettings settings("GhostWire", "GhostWireDesktop");
-    settings.remove("updateCheckPostponedUntil");
+    m_settings->removeUpdateCheckPostponedUntil();
 }
 
 qint64 UpdateChecker::lastCheckTime() const {
-    QSettings settings("GhostWire", "GhostWireDesktop");
-    return settings.value("updateCheckLastTime", 0).toLongLong();
+    return m_settings->getUpdateCheckLastTime();
 }
 
 qint64 UpdateChecker::postponedUntil() const {
-    QSettings settings("GhostWire", "GhostWireDesktop");
-    return settings.value("updateCheckPostponedUntil", 0).toLongLong();
+    return m_settings->getUpdateCheckPostponedUntil();
 }
 
 bool UpdateChecker::isPostponed() const {
@@ -147,32 +144,29 @@ bool UpdateChecker::isPostponed() const {
 }
 
 void UpdateChecker::saveCheckTime(const QString& etag, const QString& lastModified) {
-    QSettings settings("GhostWire", "GhostWireDesktop");
-    settings.setValue("updateCheckLastTime", QDateTime::currentSecsSinceEpoch());
+    m_settings->setUpdateCheckLastTime(QDateTime::currentSecsSinceEpoch());
     if (!etag.isEmpty())
-        settings.setValue("updateCheckEtag", etag);
+        m_settings->setUpdateCheckEtag(etag);
     if (!lastModified.isEmpty())
-        settings.setValue("updateCheckLastModified", lastModified);
+        m_settings->setUpdateCheckLastModified(lastModified);
 }
 
 void UpdateChecker::saveLatestRelease(const QString& latestVersion,
-                                      const QString& releaseUrl,
-                                      const QString& etag,
-                                      const QString& lastModified) {
-    QSettings settings("GhostWire", "GhostWireDesktop");
-    settings.setValue("updateCheckLastTime", QDateTime::currentSecsSinceEpoch());
-    settings.setValue("updateCheckLatestVersion", latestVersion);
-    settings.setValue("updateCheckReleaseUrl", releaseUrl);
+                                       const QString& releaseUrl,
+                                       const QString& etag,
+                                       const QString& lastModified) {
+    m_settings->setUpdateCheckLastTime(QDateTime::currentSecsSinceEpoch());
+    m_settings->setUpdateCheckLatestVersion(latestVersion);
+    m_settings->setUpdateCheckReleaseUrl(releaseUrl);
     if (!etag.isEmpty())
-        settings.setValue("updateCheckEtag", etag);
+        m_settings->setUpdateCheckEtag(etag);
     if (!lastModified.isEmpty())
-        settings.setValue("updateCheckLastModified", lastModified);
+        m_settings->setUpdateCheckLastModified(lastModified);
 }
 
 UpdateInfo UpdateChecker::loadLatestRelease() const {
-    QSettings settings("GhostWire", "GhostWireDesktop");
-    const QString latestVersion = settings.value("updateCheckLatestVersion").toString();
-    const QString releaseUrl = settings.value("updateCheckReleaseUrl").toString();
+    const QString latestVersion = m_settings->getUpdateCheckLatestVersion();
+    const QString releaseUrl = m_settings->getUpdateCheckReleaseUrl();
 
     if (latestVersion.isEmpty())
         return UpdateInfo();
@@ -181,13 +175,11 @@ UpdateInfo UpdateChecker::loadLatestRelease() const {
 }
 
 QString UpdateChecker::loadEtag() const {
-    QSettings settings("GhostWire", "GhostWireDesktop");
-    return settings.value("updateCheckEtag").toString();
+    return m_settings->getUpdateCheckEtag();
 }
 
 QString UpdateChecker::loadLastModified() const {
-    QSettings settings("GhostWire", "GhostWireDesktop");
-    return settings.value("updateCheckLastModified").toString();
+    return m_settings->getUpdateCheckLastModified();
 }
 
 SemVer UpdateChecker::parseSemVer(const QString& version) {
@@ -235,9 +227,8 @@ void UpdateChecker::onReplyFinished(QNetworkReply* reply, bool manual) {
     if (status == 304) {
         UpdateInfo cached = loadLatestRelease();
         if (cached.latestVersion.isEmpty()) {
-            QSettings settings("GhostWire", "GhostWireDesktop");
-            settings.remove("updateCheckEtag");
-            settings.remove("updateCheckLastModified");
+            m_settings->removeUpdateCheckEtag();
+            m_settings->removeUpdateCheckLastModified();
             if (manual)
                 emit checkFailed("Cached release metadata unavailable", manual);
             return;

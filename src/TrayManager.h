@@ -7,60 +7,35 @@
 #include <QVector>
 #include <QRect>
 #include <QEvent>
-#include "../libs/ghostwire/include/ghostwire.h"
+#include <memory>
+#include "ITrayManager.h"
 
-/// Управляет иконкой в системном трее:
-/// - регистрация / удаление иконки
-/// - покадровая анимация при активном режиме
-/// - передача геометрии иконки для позиционирования меню
-class TrayManager : public QObject {
+class TrayManager : public ITrayManager {
     Q_OBJECT
 public:
     explicit TrayManager(QObject* parent = nullptr);
-    ~TrayManager();
+    ~TrayManager() override;
 
-    /// Инициализировать иконку в трее (загружает иконки из ресурсов)
-    void init();
-
-    /// Очистить иконку из трея
-    void cleanup();
-
-    /// Установить состояние прокси: Offline / Online / Degraded.
-    void setState(GhostWireProxyState state);
-
-    /// Установить состояние соединений: есть WS-соединения / нет (переключает между ACTIVE и анимацией)
-    void setConnectionsState(bool hasConnections);
-
-    /// Показать временное всплывающее сообщение (toast) от иконки трея
+    void init() override;
+    void cleanup() override;
+    void setState(GhostWireProxyState state) override;
+    void setConnectionsState(bool hasConnections) override;
     void showMessage(const QString& title, const QString& message,
                      QSystemTrayIcon::MessageIcon icon = QSystemTrayIcon::Information,
-                     int millisecondsTimeout = 3000);
-
-    /// Получить геометрию иконки трея в экранных координатах.
-    QRect trayIconGeometry() const;
-
-    /// Получить указатель на QSystemTrayIcon (для UpdateNotifier)
-    QSystemTrayIcon* trayIcon() const { return m_trayIcon; }
+                     int millisecondsTimeout = 3000) override;
+    QRect trayIconGeometry() const override;
+    QSystemTrayIcon* trayIcon() const override { return m_trayIcon.get(); }
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
-
-signals:
-    /// Пользователь кликнул по иконке — открыть меню
-    void iconClicked(const QRect& iconGeometry);
-
-#ifdef Q_OS_LINUX
-    /// Сигнал выхода из нативного контекстного меню (только для Linux)
-    void linuxQuitRequested();
-#endif
 
 private slots:
     void onTrayActivated(QSystemTrayIcon::ActivationReason reason);
     void onAnimTick();
 
 private:
-    QSystemTrayIcon* m_trayIcon = nullptr;
-    QTimer*          m_animTimer = nullptr;
+    std::unique_ptr<QSystemTrayIcon> m_trayIcon;
+    std::unique_ptr<QTimer>          m_animTimer;
     GhostWireProxyState m_state = GHOSTWIRE_PROXY_OFFLINE;
     bool             m_hasConnections = false;
     int              m_animFrameIndex = 0;
@@ -74,8 +49,10 @@ private:
     QIcon m_degradedIcon;
 
 #ifdef Q_OS_LINUX
-    QWidget* m_fallbackDock = nullptr; ///< Fallback dock при отсутствии системного трея
+    std::unique_ptr<QWidget> m_fallbackDock; ///< Fallback dock при отсутствии системного трея
 #endif
 
     void loadIcons();
+    void applyIconState();
+    QString applyFallbackDockStyle() const;
 };
