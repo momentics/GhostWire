@@ -31,9 +31,9 @@ bool GhostWire::load(const QString& libDir) {
     QString libPath;
 
     if (!libDir.isEmpty()) {
-#ifdef _WIN32
+#ifdef Q_OS_WIN
         libPath = QDir(libDir).filePath("ghostwire.dll");
-#elif defined(__APPLE__)
+#elif defined(Q_OS_MAC)
         libPath = QDir(libDir).filePath("libghostwire.dylib");
 #else
         libPath = QDir(libDir).filePath("libghostwire.so");
@@ -43,9 +43,9 @@ bool GhostWire::load(const QString& libDir) {
     if (libPath.isEmpty() || !QFile::exists(libPath)) {
         // Резервный вариант: из директории приложения
         QString appDir = QCoreApplication::applicationDirPath();
-#ifdef _WIN32
+#ifdef Q_OS_WIN
         libPath = QDir(appDir).filePath("ghostwire.dll");
-#elif defined(__APPLE__)
+#elif defined(Q_OS_MAC)
         libPath = QDir(appDir).filePath("libghostwire.dylib");
 #else
         libPath = QDir(appDir).filePath("libghostwire.so");

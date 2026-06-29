@@ -14,6 +14,7 @@ set(GHOSTWIRE_RC_ICON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/ghostwir
 set(GHOSTWIRE_FILE_DESCRIPTION "GhostWire Desktop - Telegram Gateway with anti-DPI protection")
 set(GHOSTWIRE_PRODUCT_NAME "GhostWire Desktop")
 set(GHOSTWIRE_BUNDLE_NAME "GhostWire")
+set(GHOSTWIRE_MACOS_ICON_NAME "GhostWire.icns")
 set(GHOSTWIRE_COMPANY_NAME "momentics")
 set(GHOSTWIRE_COPYRIGHT "Copyright (C) 2026 momentics")
 set(GHOSTWIRE_INTERNAL_NAME "GhostWireDesktop")
@@ -27,6 +28,12 @@ configure_file(resources/app.rc.in
 configure_file(resources/app.manifest.in
     "${CMAKE_CURRENT_BINARY_DIR}/app.manifest"
     @ONLY)
+if(APPLE)
+    enable_language(OBJCXX)
+    configure_file(resources/Info.plist.in
+        "${CMAKE_CURRENT_BINARY_DIR}/Info.plist"
+        @ONLY)
+endif()
 
 # Translations: compile .ts то .qm
 find_program(LRELEASE_EXECUTABLE lrelease)
@@ -66,7 +73,9 @@ if(WIN32)
     endif()
 elseif(APPLE)
     set(GHOSTWIRE_LIB "${GHOSTWIRE_LIB_DIR}/libghostwire.dylib")
-    set(GHOSTWIRE_LINK_LIB "${GHOSTWIRE_LIB}")
+    # The app loads libghostwire.dylib explicitly via QLibrary at runtime.
+    # Avoid linking it into the Mach-O load commands so macdeployqt only handles Qt.
+    set(GHOSTWIRE_LINK_LIB "")
 elseif(UNIX)
     set(GHOSTWIRE_LIB "${GHOSTWIRE_LIB_DIR}/libghostwire.so")
     set(GHOSTWIRE_LINK_LIB "${GHOSTWIRE_LIB}")
@@ -129,6 +138,20 @@ set(HEADERS
     src/SingleInstanceGuard.h
     src/TelegramManager.h
 )
+
+if(APPLE)
+    list(APPEND SOURCES
+        src/MacPlatformIntegration.mm
+        src/MacTrayManager.mm
+        resources/icons/${GHOSTWIRE_MACOS_ICON_NAME}
+    )
+    list(APPEND HEADERS
+        src/MacPlatformIntegration.h
+        src/MacTrayManager.h
+    )
+    set_source_files_properties(resources/icons/${GHOSTWIRE_MACOS_ICON_NAME}
+        PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+endif()
 
 set(RESOURCES
     resources/resources.qrc
@@ -217,17 +240,27 @@ elseif(APPLE)
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         PLATFORM_MACOS
     )
+    find_library(APPKIT_FRAMEWORK AppKit REQUIRED)
+    find_library(USER_NOTIFICATIONS_FRAMEWORK UserNotifications REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+        ${APPKIT_FRAMEWORK}
+        ${USER_NOTIFICATIONS_FRAMEWORK}
+    )
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>
+        $<$<COMPILE_LANGUAGE:OBJCXX>:-fblocks>
+    )
     set_target_properties(${PROJECT_NAME} PROPERTIES
         MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_BINARY_DIR}/Info.plist"
         MACOSX_BUNDLE_BUNDLE_NAME "${GHOSTWIRE_BUNDLE_NAME}"
+        MACOSX_BUNDLE_ICON_FILE "${GHOSTWIRE_MACOS_ICON_NAME}"
         MACOSX_BUNDLE_EXECUTABLE_NAME "${GHOSTWIRE_INTERNAL_NAME}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_LONG_VERSION_STRING "${GHOSTWIRE_PRODUCT_NAME} ${PROJECT_VERSION}"
         MACOSX_BUNDLE_COPYRIGHT "${GHOSTWIRE_COPYRIGHT}"
         MACOSX_BUNDLE_GUI_IDENTIFIER "${GHOSTWIRE_BUNDLE_IDENTIFIER}"
-        INSTALL_RPATH "@executable_path"
-        BUILD_RPATH "@executable_path"
     )
     # Strip в Release-сборке для уменьшения размера
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -269,23 +302,7 @@ if(WIN32)
             $<TARGET_FILE_DIR:${PROJECT_NAME}>
         COMMENT "Copying ghostwire.dll and OpenSSL DLLs to output"
     )
-elseif(APPLE)
-    # Copy into .app bundle Contents/MacOS/
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${GHOSTWIRE_LIB}"
-            $<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/MacOS/
-        COMMENT "Copying libghostwire.dylib to bundle"
-    )
-    foreach(_openssl_dylib IN LISTS OPENSSL_DYLIBS)
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${_openssl_dylib}"
-                $<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/MacOS/
-            COMMENT "Copying OpenSSL dylibs to bundle"
-        )
-    endforeach()
-elseif(UNIX)
+elseif(UNIX AND NOT APPLE)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${GHOSTWIRE_LIB}"
@@ -330,6 +347,21 @@ elseif(APPLE)
             -always-overwrite
         COMMENT "Running macdeployqt..."
     )
+
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${GHOSTWIRE_LIB}"
+            $<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/MacOS/
+        COMMENT "Copying libghostwire.dylib to bundle"
+    )
+    foreach(_openssl_dylib IN LISTS OPENSSL_DYLIBS)
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${_openssl_dylib}"
+                $<TARGET_BUNDLE_CONTENT_DIR:${PROJECT_NAME}>/MacOS/
+            COMMENT "Copying OpenSSL dylibs to bundle"
+        )
+    endforeach()
 
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND}

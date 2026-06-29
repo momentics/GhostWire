@@ -9,7 +9,7 @@ class UpdateNotifier : public QObject {
     Q_OBJECT
 public:
     explicit UpdateNotifier(QSystemTrayIcon* trayIcon, QObject* parent = nullptr);
-    ~UpdateNotifier() = default;
+    ~UpdateNotifier();
 
     bool notifyUpdateAvailableAuto(const QString& currentVersion,
                                     const QString& latestVersion,
@@ -32,15 +32,15 @@ private:
     QSystemTrayIcon* m_trayIcon;
     QString m_pendingReleaseUrl;
 
-    /// Показать диалог обновления (MessageBox) — общий для macOS/Linux.
+    /// Показать диалог обновления для платформ с Qt MessageBox fallback.
     /// Возвращает true если пользователь открыл страницу.
     bool showUpdateAvailableDialog(const QString& currentVersion,
                                     const QString& latestVersion,
                                     const QString& releaseUrl);
 
-    /// Показать информационное сообщение «Обновлений нет» — общий для всех платформ.
+    /// Показать информационное сообщение «Обновлений нет».
     void showNoUpdateInfo();
 
-    /// Показать предупреждение об ошибке проверки — общий для всех платформ.
+    /// Показать предупреждение об ошибке проверки.
     void showCheckFailedWarning(const QString& error);
 };

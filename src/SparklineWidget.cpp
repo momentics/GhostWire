@@ -77,21 +77,47 @@ SparklineWidget::SparklineWidget(QWidget* parent)
 {
     m_rx.resize(m_maxPoints);
     m_tx.resize(m_maxPoints);
+    updatePlatformColors();
+
+    // Размер в пунктах сохраняет читаемость подписей при дробном масштабе экрана.
+    m_labelFont = QFont(QApplication::font());
+#ifdef Q_OS_MAC
+    m_labelFont.setPointSizeF(8.0);
+#else
+    m_labelFont.setPointSizeF(5.25);
+#endif
+
+    m_legendFont = QFont(QApplication::font());
+#ifdef Q_OS_MAC
+    m_legendFont.setPointSizeF(8.0);
+#else
+    m_legendFont.setPointSizeF(5.25);
+#endif
+
+    setMinimumHeight(100);
+#ifdef Q_OS_MAC
+    setMaximumHeight(116);
+#else
+    setMaximumHeight(140);
+#endif
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+}
+
+void SparklineWidget::updatePlatformColors() {
+#ifdef Q_OS_MAC
+    const bool dark = QApplication::palette().color(QPalette::Window).lightness() < 128;
+    m_rxColor = dark ? QColor(10, 132, 255, 190) : QColor(0, 122, 255, 170);
+    m_txColor = dark ? QColor(255, 159, 10, 190) : QColor(255, 149, 0, 170);
+    m_gridColor = dark ? QColor(235, 235, 245, 24) : QColor(60, 60, 67, 28);
+    m_textColor = dark ? QColor(235, 235, 245, 150) : QColor(60, 60, 67, 150);
+    m_backgroundColor = dark ? QColor(255, 255, 255, 24) : QColor(255, 255, 255, 120);
+#else
     m_rxColor   = QColor(80, 160, 255, 180);   // синий полупрозрачный
     m_txColor   = QColor(255, 120, 80, 180);   // оранжевый полупрозрачный
     m_gridColor = QColor(255, 255, 255, 30);   // очень прозрачная сетка
     m_textColor = QColor(180, 180, 180, 200);  // серый текст
-
-    // Размер в пунктах сохраняет читаемость подписей при дробном масштабе экрана.
-    m_labelFont = QFont(QApplication::font());
-    m_labelFont.setPointSizeF(5.25);
-
-    m_legendFont = QFont(QApplication::font());
-    m_legendFont.setPointSizeF(5.25);
-
-    setMinimumHeight(100);
-    setMaximumHeight(140);
-    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    m_backgroundColor = QColor(30, 30, 30, 200);
+#endif
 }
 
 void SparklineWidget::addPoint(double rx, double tx) {
@@ -122,14 +148,20 @@ void SparklineWidget::resizeEvent(QResizeEvent* event) {
 }
 
 void SparklineWidget::paintEvent(QPaintEvent*) {
+    updatePlatformColors();
+
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
     // Затемненная подложка
     QRect chartRect = rect().adjusted(2, 2, -2, -2);
     painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(30, 30, 30, 200));
+    painter.setBrush(m_backgroundColor);
+#ifdef Q_OS_MAC
+    painter.drawRoundedRect(chartRect, 8, 8);
+#else
     painter.drawRoundedRect(chartRect, 4, 4);
+#endif
 
     if (m_count < 2) {
         painter.setPen(m_textColor);

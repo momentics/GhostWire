@@ -1,6 +1,10 @@
 #include "Application.h"
 #include "GhostWire.h"
 #include "TrayManager.h"
+#ifdef Q_OS_MAC
+#include "MacPlatformIntegration.h"
+#include "MacTrayManager.h"
+#endif
 #include "IGhostWire.h"
 #include "ITrayManager.h"
 #include "TrayMenu.h"
@@ -35,7 +39,11 @@ Application::Application(QObject* parent)
     : QObject(parent)
 {
     m_ghostWire   = std::make_unique<GhostWire>();
+#ifdef Q_OS_MAC
+    m_trayManager = std::make_unique<MacTrayManager>();
+#else
     m_trayManager = std::make_unique<TrayManager>();
+#endif
     m_trayMenu    = std::make_unique<TrayMenu>();
     m_statsTracker = std::make_unique<StatsTracker>();
     m_settings     = std::make_unique<SettingsManager>();
@@ -60,7 +68,7 @@ Application::Application(QObject* parent)
             this, &Application::onConfigureTelegram);
 
     // Соединяем сигналы TrayManager к Application (для открытия меню)
-    connect(m_trayManager.get(), &TrayManager::iconClicked, this, [this](const QRect& iconRect) {
+    connect(m_trayManager.get(), &ITrayManager::iconClicked, this, [this](const QRect& iconRect) {
         showTrayMenu(iconRect);
 #ifdef Q_OS_LINUX
         if (m_trayMenu) m_trayMenu->startIpcFocusMonitor(true);
@@ -68,7 +76,7 @@ Application::Application(QObject* parent)
     });
 
 #ifdef Q_OS_LINUX
-    connect(m_trayManager.get(), &TrayManager::linuxQuitRequested, this, &Application::onTrayExit);
+    connect(m_trayManager.get(), &ITrayManager::linuxQuitRequested, this, &Application::onTrayExit);
 #endif
 
     connect(m_trayMenu.get(), &TrayMenu::checkUpdatesRequested,
@@ -114,7 +122,7 @@ Application::~Application() {
 bool Application::initialize() {
     // 1. Загрузить библиотеку
     if (!m_ghostWire->load()) {
-        qCritical() << "Application: не удалось загрузить ghostwire.dll";
+        qCritical() << "Application: не удалось загрузить библиотеку GhostWire";
         return false;
     }
 
@@ -298,7 +306,14 @@ void Application::onTrayExit() {
 void Application::showTrayMenuAtCursor() {
     if (!m_trayMenu) return;
 
-#ifdef Q_OS_LINUX
+#if defined(Q_OS_MAC)
+    QRect iconRect = m_trayManager->trayIconGeometry();
+    if (!iconRect.isValid() || iconRect.isEmpty()) {
+        iconRect = QRect(QCursor::pos(), QSize(1, 1));
+    }
+    showTrayMenu(iconRect);
+    return;
+#elif defined(Q_OS_LINUX)
     // Linux: геометрия трея недоступна — используем определение положения панели
     showTrayMenu(QRect());
     m_trayMenu->startIpcFocusMonitor(true, true);
@@ -324,6 +339,12 @@ void Application::showTrayMenu(const QRect& iconRect) {
     if (!m_trayMenu) return;
 
     m_trayMenu->adjustSize();
+
+#ifdef Q_OS_MAC
+    MacPlatformIntegration::showPopover(m_trayMenu.get(), iconRect);
+    qDebug() << "Application: tray popover shown at" << iconRect;
+    return;
+#endif
 
 #ifdef Q_OS_LINUX
     // Linux: TrayManager передаёт пустой QRect — используем определение положения панели
@@ -422,7 +443,7 @@ void Application::onUpdateAvailable(const QString& version, const QString& relea
         openedReleaseUrl = m_updateNotifier->notifyUpdateAvailableManual(
             QCoreApplication::applicationVersion(), version, releaseUrl);
     } else {
-        // Автоматическая проверка — только уведомление (toast на Windows, MessageBox на Linux/macOS)
+        // Автоматическая проверка — только уведомление (toast на Windows/macOS, MessageBox на Linux)
         openedReleaseUrl = m_updateNotifier->notifyUpdateAvailableAuto(
             QCoreApplication::applicationVersion(), version, releaseUrl);
     }
