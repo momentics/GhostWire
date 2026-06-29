@@ -251,7 +251,7 @@ QRect TrayManager::trayIconGeometry() const {
 
 bool TrayManager::eventFilter(QObject* watched, QEvent* event) {
 #ifdef Q_OS_LINUX
-    if (watched == m_fallbackDock && event->type() == QEvent::MouseButtonPress) {
+    if (watched == m_fallbackDock.get() && event->type() == QEvent::MouseButtonPress) {
         auto* ev = static_cast<QMouseEvent*>(event);
         if (ev->button() == Qt::LeftButton || ev->button() == Qt::RightButton) {
             emit iconClicked(QRect());

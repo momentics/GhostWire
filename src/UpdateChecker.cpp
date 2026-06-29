@@ -15,9 +15,9 @@ constexpr int kUpdateCheckTimeoutMs = 15000;
 }
 
 UpdateChecker::UpdateChecker(const QString& currentVersion,
-                              const QString& repoOwner,
-                              const QString& repoName,
-                              QObject* parent)
+                               const QString& repoOwner,
+                               const QString& repoName,
+                               QObject* parent)
     : QObject(parent)
     , m_currentVersion(currentVersion)
     , m_repoOwner(repoOwner)
@@ -25,6 +25,8 @@ UpdateChecker::UpdateChecker(const QString& currentVersion,
     , m_settings(std::make_unique<SettingsManager>())
 {
 }
+
+UpdateChecker::~UpdateChecker() = default;
 
 void UpdateChecker::checkForUpdates() {
     startCheck(false, false);

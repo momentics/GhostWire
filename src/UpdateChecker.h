@@ -26,7 +26,7 @@ public:
                            const QString& repoOwner,
                            const QString& repoName,
                            QObject* parent = nullptr);
-    ~UpdateChecker() = default;
+    ~UpdateChecker();
 
     void checkForUpdates();
     void checkForUpdatesOnStartup();
