@@ -11,7 +11,7 @@ env:
   QT_VERSION: 5.15.2
   GHOSTWIRE_VERSION: 1.0.8
   OPENSSL_VERSION_MACOS: 1.1.1w
-  MACOS_DEPLOYMENT_TARGET: 11.0
+  MACOS_DEPLOYMENT_TARGET: '11.0'
 
 jobs:
   build:
@@ -20,6 +20,7 @@ jobs:
       contents: write
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - job_name: Windows
