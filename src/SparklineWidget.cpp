@@ -250,7 +250,7 @@ void SparklineWidget::drawYLabels(QPainter& painter, const QString& label) {
 }
 
 void SparklineWidget::drawSeries(QPainter& painter, const QVector<double>& series, const QColor& color) {
-    const QVector<QPointF>& points = (series == m_rx) ? m_rxPoints : m_txPoints;
+    const QVector<QPointF>& points = (&series == &m_rx) ? m_rxPoints : m_txPoints;
     if (points.isEmpty()) return;
 
     int gridH = height() - PAD_TOP - PAD_BOT;
