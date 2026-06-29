@@ -105,7 +105,7 @@ void TrayManager::init() {
     // если к ней не привязано нативное QMenu. Создаем минимальное меню-заглушку.
     // Левый клик по иконке по-прежнему будет генерировать Trigger (в зависимости от DE),
     // или пользователь сможет открыть дашборд через это меню.
-    QMenu* linuxMenu = new QMenu(m_trayIcon.get());
+    QMenu* linuxMenu = new QMenu(nullptr);
     
     QAction* openAction = linuxMenu->addAction(QStringLiteral("GhostWire Dashboard"));
     connect(openAction, &QAction::triggered, this, [this]() {

@@ -1,9 +1,7 @@
 #pragma once
 
 #include <cstdint>
-
-struct GhostWireProxyStats;
-enum GhostWireProxyState;
+#include "../libs/ghostwire/include/ghostwire.h"
 
 /// Отслеживает дельты RX/TX, пики скорости и изменения WS-соединений.
 /// Инкапсулирует логику расчёта, вынесенную из Application (SRP).

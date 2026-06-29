@@ -1,6 +1,5 @@
 #include "StatsTracker.h"
 #include "Config.h"
-#include "../libs/ghostwire/include/ghostwire.h"
 
 void StatsTracker::reset() {
     m_prevBytesReceived = 0;
