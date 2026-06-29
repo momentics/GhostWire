@@ -6,6 +6,7 @@
 #include <QEvent>
 #include <QHideEvent>
 #include <QShowEvent>
+#include <QString>
 #include <memory>
 
 class StatsPanel;
@@ -74,4 +75,6 @@ private:
     bool    m_ipcMode = false;
     bool    m_wasUnderMouse = false;
     bool    m_ipcRequireHover = true;
+    bool    m_applyingPlatformStyle = false;
+    QString m_appliedPlatformStyle;
 };

@@ -12,6 +12,7 @@
 #include <QMouseEvent>
 #include <QApplication>
 #include <QDebug>
+#include <QScopedValueRollback>
 
 namespace {
 bool isDarkPalette(const QPalette& palette) {
@@ -182,6 +183,12 @@ void TrayMenu::buildLayout() {
 }
 
 void TrayMenu::applyPlatformStyle() {
+    if (m_applyingPlatformStyle) {
+        return;
+    }
+
+    QScopedValueRollback<bool> applyingGuard(m_applyingPlatformStyle, true);
+
 #ifdef Q_OS_MAC
     const bool dark = isDarkPalette(QApplication::palette());
     const QString text = dark
@@ -194,7 +201,7 @@ void TrayMenu::applyPlatformStyle() {
         ? QStringLiteral("rgba(10, 132, 255, 82)")
         : QStringLiteral("rgba(0, 122, 255, 50)");
 
-    setStyleSheet(QString(R"(
+    const QString platformStyle = QString(R"(
         TrayMenu {
             background-color: transparent;
             border: none;
@@ -221,9 +228,9 @@ void TrayMenu::applyPlatformStyle() {
         QPushButton:pressed {
             background-color: %3;
         }
-    )").arg(text, hover, pressed));
+    )").arg(text, hover, pressed);
 #else
-    setStyleSheet(R"(
+    const QString platformStyle = QStringLiteral(R"(
         TrayMenu {
             background-color: #2b2b2b;
             border: 1px solid #555;
@@ -252,6 +259,11 @@ void TrayMenu::applyPlatformStyle() {
         }
     )");
 #endif
+
+    if (m_appliedPlatformStyle != platformStyle) {
+        m_appliedPlatformStyle = platformStyle;
+        setStyleSheet(platformStyle);
+    }
 
     if (m_separator) {
         m_separator->setStyleSheet(separatorStyle());
