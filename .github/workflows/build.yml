@@ -572,6 +572,10 @@ jobs:
           test -x "${APP_IN_DMG}/Contents/MacOS/GhostWireDesktop"
           test -f "${APP_IN_DMG}/Contents/MacOS/libghostwire.dylib"
           test -f "${APP_IN_DMG}/Contents/Resources/GhostWire.icns"
+          python3 scripts/verify_macos_bundle.py \
+            --app "$APP_IN_DMG" \
+            --expected-arch "${{ matrix.macos_arch }}" \
+            --minimum-macos "${{ env.MACOS_DEPLOYMENT_TARGET }}"
 
       - name: Sign DMG (macOS)
         if: runner.os == 'macOS' && env.APPLE_SIGNING_CONFIGURED == 'true'
