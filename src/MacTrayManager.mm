@@ -38,6 +38,26 @@ NSString* toNSString(const QString& value) {
                                    length:static_cast<NSUInteger>(value.length())];
 }
 
+QString statusTextForState(GhostWireProxyState state, bool hasConnections) {
+    if (state == GHOSTWIRE_PROXY_ONLINE) {
+        return hasConnections
+            ? QStringLiteral("Active")
+            : QStringLiteral("Online");
+    }
+    if (state == GHOSTWIRE_PROXY_DEGRADED) {
+        return QStringLiteral("Degraded");
+    }
+    return QStringLiteral("Offline");
+}
+
+QString tooltipText(GhostWireProxyState state, bool hasConnections) {
+    const QString version = QCoreApplication::applicationVersion();
+    const QString title = version.isEmpty()
+        ? QStringLiteral("GhostWire Desktop")
+        : QStringLiteral("GhostWire Desktop v%1").arg(version);
+    return QStringLiteral("%1 - %2").arg(title, statusTextForState(state, hasConnections));
+}
+
 NSImage* statusImageForState(GhostWireProxyState state, bool hasConnections) {
     NSString* symbolName = @"bolt.horizontal.circle";
     if (state == GHOSTWIRE_PROXY_ONLINE) {
@@ -47,20 +67,13 @@ NSImage* statusImageForState(GhostWireProxyState state, bool hasConnections) {
     }
 
     NSImage* image = [NSImage imageWithSystemSymbolName:symbolName
-                      accessibilityDescription:@"GhostWire"];
+                      accessibilityDescription:toNSString(statusTextForState(state, hasConnections))];
     if (!image) {
         image = [NSImage imageNamed:NSImageNameNetwork];
     }
     [image setTemplate:YES];
     image.size = NSMakeSize(18.0, 18.0);
     return image;
-}
-
-QString tooltipText() {
-    const QString version = QCoreApplication::applicationVersion();
-    return version.isEmpty()
-        ? QStringLiteral("GhostWire Desktop")
-        : QStringLiteral("GhostWire Desktop v%1").arg(version);
 }
 
 } // namespace
@@ -88,8 +101,8 @@ void MacTrayManager::init() {
     NSStatusBarButton* button = statusItem.button;
     button.target = target;
     button.action = @selector(statusItemClicked:);
-    button.toolTip = toNSString(tooltipText());
     button.imagePosition = NSImageOnly;
+    [button setAccessibilityLabel:@"GhostWire Desktop"];
     MacPlatformIntegration::setStatusItemButton((__bridge void*)button);
 
     m_statusItem = (__bridge_retained void*)statusItem;
@@ -182,5 +195,12 @@ void MacTrayManager::updateStatusImage() {
         return;
 
     NSStatusItem* statusItem = (__bridge NSStatusItem*)m_statusItem;
-    statusItem.button.image = statusImageForState(m_state, m_hasConnections);
+    NSStatusBarButton* button = statusItem.button;
+    if (!button)
+        return;
+
+    const QString statusText = statusTextForState(m_state, m_hasConnections);
+    button.image = statusImageForState(m_state, m_hasConnections);
+    button.toolTip = toNSString(tooltipText(m_state, m_hasConnections));
+    [button setAccessibilityValue:toNSString(statusText)];
 }

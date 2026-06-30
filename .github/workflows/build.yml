@@ -430,6 +430,19 @@ jobs:
             echo "APPLE_NOTARIZATION_AVAILABLE=false" >> "$GITHUB_ENV"
           fi
 
+      - name: Require Apple signing for macOS releases
+        if: runner.os == 'macOS' && github.event_name == 'release'
+        run: |
+          if [ "${APPLE_SIGNING_AVAILABLE}" != "true" ]; then
+            echo "::error::macOS release builds require APPLE_CERTIFICATE_P12_BASE64, APPLE_CERTIFICATE_PASSWORD, and APPLE_CODESIGN_IDENTITY secrets."
+            exit 1
+          fi
+
+          if [ "${APPLE_NOTARIZATION_AVAILABLE}" != "true" ]; then
+            echo "::error::macOS release builds require APPLE_ID, APPLE_TEAM_ID, and APPLE_APP_SPECIFIC_PASSWORD secrets for notarization."
+            exit 1
+          fi
+
       - name: Configure Apple signing identity (macOS)
         if: runner.os == 'macOS' && env.APPLE_SIGNING_AVAILABLE == 'true'
         env:
