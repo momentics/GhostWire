@@ -2,6 +2,7 @@
 
 #include <QApplication>
 #include <QCoreApplication>
+#include <QEventLoop>
 #include <QRect>
 #include <QSize>
 #include <QVBoxLayout>
@@ -174,9 +175,20 @@ public:
 
         content->adjustSize();
         const QSize contentSize = content->sizeHint().expandedTo(content->minimumSizeHint());
+        nativeWidget->setFixedSize(contentSize);
         nativeWidget->resize(contentSize);
+        content->setGeometry(QRect(QPoint(0, 0), contentSize));
+        layout->activate();
         popover.contentSize = NSMakeSize(contentSize.width(), contentSize.height());
+        NSView* hostView = nativeViewForWidget(nativeWidget);
+        hostView.frame = NSMakeRect(0.0, 0.0, contentSize.width(), contentSize.height());
+        hostView.hidden = NO;
+        hostView.autoresizesSubviews = YES;
+        nativeWidget->show();
         content->show();
+        nativeWidget->update();
+        content->update();
+        QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 10);
 
         if (g_statusButton) {
             [popover showRelativeToRect:g_statusButton.bounds
