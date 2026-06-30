@@ -629,6 +629,7 @@ jobs:
             --wait
           xcrun stapler staple "$DMG_PATH"
           xcrun stapler validate "$DMG_PATH"
+          spctl --assess --type open --verbose=4 "$DMG_PATH"
 
       - name: Upload DMG to Release (macOS)
         if: runner.os == 'macOS' && github.event_name == 'release'
