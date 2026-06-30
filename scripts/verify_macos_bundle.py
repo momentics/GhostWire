@@ -75,6 +75,56 @@ def assert_not_linked(path, needle):
         raise AssertionError(f"{path} must not link directly with {needle}")
 
 
+def collect_linked_paths(path):
+    output = run(["otool", "-L", str(path)])
+    linked_paths = []
+    for line in output.splitlines()[1:]:
+        line = line.strip()
+        if not line:
+            continue
+        linked_paths.append(line.split(" (", 1)[0])
+    return linked_paths
+
+
+def verify_runtime_linkage(executable, bundled_dylibs):
+    bundled_dylib_names = {path.name for path in bundled_dylibs}
+    failures = []
+
+    for dylib in bundled_dylibs:
+        linked_paths = collect_linked_paths(dylib)
+        expected_install_name = f"@executable_path/{dylib.name}"
+        if not linked_paths or linked_paths[0] != expected_install_name:
+            actual_install_name = linked_paths[0] if linked_paths else "<missing>"
+            failures.append(
+                f"{dylib}: install name {actual_install_name!r}, expected {expected_install_name!r}"
+            )
+
+    for binary in [executable, *bundled_dylibs]:
+        for linked_path in collect_linked_paths(binary):
+            if linked_path.startswith("/"):
+                if not (
+                    linked_path.startswith("/System/Library/")
+                    or linked_path.startswith("/usr/lib/")
+                ):
+                    failures.append(f"{binary}: absolute non-system dependency {linked_path}")
+                continue
+
+            dependency_name = Path(linked_path).name
+            if dependency_name in bundled_dylib_names:
+                expected_dependency = f"@executable_path/{dependency_name}"
+                if linked_path != expected_dependency:
+                    failures.append(
+                        f"{binary}: bundled dependency {linked_path!r}, expected {expected_dependency!r}"
+                    )
+
+    if failures:
+        lines = ["Invalid macOS runtime linkage:"]
+        lines.extend(f"  {failure}" for failure in failures)
+        raise AssertionError("\n".join(lines))
+
+    print("OK macOS runtime linkage")
+
+
 def verify_plist(app, minimum_macos):
     plist_path = app / "Contents" / "Info.plist"
     if not plist_path.is_file():
@@ -146,7 +196,10 @@ def verify_bundle(app, expected_arch, minimum_macos):
     assert_linked(executable, "UserNotifications.framework")
     assert_not_linked(executable, "libghostwire.dylib")
 
-    for binary in [executable, ghostwire_dylib, *openssl_dylibs]:
+    bundled_dylibs = [ghostwire_dylib, *openssl_dylibs]
+    verify_runtime_linkage(executable, bundled_dylibs)
+
+    for binary in [executable, *bundled_dylibs]:
         assert_contains_arch(binary, expected_arch)
 
     verify_deployment_targets(app, minimum_macos)
