@@ -504,7 +504,25 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           cd build
-          cpack -C ${{ env.BUILD_TYPE }}
+          for attempt in 1 2 3; do
+            rm -f _CPack_Packages/Darwin/DragNDrop/temp.dmg
+            for volume in /Volumes/GhostWireDesktop-*; do
+              if [ -d "$volume" ]; then
+                hdiutil detach "$volume" -quiet || true
+              fi
+            done
+
+            if cpack -C ${{ env.BUILD_TYPE }}; then
+              exit 0
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+
+            echo "CPack DMG generation failed; retrying after DiskImages cleanup ($attempt/3)"
+            sleep 10
+          done
 
       - name: Find DMG file (macOS)
         if: runner.os == 'macOS'
