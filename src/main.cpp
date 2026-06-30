@@ -12,8 +12,10 @@
 
 int main(int argc, char* argv[]) {
     // Включаем сглаживание и поддержку HiDPI для всего приложения
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+#endif
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     // Сохраняем дробные масштабы Windows вроде 125% и 175%.
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(

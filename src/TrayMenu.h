@@ -5,10 +5,13 @@
 #include <QTimer>
 #include <QEvent>
 #include <QHideEvent>
+#include <QShowEvent>
+#include <QString>
 #include <memory>
 
 class StatsPanel;
 class SparklineWidget;
+class QFrame;
 
 /// Окно без рамки, имитирующее контекстное меню трея.
 /// Содержит: статистику, график RX/TX, кнопки Старт/Стоп и Выход.
@@ -50,6 +53,7 @@ protected:
     bool event(QEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;
     void hideEvent(QHideEvent* event) override;
+    void showEvent(QShowEvent* event) override;
 
 private:
     StatsPanel*       m_statsPanel     = nullptr;
@@ -58,8 +62,10 @@ private:
     QPushButton*      m_telegramButton = nullptr;
     QPushButton*      m_updateButton   = nullptr;
     QPushButton*      m_exitButton     = nullptr;
+    QFrame*           m_separator      = nullptr;
 
     void buildLayout();
+    void applyPlatformStyle();
     void tryHideMenu();
     static Qt::WindowFlags makeWindowFlags();
 
@@ -69,4 +75,6 @@ private:
     bool    m_ipcMode = false;
     bool    m_wasUnderMouse = false;
     bool    m_ipcRequireHover = true;
+    bool    m_applyingPlatformStyle = false;
+    QString m_appliedPlatformStyle;
 };

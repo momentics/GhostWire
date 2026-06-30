@@ -2,6 +2,24 @@
 #include <QCoreApplication>
 #include <QByteArray>
 
+namespace {
+bool hasReachablePrimaryInstance() {
+    QLocalSocket socket;
+    socket.connectToServer(QLatin1String(SINGLE_INSTANCE_SOCKET_NAME));
+
+    const int connectTimeoutMs = 200;
+    if (!socket.waitForConnected(connectTimeoutMs)) {
+        return false;
+    }
+
+    socket.disconnectFromServer();
+    if (socket.state() != QLocalSocket::UnconnectedState) {
+        socket.waitForDisconnected(100);
+    }
+    return true;
+}
+} // namespace
+
 SingleInstanceGuard::SingleInstanceGuard(QObject* parent)
     : QObject(parent)
 {
@@ -19,8 +37,13 @@ SingleInstanceGuard::SingleInstanceGuard(QObject* parent)
         return;
     }
 
-    // Сокет занят — возможно, это stale-сокет после аварийного завершения.
-    // Удаляем его и повторяем попытку.
+    if (hasReachablePrimaryInstance()) {
+        qDebug() << "SingleInstanceGuard: вторичный экземпляр, активный сокет найден";
+        return;
+    }
+
+    // Сокет занят, но подключиться к нему нельзя — это stale-сокет после аварийного завершения.
+    // Только в этом случае удаляем его и повторяем попытку.
     QLocalServer::removeServer(QLatin1String(SINGLE_INSTANCE_SOCKET_NAME));
 
     if (m_server->listen(QLatin1String(SINGLE_INSTANCE_SOCKET_NAME))) {
@@ -38,12 +61,12 @@ SingleInstanceGuard::SingleInstanceGuard(QObject* parent)
 }
 
 SingleInstanceGuard::~SingleInstanceGuard() {
-    if (m_server && m_server->isListening()) {
+    if (m_isPrimary && m_server && m_server->isListening()) {
         m_server->close();
+        // Удаляем сокет-файл (Linux/macOS) или именованный канал (Windows)
+        QLocalServer::removeServer(QLatin1String(SINGLE_INSTANCE_SOCKET_NAME));
+        qDebug() << "SingleInstanceGuard: сокет удалён";
     }
-    // Удаляем сокет-файл (Linux/macOS) или именованный канал (Windows)
-    QLocalServer::removeServer(QLatin1String(SINGLE_INSTANCE_SOCKET_NAME));
-    qDebug() << "SingleInstanceGuard: сокет удалён";
 }
 
 void SingleInstanceGuard::onNewConnection() {

@@ -11,7 +11,7 @@ env:
   QT_VERSION: 5.15.2
   GHOSTWIRE_VERSION: 1.0.8
   OPENSSL_VERSION_MACOS: 1.1.1w
-  MACOS_DEPLOYMENT_TARGET: 11.0
+  MACOS_DEPLOYMENT_TARGET: '11.0'
 
 jobs:
   build:
@@ -20,6 +20,7 @@ jobs:
       contents: write
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - job_name: Windows
@@ -31,6 +32,14 @@ jobs:
             macos_arch: x86_64
             ghostwire_asset_arch: x86_64
             macos_artifact_name: GhostWire-Desktop-macOS-Intel
+            qt_version: 6.7.3
+            qt_arch: 'clang_64'
+          - job_name: macOS Apple Silicon
+            os: macos-15
+            macos_arch: arm64
+            ghostwire_asset_arch: aarch64
+            macos_artifact_name: GhostWire-Desktop-macOS-Apple-Silicon
+            qt_version: 6.7.3
             qt_arch: 'clang_64'
 
     steps:
@@ -331,6 +340,9 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           export MACOSX_DEPLOYMENT_TARGET="${{ env.MACOS_DEPLOYMENT_TARGET }}"
+          export CFLAGS="-mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}"
+          export CXXFLAGS="-mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}"
+          export LDFLAGS="-mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}"
           mkdir -p libs/openssl/macos
           OPENSSL_TARGET="darwin64-${{ matrix.macos_arch }}-cc"
           OPENSSL_ARCHIVE="openssl-${{ env.OPENSSL_VERSION_MACOS }}.tar.gz"
@@ -361,102 +373,169 @@ jobs:
         if: runner.os == 'macOS'
         uses: jurplel/install-qt-action@v4
         with:
-          version: ${{ env.QT_VERSION }}
+          version: ${{ matrix.qt_version }}
           host: 'mac'
           target: 'desktop'
           arch: ${{ matrix.qt_arch }}
 
       - name: Configure CMake (macOS)
         if: runner.os == 'macOS'
-        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DCMAKE_OSX_ARCHITECTURES=${{ matrix.macos_arch }} -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ env.MACOS_DEPLOYMENT_TARGET }}
+        run: |
+          cmake_args=(
+            -B build
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.macos_arch }}
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ env.MACOS_DEPLOYMENT_TARGET }}
+          )
+          if [ -n "${CMAKE_PREFIX_PATH:-}" ]; then
+            cmake_args+=("-DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
+          fi
+          cmake "${cmake_args[@]}"
 
       - name: Build (macOS)
         if: runner.os == 'macOS'
         run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
 
-      - name: Verify macOS deployment target
+      - name: Verify macOS app bundle
         if: runner.os == 'macOS'
         run: |
-          python3 - <<'PY'
-          import os
-          import re
-          import subprocess
-          import sys
-          from pathlib import Path
+          python3 scripts/verify_macos_bundle.py \
+            --app build/GhostWireDesktop.app \
+            --expected-arch "${{ matrix.macos_arch }}" \
+            --minimum-macos "${{ env.MACOS_DEPLOYMENT_TARGET }}"
 
-          app = Path("build/GhostWireDesktop.app")
+      - name: Detect Apple signing configuration (macOS)
+        if: runner.os == 'macOS'
+        env:
+          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          if [ -n "$APPLE_CERTIFICATE_P12_BASE64" ] \
+            && [ -n "$APPLE_CERTIFICATE_PASSWORD" ] \
+            && [ -n "$APPLE_CODESIGN_IDENTITY" ]; then
+            echo "APPLE_SIGNING_AVAILABLE=true" >> "$GITHUB_ENV"
+          else
+            echo "APPLE_SIGNING_AVAILABLE=false" >> "$GITHUB_ENV"
+          fi
 
-          if not app.exists():
-              sys.exit(f"App bundle not found: {app}")
+          if [ -n "$APPLE_ID" ] \
+            && [ -n "$APPLE_TEAM_ID" ] \
+            && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ]; then
+            echo "APPLE_NOTARIZATION_AVAILABLE=true" >> "$GITHUB_ENV"
+          else
+            echo "APPLE_NOTARIZATION_AVAILABLE=false" >> "$GITHUB_ENV"
+          fi
 
-          def parse_version(value):
-              parts = [int(part) for part in value.split(".")]
-              return tuple(parts + [0] * (3 - len(parts)))
+      - name: Require Apple signing for macOS releases
+        if: runner.os == 'macOS' && github.event_name == 'release'
+        run: |
+          if [ "${APPLE_SIGNING_AVAILABLE}" != "true" ]; then
+            echo "::error::macOS release builds require APPLE_CERTIFICATE_P12_BASE64, APPLE_CERTIFICATE_PASSWORD, and APPLE_CODESIGN_IDENTITY secrets."
+            exit 1
+          fi
 
-          target = parse_version(os.environ["MACOS_DEPLOYMENT_TARGET"])
+          if [ "${APPLE_NOTARIZATION_AVAILABLE}" != "true" ]; then
+            echo "::error::macOS release builds require APPLE_ID, APPLE_TEAM_ID, and APPLE_APP_SPECIFIC_PASSWORD secrets for notarization."
+            exit 1
+          fi
 
-          def version_text(value):
-              parts = list(value)
-              while len(parts) > 1 and parts[-1] == 0:
-                  parts.pop()
-              return ".".join(str(part) for part in parts)
+      - name: Configure Apple signing identity (macOS)
+        if: runner.os == 'macOS' && env.APPLE_SIGNING_AVAILABLE == 'true'
+        env:
+          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/ghostwire-signing.keychain-db"
+          CERTIFICATE_PATH="$RUNNER_TEMP/ghostwire-signing.p12"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
 
-          macho_files = []
-          for path in app.rglob("*"):
-              if not path.is_file() or path.is_symlink():
-                  continue
-              description = subprocess.run(
-                  ["file", str(path)],
-                  check=True,
-                  text=True,
-                  capture_output=True,
-              ).stdout
-              if "Mach-O" in description:
-                  macho_files.append(path)
+          printf '%s' "$APPLE_CERTIFICATE_P12_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+          EXISTING_KEYCHAINS="$(security list-keychains -d user | sed 's/[ "]*//g')"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $EXISTING_KEYCHAINS
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-          if not macho_files:
-              sys.exit(f"No Mach-O files found in {app}")
+          echo "APPLE_SIGNING_CONFIGURED=true" >> "$GITHUB_ENV"
 
-          failures = []
-          for path in sorted(macho_files):
-              output = subprocess.run(
-                  ["otool", "-l", str(path)],
-                  check=True,
-                  text=True,
-                  capture_output=True,
-              ).stdout
-              versions = []
-              for block in re.split(r"(?=^Load command \d+$)", output, flags=re.MULTILINE):
-                  if re.search(r"^\s*cmd\s+LC_BUILD_VERSION$", block, re.MULTILINE):
-                      match = re.search(r"^\s*minos\s+([0-9]+(?:\.[0-9]+){1,2})", block, re.MULTILINE)
-                      if match:
-                          versions.append(parse_version(match.group(1)))
-                  elif re.search(r"^\s*cmd\s+LC_VERSION_MIN_MACOSX$", block, re.MULTILINE):
-                      match = re.search(r"^\s*version\s+([0-9]+(?:\.[0-9]+){1,2})", block, re.MULTILINE)
-                      if match:
-                          versions.append(parse_version(match.group(1)))
-              if not versions:
-                  failures.append((path, "missing deployment target load command"))
-                  continue
+      - name: Sign macOS app
+        if: runner.os == 'macOS' && env.APPLE_SIGNING_CONFIGURED == 'true'
+        env:
+          APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
+        run: |
+          APP="build/GhostWireDesktop.app"
 
-              too_new = [version for version in versions if version > target]
-              if too_new:
-                  failures.append((path, ", ".join(version_text(version) for version in too_new)))
-              else:
-                  print(f"OK {path}: min {', '.join(version_text(version) for version in sorted(set(versions)))}")
+          sign_item() {
+            local item="$1"
+            echo "Signing ${item}"
+            codesign \
+              --force \
+              --options runtime \
+              --timestamp \
+              --sign "$APPLE_CODESIGN_IDENTITY" \
+              "$item"
+          }
 
-          if failures:
-              print(f"Mach-O files requiring macOS newer than {os.environ['MACOS_DEPLOYMENT_TARGET']}:", file=sys.stderr)
-              for path, detail in failures:
-                  print(f"  {path}: {detail}", file=sys.stderr)
-              sys.exit(1)
-          PY
+          for search_dir in \
+            "${APP}/Contents/MacOS" \
+            "${APP}/Contents/Frameworks" \
+            "${APP}/Contents/PlugIns"; do
+            if [ -d "$search_dir" ]; then
+              while IFS= read -r -d '' item; do
+                if file "$item" | grep -q "Mach-O"; then
+                  sign_item "$item"
+                fi
+              done < <(find "$search_dir" -type f -print0)
+            fi
+          done
+
+          if [ -d "${APP}/Contents/Frameworks" ]; then
+            find "${APP}/Contents/Frameworks" -type d -name "*.framework" -print \
+              | sort -r \
+              | while IFS= read -r framework; do
+                  sign_item "$framework"
+                done
+          fi
+
+          sign_item "$APP"
+          codesign --verify --strict --deep --verbose=2 "$APP"
+          spctl --assess --type execute --verbose=4 "$APP" || true
 
       - name: Package DMG (macOS)
         if: runner.os == 'macOS'
         run: |
           cd build
-          cpack -C ${{ env.BUILD_TYPE }}
+          for attempt in 1 2 3; do
+            rm -f _CPack_Packages/Darwin/DragNDrop/temp.dmg
+            for volume in /Volumes/GhostWireDesktop-*; do
+              if [ -d "$volume" ]; then
+                hdiutil detach "$volume" -quiet || true
+              fi
+            done
+
+            if cpack -C ${{ env.BUILD_TYPE }}; then
+              exit 0
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+
+            echo "CPack DMG generation failed; retrying after DiskImages cleanup ($attempt/3)"
+            sleep 10
+          done
 
       - name: Find DMG file (macOS)
         if: runner.os == 'macOS'
@@ -468,6 +547,89 @@ jobs:
           fi
           echo "DMG_PATH=$DMG_FILE" >> $GITHUB_ENV
           echo "DMG_NAME=$(basename $DMG_FILE)" >> $GITHUB_ENV
+
+      - name: Verify macOS DMG contents
+        if: runner.os == 'macOS'
+        run: |
+          MOUNT_ROOT="$(mktemp -d)"
+          MOUNT_POINT="${MOUNT_ROOT}/mount"
+          mkdir -p "$MOUNT_POINT"
+
+          cleanup() {
+            hdiutil detach "$MOUNT_POINT" -quiet || true
+            rm -rf "$MOUNT_ROOT"
+          }
+          trap cleanup EXIT
+
+          printf 'Y\n' | hdiutil attach "$DMG_PATH" -mountpoint "$MOUNT_POINT" -nobrowse
+          APP_IN_DMG="$(find "$MOUNT_POINT" -maxdepth 1 -name "*.app" -print -quit)"
+          if [ -z "$APP_IN_DMG" ]; then
+            echo "ERROR: DMG does not contain an app bundle" >&2
+            exit 1
+          fi
+
+          test -f "${APP_IN_DMG}/Contents/Info.plist"
+          test -x "${APP_IN_DMG}/Contents/MacOS/GhostWireDesktop"
+          test -f "${APP_IN_DMG}/Contents/MacOS/libghostwire.dylib"
+          test -f "${APP_IN_DMG}/Contents/Resources/GhostWire.icns"
+          python3 scripts/verify_macos_bundle.py \
+            --app "$APP_IN_DMG" \
+            --expected-arch "${{ matrix.macos_arch }}" \
+            --minimum-macos "${{ env.MACOS_DEPLOYMENT_TARGET }}"
+
+      - name: Sign DMG (macOS)
+        if: runner.os == 'macOS' && env.APPLE_SIGNING_CONFIGURED == 'true'
+        env:
+          APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
+        run: |
+          codesign \
+            --force \
+            --timestamp \
+            --sign "$APPLE_CODESIGN_IDENTITY" \
+            "$DMG_PATH"
+          codesign --verify --verbose=2 "$DMG_PATH"
+
+      - name: Verify signed macOS DMG contents
+        if: runner.os == 'macOS' && env.APPLE_SIGNING_CONFIGURED == 'true'
+        run: |
+          MOUNT_ROOT="$(mktemp -d)"
+          MOUNT_POINT="${MOUNT_ROOT}/mount"
+          mkdir -p "$MOUNT_POINT"
+
+          cleanup() {
+            hdiutil detach "$MOUNT_POINT" -quiet || true
+            rm -rf "$MOUNT_ROOT"
+          }
+          trap cleanup EXIT
+
+          printf 'Y\n' | hdiutil attach "$DMG_PATH" -mountpoint "$MOUNT_POINT" -nobrowse
+          APP_IN_DMG="$(find "$MOUNT_POINT" -maxdepth 1 -name "*.app" -print -quit)"
+          if [ -z "$APP_IN_DMG" ]; then
+            echo "ERROR: signed DMG does not contain an app bundle" >&2
+            exit 1
+          fi
+
+          codesign --verify --strict --deep --verbose=2 "$APP_IN_DMG"
+          spctl --assess --type execute --verbose=4 "$APP_IN_DMG" || true
+
+      - name: Notarize and staple DMG (macOS)
+        if: >-
+          runner.os == 'macOS' &&
+          env.APPLE_SIGNING_CONFIGURED == 'true' &&
+          env.APPLE_NOTARIZATION_AVAILABLE == 'true'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          xcrun notarytool submit "$DMG_PATH" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --wait
+          xcrun stapler staple "$DMG_PATH"
+          xcrun stapler validate "$DMG_PATH"
+          spctl --assess --type open --verbose=4 "$DMG_PATH"
 
       - name: Upload DMG to Release (macOS)
         if: runner.os == 'macOS' && github.event_name == 'release'
