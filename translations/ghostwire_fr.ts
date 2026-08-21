@@ -49,6 +49,29 @@
     </message>
 </context>
 <context>
+    <name>ByteFormatter</name>
+    <message>
+        <source>%1 Б</source>
+        <translation>%1 o</translation>
+    </message>
+    <message>
+        <source>%1 КБ</source>
+        <translation>%1 Ko</translation>
+    </message>
+    <message>
+        <source>%1 МБ</source>
+        <translation>%1 Mo</translation>
+    </message>
+    <message>
+        <source>%1 ГБ</source>
+        <translation>%1 Go</translation>
+    </message>
+    <message>
+        <source>%1 ТБ</source>
+        <translation>%1 To</translation>
+    </message>
+</context>
+<context>
     <name>QObject</name>
     <message>
         <source>%1 Б</source>

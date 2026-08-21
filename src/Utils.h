@@ -1,21 +1,22 @@
 #pragma once
 
-#include <QObject>
+#include <QCoreApplication>
 #include <QString>
 #include <QPoint>
 
-/// Форматировать размер в байтах в читаемый вид (Б, КБ, МБ, ГБ, ТБ)
-inline QString formatBytes(double bytes) {
-    if (bytes < 1024.0)
-        return QObject::tr("%1 Б").arg(static_cast<int>(bytes));
-    if (bytes < 1024.0 * 1024.0)
-        return QObject::tr("%1 КБ").arg(bytes / 1024.0, 0, 'f', 1);
-    if (bytes < 1024.0 * 1024.0 * 1024.0)
-        return QObject::tr("%1 МБ").arg(bytes / (1024.0 * 1024.0), 0, 'f', 1);
-    if (bytes < 1024.0 * 1024.0 * 1024.0 * 1024.0)
-        return QObject::tr("%1 ГБ").arg(bytes / (1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
-    return QObject::tr("%1 ТБ").arg(bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
-}
+/// Форматировать размер в байтах в читаемый вид (Б, КБ, МБ, ГБ, ТБ).
+/// Вынесен в класс, чтобы lupdate приписывал переводы собственному контексту,
+/// а не общему QObject (свободная функция не имеет корректного контекста).
+class ByteFormatter {
+public:
+    static QString format(double bytes);
+
+private:
+    /// Перевод с явным контекстом для lupdate.
+    static QString tr(const char* text) {
+        return QCoreApplication::translate("ByteFormatter", text);
+    }
+};
 
 /// Рассчитать позицию контекстного меню трея для Linux (Вариант C).
 /// Определяет положение панели задач через availableGeometry() и привязывает

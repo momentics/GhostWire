@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(GhostWireDesktop VERSION 1.0.15 LANGUAGES CXX)
+project(GhostWireDesktop VERSION 1.0.16 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -40,6 +40,7 @@ if(LRELEASE_EXECUTABLE)
         add_custom_command(
             OUTPUT "${_qm}"
             COMMAND "${LRELEASE_EXECUTABLE}" "${_ts}" -qm "${_qm}"
+            DEPENDS "${_ts}"
             COMMENT "Compiling translation ${_lang}..."
             VERBATIM
         )

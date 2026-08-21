@@ -5,6 +5,18 @@
 #include <QPoint>
 #include <QCursor>
 
+QString ByteFormatter::format(double bytes) {
+    if (bytes < 1024.0)
+        return tr("%1 Б").arg(static_cast<int>(bytes));
+    if (bytes < 1024.0 * 1024.0)
+        return tr("%1 КБ").arg(bytes / 1024.0, 0, 'f', 1);
+    if (bytes < 1024.0 * 1024.0 * 1024.0)
+        return tr("%1 МБ").arg(bytes / (1024.0 * 1024.0), 0, 'f', 1);
+    if (bytes < 1024.0 * 1024.0 * 1024.0 * 1024.0)
+        return tr("%1 ГБ").arg(bytes / (1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
+    return tr("%1 ТБ").arg(bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
+}
+
 QPoint calculateLinuxTrayMenuPosition(int menuWidth, int menuHeight) {
     // На Linux QSystemTrayIcon::geometry() возвращает пустой QRect.
     // Определяем положение панели (taskbar) через разницу между geometry() и availableGeometry().

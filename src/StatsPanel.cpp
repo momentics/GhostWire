@@ -163,13 +163,13 @@ void StatsPanel::updateStats(uint64_t uptimeSecs, uint64_t websocketActive, uint
 
     m_labelPeak->setText(
         QString("↓%1 ↑%2")
-            .arg(formatBytes(peakRx))
-            .arg(formatBytes(peakTx))
+            .arg(ByteFormatter::format(peakRx))
+            .arg(ByteFormatter::format(peakTx))
     );
 
     m_labelTotal->setText(
         QString("↓%1 ↑%2")
-            .arg(formatBytes(totalRx))
-            .arg(formatBytes(totalTx))
+            .arg(ByteFormatter::format(totalRx))
+            .arg(ByteFormatter::format(totalTx))
     );
 }

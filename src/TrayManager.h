@@ -10,6 +10,8 @@
 #include <memory>
 #include "ITrayManager.h"
 
+class QMenu;
+
 class TrayManager : public ITrayManager {
     Q_OBJECT
 public:
@@ -50,6 +52,7 @@ private:
 
 #ifdef Q_OS_LINUX
     std::unique_ptr<QWidget> m_fallbackDock; ///< Fallback dock при отсутствии системного трея
+    std::unique_ptr<QMenu> m_linuxMenu; ///< Меню-заглушка для AppIndicator (GNOME)
 #endif
 
     void loadIcons();

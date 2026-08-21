@@ -4,7 +4,9 @@
 #include <QApplication>
 #include <QGuiApplication>
 #include <QDebug>
+#include <QLibraryInfo>
 #include <QLocalServer>
+#include <QStringList>
 #include <QTranslator>
 #include <QLocale>
 #include <QtGlobal>
@@ -58,15 +60,30 @@ int main(int argc, char* argv[]) {
     QString lang = locale.name().left(2); // "ru", "en", "de", ...
 
     // Загружаем стандартные Qt-переводы (кнопки QMessageBox и т.д.)
-    // windeployqt кладёт qt_XX.qm в translations/ рядом с exe
+    // Windows: windeployqt кладёт qt_XX.qm в translations/ рядом с exe.
+    // Linux/macOS: если рядом с приложением переводов нет, пробуем системный
+    // каталог переводов Qt (QLibraryInfo::TranslationsPath).
     QTranslator* qtTranslator = new QTranslator(&app);
-    QString qtTransPath = app.applicationDirPath() + "/translations/qt_" + lang + ".qm";
-    if (qtTranslator->load(qtTransPath)) {
-        app.installTranslator(qtTranslator);
-        qDebug() << "main: loaded Qt translation for" << lang;
-    } else {
-        delete qtTranslator;
+    const QString qtTransName = "qt_" + lang + ".qm";
+    QStringList qtTransPaths;
+    qtTransPaths << app.applicationDirPath() + "/translations/" + qtTransName;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    qtTransPaths << QLibraryInfo::path(QLibraryInfo::Path::Translations) + "/" + qtTransName;
+#else
+    qtTransPaths << QLibraryInfo::location(QLibraryInfo::TranslationsPath) + "/" + qtTransName;
+#endif
+
+    bool qtTransLoaded = false;
+    for (const QString& qtTransPath : qtTransPaths) {
+        if (qtTranslator->load(qtTransPath)) {
+            app.installTranslator(qtTranslator);
+            qDebug() << "main: loaded Qt translation for" << lang << "from" << qtTransPath;
+            qtTransLoaded = true;
+            break;
+        }
     }
+    if (!qtTransLoaded)
+        delete qtTranslator;
 
     // По умолчанию русский (source), если не ru
     if (lang != "ru") {

@@ -105,16 +105,17 @@ void TrayManager::init() {
     // если к ней не привязано нативное QMenu. Создаем минимальное меню-заглушку.
     // Левый клик по иконке по-прежнему будет генерировать Trigger (в зависимости от DE),
     // или пользователь сможет открыть дашборд через это меню.
-    QMenu* linuxMenu = new QMenu(nullptr);
-    
-    QAction* openAction = linuxMenu->addAction(QStringLiteral("GhostWire Dashboard"));
+    // Меню храним в m_linuxMenu: QSystemTrayIcon не забирает его владение,
+    // поэтому без явного освобождения оно утекло бы.
+    m_linuxMenu = std::make_unique<QMenu>();
+
+    QAction* openAction = m_linuxMenu->addAction(QStringLiteral("GhostWire Dashboard"));
     connect(openAction, &QAction::triggered, this, [this]() {
         // Передаем пустой QRect для Linux-позиционирования дашборда
         emit iconClicked(QRect());
     });
-    
-    
-    m_trayIcon->setContextMenu(linuxMenu);
+
+    m_trayIcon->setContextMenu(m_linuxMenu.get());
 #endif
 
     m_trayIcon->setVisible(true);
@@ -128,6 +129,10 @@ void TrayManager::cleanup() {
     if (m_fallbackDock) {
         m_fallbackDock->close();
         m_fallbackDock.reset();
+    }
+    if (m_linuxMenu) {
+        m_linuxMenu->close();
+        m_linuxMenu.reset();
     }
 #endif
     if (m_trayIcon) {
