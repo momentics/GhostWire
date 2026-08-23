@@ -4,6 +4,14 @@
 <context>
     <name>Application</name>
     <message>
+        <source>Прокси запущен</source>
+        <translation>プロキシが起動しました</translation>
+    </message>
+    <message>
+        <source>Подключаем Telegram...</source>
+        <translation>Telegram を接続中...</translation>
+    </message>
+    <message>
         <location filename="../src/Application.cpp" line="402"/>
         <source>Telegram не установлен</source>
         <translation>Telegramがインストールされていません</translation>

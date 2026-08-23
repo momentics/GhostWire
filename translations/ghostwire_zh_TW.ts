@@ -4,6 +4,14 @@
 <context>
     <name>Application</name>
     <message>
+        <source>Прокси запущен</source>
+        <translation>Proxy 已啟動</translation>
+    </message>
+    <message>
+        <source>Подключаем Telegram...</source>
+        <translation>正在連接 Telegram...</translation>
+    </message>
+    <message>
         <location filename="../src/Application.cpp" line="402"/>
         <source>Telegram не установлен</source>
         <translation>未安裝 Telegram</translation>

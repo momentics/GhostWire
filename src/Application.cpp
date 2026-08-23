@@ -388,14 +388,7 @@ void Application::onConfigureTelegram() {
     }
 
     // Проверяем, запущен ли процесс Telegram
-    if (TelegramManager::isProcessRunning()) {
-        // Telegram запущен — открываем моникер
-        QString url = QString("tg://socks?server=%1&port=%2")
-            .arg(Config::SOCKS_SERVER)
-            .arg(Config::SOCKS_PORT);
-        QDesktopServices::openUrl(QUrl(url));
-        qDebug() << "Application: отправлен моникер для подключения Telegram к прокси";
-    } else {
+    if (!TelegramManager::isProcessRunning()) {
         // Telegram не запущен — уведомляем пользователя
         m_trayManager->showMessage(
             tr("Telegram не запущен"),
@@ -404,7 +397,31 @@ void Application::onConfigureTelegram() {
             3000
         );
         qDebug() << "Application: Telegram Desktop не запущен";
+        return;
     }
+
+    // Если прокси остановлен — запускаем его до отправки моникера,
+    // иначе Telegram будет настроен на мёртвый порт
+    if (!m_proxyRunning) {
+        qDebug() << "Application: прокси остановлен, автозапуск перед подключением Telegram";
+        if (!startProxy()) {
+            // startProxy() уже уведомил пользователя о сбое
+            return;
+        }
+        m_trayManager->showMessage(
+            tr("Прокси запущен"),
+            tr("Подключаем Telegram..."),
+            QSystemTrayIcon::Information,
+            3000
+        );
+    }
+
+    // Telegram запущен, прокси работает — открываем моникер
+    QString url = QString("tg://socks?server=%1&port=%2")
+        .arg(Config::SOCKS_SERVER)
+        .arg(Config::SOCKS_PORT);
+    QDesktopServices::openUrl(QUrl(url));
+    qDebug() << "Application: отправлен моникер для подключения Telegram к прокси";
 }
 
 void Application::onCheckUpdatesRequested() {

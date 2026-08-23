@@ -11,10 +11,11 @@
 ## Quick Start
 
 1. Launch **GhostWire Desktop**.
-2. Click **Start** in the app menu.
-3. Open **Telegram Desktop**.
-4. Click **Connect Telegram**.
-5. Confirm the SOCKS5 proxy configuration in Telegram.
+2. Open **Telegram Desktop**.
+3. Click **Connect Telegram** in the app menu.
+4. Confirm the SOCKS5 proxy configuration in Telegram.
+
+If the proxy is stopped, clicking **Connect Telegram** starts it automatically.
 
 If automatic setup does not open, configure Telegram manually:
 
@@ -124,7 +125,7 @@ macOS
 |---|---|
 | **Start** | Starts the local SOCKS5 proxy at `127.0.0.1:1080` |
 | **Stop** | Stops the proxy and clears the current statistics |
-| **Connect Telegram** | Opens Telegram with a ready-to-use SOCKS5 setup |
+| **Connect Telegram** | Starts the proxy if it is stopped, then opens Telegram with a ready-to-use SOCKS5 setup |
 | **Check for updates** | Checks GitHub for a new version |
 | **Exit** | Quits the application |
 
