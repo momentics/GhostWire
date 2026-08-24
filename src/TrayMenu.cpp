@@ -2,6 +2,9 @@
 #include "StatsPanel.h"
 #include "SparklineWidget.h"
 #include "Config.h"
+#ifdef Q_OS_MAC
+#include "MacPlatformIntegration.h"
+#endif
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFrame>
@@ -9,18 +12,46 @@
 #include <QMouseEvent>
 #include <QApplication>
 #include <QDebug>
+#include <QScopedValueRollback>
+
+namespace {
+bool isDarkPalette(const QPalette& palette) {
+    return palette.color(QPalette::Window).lightness() < 128;
+}
+
+QString separatorStyle() {
+#ifdef Q_OS_MAC
+    return isDarkPalette(QApplication::palette())
+        ? QStringLiteral("QFrame { background-color: rgba(235, 235, 245, 36); margin: 2px 0; max-height: 1px; }")
+        : QStringLiteral("QFrame { background-color: rgba(60, 60, 67, 44); margin: 2px 0; max-height: 1px; }");
+#else
+    return QStringLiteral("QFrame { background-color: #555; margin: 0 6px; }");
+#endif
+}
+} // namespace
 
 TrayMenu::TrayMenu(QWidget* parent)
     : QWidget(parent, makeWindowFlags())
     , m_autoHideTimer(std::make_unique<QTimer>(this))
     , m_ipcTimeoutTimer(std::make_unique<QTimer>(this))
 {
+#ifdef Q_OS_MAC
+    setAttribute(Qt::WA_TranslucentBackground, true);
+    setAttribute(Qt::WA_NoSystemBackground, true);
+    setWindowOpacity(1.0);
+#else
     setAttribute(Qt::WA_TranslucentBackground, false);
-    setAttribute(Qt::WA_DeleteOnClose, false);
     setWindowOpacity(0.95);
+#endif
+    setAttribute(Qt::WA_DeleteOnClose, false);
 
+#ifdef Q_OS_MAC
+    setFixedWidth(320);
+    setMaximumWidth(320);
+#else
     setFixedWidth(Config::MENU_WIDTH);
     setMaximumWidth(Config::MENU_WIDTH);
+#endif
 
     m_autoHideTimer->setSingleShot(true);
     m_autoHideTimer->setInterval(50);
@@ -32,7 +63,7 @@ TrayMenu::TrayMenu(QWidget* parent)
         // Срабатывает, если был запущен второй экземпляр, но пользователь не пошевелил мышью
         // Если мышь не над меню и фокуса нет, скрываем
         if (!underMouse() && (qApp->applicationState() != Qt::ApplicationActive)) {
-            hide();
+            hideMenu();
         }
     });
 
@@ -42,19 +73,24 @@ TrayMenu::TrayMenu(QWidget* parent)
 Qt::WindowFlags TrayMenu::makeWindowFlags() {
 #ifdef Q_OS_LINUX
     return Qt::FramelessWindowHint | Qt::Tool | Qt::WindowStaysOnTopHint;
+#elif defined(Q_OS_MAC)
+    return Qt::Widget;
 #else
     return Qt::FramelessWindowHint | Qt::Popup;
 #endif
 }
 
 bool TrayMenu::event(QEvent* event) {
+    if (event->type() == QEvent::ApplicationPaletteChange
+        || event->type() == QEvent::PaletteChange) {
+        applyPlatformStyle();
+    }
+
     if (event->type() == QEvent::WindowDeactivate) {
         if (!m_ipcMode) m_autoHideTimer->start();
     }
     return QWidget::event(event);
 }
-
-
 
 void TrayMenu::hideEvent(QHideEvent* event) {
     m_autoHideTimer->stop();
@@ -64,50 +100,39 @@ void TrayMenu::hideEvent(QHideEvent* event) {
     QWidget::hideEvent(event);
 }
 
+void TrayMenu::showEvent(QShowEvent* event) {
+    QWidget::showEvent(event);
+#ifdef Q_OS_MAC
+    MacPlatformIntegration::preparePopoverWindow(this);
+#endif
+}
+
 void TrayMenu::mousePressEvent(QMouseEvent* event) {
     if (!childAt(event->pos())) {
-        hide();
+        hideMenu();
     } else {
         QWidget::mousePressEvent(event);
     }
 }
 
-TrayMenu::~TrayMenu() = default;
+TrayMenu::~TrayMenu() {
+#ifdef Q_OS_MAC
+    MacPlatformIntegration::detachPopoverContent(this);
+#endif
+}
 
 void TrayMenu::buildLayout() {
     auto* mainLayout = new QVBoxLayout(this);
+#ifdef Q_OS_MAC
+    mainLayout->setContentsMargins(12, 10, 12, 12);
+    mainLayout->setSpacing(8);
+#else
     mainLayout->setContentsMargins(4, 4, 4, 4);
     mainLayout->setSpacing(4);
+#endif
 
     // Используем размер шрифта в пунктах, чтобы всплывающее меню следовало системному масштабу DPI.
-    setStyleSheet(R"(
-        TrayMenu {
-            background-color: #2b2b2b;
-            border: 1px solid #555;
-            border-radius: 6px;
-            font-size: 8.25pt;
-        }
-        QLabel {
-            color: #ddd;
-            padding: 2px 0;
-            font-size: 8.25pt;
-        }
-        QPushButton {
-            color: #ddd;
-            background-color: transparent;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 16px;
-            text-align: left;
-            font-size: 8.25pt;
-        }
-        QPushButton:hover {
-            background-color: #3a3a3a;
-        }
-        QPushButton:pressed {
-            background-color: #444;
-        }
-    )");
+    applyPlatformStyle();
 
     // Статистика
     m_statsPanel = new StatsPanel(this);
@@ -118,11 +143,11 @@ void TrayMenu::buildLayout() {
     mainLayout->addWidget(m_sparkline);
 
     // Разделитель
-    auto* line = new QFrame(this);
-    line->setFrameShape(QFrame::HLine);
-    line->setFrameShadow(QFrame::Sunken);
-    line->setStyleSheet("QFrame { background-color: #555; margin: 0 6px; }");
-    mainLayout->addWidget(line);
+    m_separator = new QFrame(this);
+    m_separator->setFrameShape(QFrame::HLine);
+    m_separator->setFrameShadow(QFrame::Sunken);
+    m_separator->setStyleSheet(separatorStyle());
+    mainLayout->addWidget(m_separator);
 
     // Кнопка Старт/Стоп
     m_toggleButton = new QPushButton(tr("Старт"), this);
@@ -157,6 +182,94 @@ void TrayMenu::buildLayout() {
     mainLayout->addWidget(m_exitButton);
 }
 
+void TrayMenu::applyPlatformStyle() {
+    if (m_applyingPlatformStyle) {
+        return;
+    }
+
+    QScopedValueRollback<bool> applyingGuard(m_applyingPlatformStyle, true);
+
+#ifdef Q_OS_MAC
+    const bool dark = isDarkPalette(QApplication::palette());
+    const QString text = dark
+        ? QStringLiteral("#f5f5f7")
+        : QStringLiteral("#1d1d1f");
+    const QString hover = dark
+        ? QStringLiteral("rgba(10, 132, 255, 58)")
+        : QStringLiteral("rgba(0, 122, 255, 32)");
+    const QString pressed = dark
+        ? QStringLiteral("rgba(10, 132, 255, 82)")
+        : QStringLiteral("rgba(0, 122, 255, 50)");
+
+    const QString platformStyle = QString(R"(
+        TrayMenu {
+            background-color: transparent;
+            border: none;
+            font-size: 10.5pt;
+        }
+        QLabel {
+            color: %1;
+            padding: 1px 0;
+            font-size: 10.5pt;
+        }
+        QPushButton {
+            color: %1;
+            background-color: transparent;
+            border: none;
+            border-radius: 7px;
+            min-height: 24px;
+            padding: 5px 10px;
+            text-align: left;
+            font-size: 10.5pt;
+        }
+        QPushButton:hover {
+            background-color: %2;
+        }
+        QPushButton:pressed {
+            background-color: %3;
+        }
+    )").arg(text, hover, pressed);
+#else
+    const QString platformStyle = QStringLiteral(R"(
+        TrayMenu {
+            background-color: #2b2b2b;
+            border: 1px solid #555;
+            border-radius: 6px;
+            font-size: 8.25pt;
+        }
+        QLabel {
+            color: #ddd;
+            padding: 2px 0;
+            font-size: 8.25pt;
+        }
+        QPushButton {
+            color: #ddd;
+            background-color: transparent;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 16px;
+            text-align: left;
+            font-size: 8.25pt;
+        }
+        QPushButton:hover {
+            background-color: #3a3a3a;
+        }
+        QPushButton:pressed {
+            background-color: #444;
+        }
+    )");
+#endif
+
+    if (m_appliedPlatformStyle != platformStyle) {
+        m_appliedPlatformStyle = platformStyle;
+        setStyleSheet(platformStyle);
+    }
+
+    if (m_separator) {
+        m_separator->setStyleSheet(separatorStyle());
+    }
+}
+
 void TrayMenu::setStats(uint64_t uptimeSecs, uint64_t websocketActive, uint64_t websocketPeak,
                         uint64_t ipRotations, uint64_t ipSucRotations, 
                         double peakRx, double peakTx,
@@ -184,7 +297,11 @@ void TrayMenu::setRunningState(bool running) {
 }
 
 void TrayMenu::hideMenu() {
+#ifdef Q_OS_MAC
+    MacPlatformIntegration::closePopover();
+#else
     hide();
+#endif
 }
 
 void TrayMenu::tryHideMenu() {
@@ -205,11 +322,11 @@ void TrayMenu::tryHideMenu() {
         // Если приложение потеряло фокус оконного менеджера (клик вне приложения),
         // qApp->applicationState() станет Inactive. Тогда isFocused = false.
         if (!isFocused || (canHide && !underMouse() && !isAppActive)) {
-            hide();
+            hideMenu();
         }
     } else {
         if (!underMouse() && !isFocused) {
-            hide();
+            hideMenu();
         }
     }
 }

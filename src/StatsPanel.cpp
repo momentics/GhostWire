@@ -2,8 +2,35 @@
 #include "Utils.h"
 #include <QFont>
 #include <QApplication>
+#include <QEvent>
 #include <QHBoxLayout>
 #include <QFontMetrics>
+
+namespace {
+bool isDarkPalette(const QPalette& palette) {
+    return palette.color(QPalette::Window).lightness() < 128;
+}
+
+QString secondaryLabelStyle() {
+#ifdef Q_OS_MAC
+    return isDarkPalette(QApplication::palette())
+        ? QStringLiteral("color: rgba(235, 235, 245, 153);")
+        : QStringLiteral("color: rgba(60, 60, 67, 166);");
+#else
+    return QStringLiteral("color: #aaa;");
+#endif
+}
+
+QString versionLabelStyle() {
+#ifdef Q_OS_MAC
+    return isDarkPalette(QApplication::palette())
+        ? QStringLiteral("color: rgba(235, 235, 245, 112); background: transparent;")
+        : QStringLiteral("color: rgba(60, 60, 67, 128); background: transparent;");
+#else
+    return QStringLiteral("color: #888; background: transparent;");
+#endif
+}
+} // namespace
 
 StatsPanel::StatsPanel(QWidget* parent)
     : QWidget(parent)
@@ -24,8 +51,8 @@ StatsPanel::StatsPanel(QWidget* parent)
 
     auto* labelUptimeText = new QLabel(tr("Работает:"), this);
     labelUptimeText->setFont(baseFont);
-    labelUptimeText->setStyleSheet("color: #aaa;");
     m_gridLayout->addWidget(labelUptimeText, 0, 0, Qt::AlignLeft);
+    m_secondaryLabels.append(labelUptimeText);
 
     m_labelUptime = new QLabel(this);
     m_labelUptime->setFont(baseFont);
@@ -33,8 +60,8 @@ StatsPanel::StatsPanel(QWidget* parent)
 
     auto* labelConnections = new QLabel(tr("Соединений:"), this);
     labelConnections->setFont(baseFont);
-    labelConnections->setStyleSheet("color: #aaa;");
     m_gridLayout->addWidget(labelConnections, 1, 0, Qt::AlignLeft);
+    m_secondaryLabels.append(labelConnections);
 
     m_labelConnections = new QLabel(this);
     m_labelConnections->setFont(baseFont);
@@ -42,8 +69,8 @@ StatsPanel::StatsPanel(QWidget* parent)
 
     auto* labelRotations = new QLabel(tr("Ротаций:"), this);
     labelRotations->setFont(baseFont);
-    labelRotations->setStyleSheet("color: #aaa;");
     m_gridLayout->addWidget(labelRotations, 2, 0, Qt::AlignLeft);
+    m_secondaryLabels.append(labelRotations);
 
     m_labelRotations = new QLabel(this);
     m_labelRotations->setFont(baseFont);
@@ -51,8 +78,8 @@ StatsPanel::StatsPanel(QWidget* parent)
 
     auto* labelPeak = new QLabel(tr("Пик:"), this);
     labelPeak->setFont(baseFont);
-    labelPeak->setStyleSheet("color: #aaa;");
     m_gridLayout->addWidget(labelPeak, 3, 0, Qt::AlignLeft);
+    m_secondaryLabels.append(labelPeak);
 
     m_labelPeak = new QLabel(this);
     m_labelPeak->setFont(baseFont);
@@ -60,8 +87,8 @@ StatsPanel::StatsPanel(QWidget* parent)
 
     auto* labelTotal = new QLabel(tr("Всего:"), this);
     labelTotal->setFont(baseFont);
-    labelTotal->setStyleSheet("color: #aaa;");
     m_gridLayout->addWidget(labelTotal, 4, 0, Qt::AlignLeft);
+    m_secondaryLabels.append(labelTotal);
 
     m_labelTotal = new QLabel(this);
     m_labelTotal->setFont(baseFont);
@@ -73,7 +100,7 @@ StatsPanel::StatsPanel(QWidget* parent)
     // Ширина колонки 0 = самый длинный лейбл
     QFontMetrics fm(baseFont);
     int maxLabelWidth = 0;
-    for (const auto* lbl : {labelUptimeText, labelConnections, labelPeak, labelTotal}) {
+    for (const auto* lbl : {labelUptimeText, labelConnections, labelRotations, labelPeak, labelTotal}) {
         int w = fm.horizontalAdvance(lbl->text());
         if (w > maxLabelWidth) maxLabelWidth = w;
     }
@@ -84,7 +111,6 @@ StatsPanel::StatsPanel(QWidget* parent)
     // Версия — поверх грида, справа, без добавления высоты
     m_labelVersion = new QLabel(this);
     m_labelVersion->setFont(baseFont);
-    m_labelVersion->setStyleSheet("color: #888; background: transparent;");
     m_labelVersion->setAttribute(Qt::WA_TransparentForMouseEvents);
     QString version = QCoreApplication::applicationVersion();
     if (!version.isEmpty()) {
@@ -93,6 +119,27 @@ StatsPanel::StatsPanel(QWidget* parent)
     m_labelVersion->show();
     m_labelVersion->raise();
     mainLayout->addStretch();
+
+    applyPlatformStyle();
+}
+
+bool StatsPanel::event(QEvent* event) {
+    if (event->type() == QEvent::ApplicationPaletteChange
+        || event->type() == QEvent::PaletteChange) {
+        applyPlatformStyle();
+    }
+    return QWidget::event(event);
+}
+
+void StatsPanel::applyPlatformStyle() {
+    const QString secondaryStyle = secondaryLabelStyle();
+    for (auto* label : m_secondaryLabels) {
+        label->setStyleSheet(secondaryStyle);
+    }
+
+    if (m_labelVersion) {
+        m_labelVersion->setStyleSheet(versionLabelStyle());
+    }
 }
 
 void StatsPanel::resizeEvent(QResizeEvent* event) {

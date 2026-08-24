@@ -44,6 +44,7 @@ private:
     QColor m_txColor;
     QColor m_gridColor;
     QColor m_textColor;
+    QColor m_backgroundColor;
 
     QFont m_labelFont;
     QFont m_legendFont;
@@ -54,4 +55,5 @@ private:
     void drawYLabels(QPainter& painter, const QString& label);
     void drawLegend(QPainter& painter);
     void updatePointsCache(double maxVal);
+    void updatePlatformColors();
 };
